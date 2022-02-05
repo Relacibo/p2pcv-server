@@ -1,0 +1,9 @@
+{
+    "recommendations": [
+        "vadimcn.vscode-lldb",
+        "ms-azuretools.vscode-docker",
+        "matklad.rust-analyzer",
+        "ms-vscode-remote.remote-containers",
+        "formulahendry.code-runner"
+    ]
+}
