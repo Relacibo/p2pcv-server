@@ -8,11 +8,24 @@
 	// Set *default* container specific settings.json values on container create.
 	"settings": {
 		"lldb.executable": "/usr/bin/lldb",
-		// VS Code don't watch files under ./target
+		// VS Code don't watch files under ./targets
 		"files.watcherExclude": {
 			"**/target/**": true
 		},
-		"rust-analyzer.checkOnSave.command": "clippy"
+		"rust-analyzer.checkOnSave.command": "clippy",
+		"sqltools.autoConnectTo": "postgres",
+		"sqltools.connections": [
+			{
+				"previewLimit": 50,
+				"server": "localhost",
+				"port": 5432,
+				"driver": "PostgreSQL",
+				"name": "postgres",
+				"database": "postgres",
+				"username": "postgres",
+				"password": "postgres"
+			}
+		]
 	},
 
 	// Add the IDs of extensions you want installed when the container is created.
@@ -23,14 +36,15 @@
 		"tamasfe.even-better-toml",
 		"serayuzgur.crates",
         "adpyke.vscode-sql-formatter",
-		"mtxr.sqltools"
+		"mtxr.sqltools",
+		"mtxr.sqltools-driver-pg"
 	],
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	"forwardPorts": ["${containerEnv:ROCKET_PORT}"],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "diesel migration run",
+	"postCreateCommand": "rustup default nightly && cargo install diesel_cli --no-default-features --features postgres && diesel migration run",
 
 	// Comment out to connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
 	"remoteUser": "vscode"
