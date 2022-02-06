@@ -4,6 +4,9 @@
         "ms-azuretools.vscode-docker",
         "matklad.rust-analyzer",
         "ms-vscode-remote.remote-containers",
-        "formulahendry.code-runner"
+        "tamasfe.even-better-toml",
+        "serayuzgur.crates",
+        "adpyke.vscode-sql-formatter",
+        "ckolkman.vscode-postgres"
     ]
 }

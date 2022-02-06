@@ -1,0 +1,4 @@
+{
+    "sql-formatter.dialect": "pl/sql",
+    "sql-formatter.linesBetweenQueries": 1
+}
