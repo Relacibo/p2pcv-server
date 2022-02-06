@@ -41,7 +41,7 @@
 	],
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
-	"forwardPorts": ["${containerEnv:ROCKET_PORT}"],
+	"forwardPorts": ["rocket:${containerEnv:ROCKET_PORT}"],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
 	"postCreateCommand": "rustup default nightly && cargo install diesel_cli --no-default-features --features postgres && diesel migration run",
