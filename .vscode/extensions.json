@@ -6,7 +6,7 @@
         "ms-vscode-remote.remote-containers",
         "tamasfe.even-better-toml",
         "serayuzgur.crates",
-        "adpyke.vscode-sql-formatter",
-        "ckolkman.vscode-postgres"
+		"mtxr.sqltools",
+		"mtxr.sqltools-driver-pg"
     ]
 }

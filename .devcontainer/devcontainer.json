@@ -35,7 +35,6 @@
 		"matklad.rust-analyzer",
 		"tamasfe.even-better-toml",
 		"serayuzgur.crates",
-        "adpyke.vscode-sql-formatter",
 		"mtxr.sqltools",
 		"mtxr.sqltools-driver-pg"
 	],
@@ -44,7 +43,7 @@
 	"forwardPorts": ["rocket:${containerEnv:ROCKET_PORT}"],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "rustup default nightly && cargo install diesel_cli --no-default-features --features postgres && diesel migration run",
+	"postCreateCommand": "cargo clean && cargo update && cargo install diesel_cli --no-default-features --features postgres && diesel migration run",
 
 	// Comment out to connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
 	"remoteUser": "vscode"
