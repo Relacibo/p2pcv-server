@@ -3,16 +3,11 @@ use diesel::pg::PgConnection;
 use diesel::prelude::*;
 
 use uuid::Uuid;
+use crate::schema::users as users_table;
 
-use std::env;
-
-use crate::models;
-use crate::schema;
-
-use models::{EditUser, NewUser};
-
-#[derive(Queryable)]
+#[derive(Serialize, Queryable)]
 pub struct User {
+    #[serde(skip)]
     pub id: i64,
     pub uuid: Uuid,
     pub name: String,
@@ -21,29 +16,46 @@ pub struct User {
     pub updated_at: NaiveDateTime,
 }
 
+#[derive(Insertable, Deserialize)]
+#[table_name = "users_table"]
+pub struct NewUser<'a> {
+    pub name: &'a str,
+    pub email: &'a str,
+}
+
+#[derive(AsChangeset, Deserialize)]
+#[table_name = "users_table"]
+pub struct EditUser<'a> {
+    pub name: Option<&'a str>,
+    pub email: Option<&'a str>,
+}
+
+
 impl User {
-    pub fn add_user(conn: &PgConnection, user: NewUser) -> QueryResult<usize> {
-        use schema::users::dsl;
+    pub fn add(conn: &PgConnection, user: NewUser) -> QueryResult<usize> {
+        use users_table::dsl;
         diesel::insert_into(dsl::users).values(user).execute(conn)
     }
 
-    pub fn edit_user(conn: &PgConnection, edit: EditUser) -> QueryResult<usize> {
-        use schema::users::dsl::*;
-        diesel::update(users).set(&edit).execute(conn)
+    pub fn edit(conn: &PgConnection, uuid: Uuid, edit: EditUser) -> QueryResult<usize> {
+        use users_table::dsl::{users, uuid as dbUuid};
+        diesel::update(users.filter(dbUuid.eq(uuid)))
+            .set(&edit)
+            .execute(conn)
     }
 
-    pub fn delete_user(conn: &PgConnection, uuid: Uuid) -> QueryResult<usize> {
-        use schema::users::dsl::{users, uuid as dbUuid};
+    pub fn delete(conn: &PgConnection, uuid: Uuid) -> QueryResult<usize> {
+        use users_table::dsl::{users, uuid as dbUuid};
         diesel::delete(users.filter(dbUuid.eq(uuid))).execute(conn)
     }
 
-    pub fn get_users(conn: &PgConnection) -> QueryResult<Vec<User>> {
-        use schema::users::dsl::*;
+    pub fn list(conn: &PgConnection) -> QueryResult<Vec<User>> {
+        use users_table::dsl::*;
         users.get_results(conn)
     }
 
-    pub fn get_user(conn: &PgConnection, uuid: Uuid) -> QueryResult<User> {
-        use schema::users::dsl::{users, uuid as dbUuid};
+    pub fn get(conn: &PgConnection, uuid: Uuid) -> QueryResult<User> {
+        use users_table::dsl::{users, uuid as dbUuid};
         users.filter(dbUuid.eq(uuid)).get_result(conn)
     }
 }

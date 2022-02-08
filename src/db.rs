@@ -1,33 +1,34 @@
 use diesel::pg::PgConnection;
-use r2d2;
+use r2d2::Pool;
 use r2d2_diesel::ConnectionManager;
 use rocket::http::Status;
 use rocket::request::{self, FromRequest};
-use rocket::{Outcome, Request, State};
+use rocket::{Request, State};
 use std::ops::Deref;
+use rocket::outcome::{try_outcome, Outcome::{*}};
 
-pub type Pool = r2d2::Pool<ConnectionManager<PgConnection>>;
+pub type DbPool = Pool<ConnectionManager<PgConnection>>;
 
-pub fn init_pool(db_url: String) -> Pool {
+pub fn init_pool(db_url: String) -> DbPool {
     let manager = ConnectionManager::<PgConnection>::new(db_url);
-    r2d2::Pool::new(manager).expect("db pool failure")
+    Pool::new(manager).expect("db pool failure")
 }
 
-pub struct Conn(pub r2d2::PooledConnection<ConnectionManager<PgConnection>>);
+pub struct DbConnection(pub r2d2::PooledConnection<ConnectionManager<PgConnection>>);
 
-impl<'a, 'r> FromRequest<'a, 'r> for Conn {
+#[rocket::async_trait]
+impl<'a> FromRequest<'a> for DbConnection {
     type Error = ();
-
-    fn from_request(request: &'a Request<'r>) -> request::Outcome<Conn, ()> {
-        let pool = request.guard::<State<Pool>>()?;
+    async fn from_request(request: &'a Request<'_>) -> request::Outcome<DbConnection, ()> {
+        let pool = try_outcome!(request.guard::<&State<DbPool>>().await);
         match pool.get() {
-            Ok(conn) => Outcome::Success(Conn(conn)),
-            Err(_) => Outcome::Failure((Status::ServiceUnavailable, ())),
+            Ok(conn) => Success(DbConnection(conn)),
+            Err(_) => Failure((Status::ServiceUnavailable, ())),
         }
     }
 }
 
-impl Deref for Conn {
+impl Deref for DbConnection {
     type Target = PgConnection;
 
     #[inline(always)]
