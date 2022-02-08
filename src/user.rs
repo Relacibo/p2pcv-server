@@ -18,16 +18,16 @@ pub struct User {
 
 #[derive(Insertable, Deserialize)]
 #[table_name = "users_table"]
-pub struct NewUser<'a> {
-    pub name: &'a str,
-    pub email: &'a str,
+pub struct NewUser {
+    pub name: String,
+    pub email: String,
 }
 
 #[derive(AsChangeset, Deserialize)]
 #[table_name = "users_table"]
-pub struct EditUser<'a> {
-    pub name: Option<&'a str>,
-    pub email: Option<&'a str>,
+pub struct EditUser {
+    pub name: Option<String>,
+    pub email: Option<String>,
 }
 
 
