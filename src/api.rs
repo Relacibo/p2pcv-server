@@ -1,41 +1,39 @@
-use crate::{user::*, DbConnection, DbPool};
-use actix_web::error::{ErrorInternalServerError};
+use std::ops::Deref;
+
+use crate::error;
+use crate::{user::*, DbPool};
 use actix_web::web::{block, Data, Json, Path};
-use actix_web::Responder;
+use serde_json::Value;
 use uuid::Uuid;
 
 #[get("")]
-pub async fn list_users<'a>(pool: Data<DbPool>) -> impl Responder {
-    block(move || {
-        let conn = pool.get().expect("Pool is not in app_data");
-        User::list(&conn).map(Json)
-    })
-    .await?
-    .map_err(map_db_error)
+pub async fn list_users<'a>(pool: Data<DbPool>) -> Result<Json<Vec<User>>, error::Error> {
+    block(move || Ok(User::list(pool.get()?.deref()).map(Json)?)).await?
 }
 
 #[delete("/{uuid}")]
-pub async fn delete_user<'a>(pool: Data<DbPool>, uuid: Path<Uuid>) -> impl Responder {
-    block(move || User::delete(&get_conn(pool), *uuid))
-        .await?
-        .map(|val| Json(json!({ "value": val })))
-        .map_err(map_db_error)
+pub async fn delete_user<'a>(
+    pool: Data<DbPool>,
+    uuid: Path<Uuid>,
+) -> Result<Json<Value>, error::Error> {
+    block(move || Ok(User::delete(pool.get()?.deref(), *uuid).map(val_to_json)?)).await?
 }
 
 #[post("")]
-pub async fn new_user<'a>(pool: Data<DbPool>, new_user: Json<NewUser>) -> impl Responder {
-    block(move || User::add(&get_conn(pool), new_user.into_inner()))
+pub async fn new_user<'a>(
+    pool: Data<DbPool>,
+    new_user: Json<NewUser>,
+) -> Result<Json<Value>, error::Error> {
+    block(move || Ok(User::add(pool.get()?.deref(), new_user.into_inner()).map(val_to_json)?))
         .await?
-        .map(|val| Json(json!({ "value": val })))
-        .map_err(map_db_error)
 }
 
 #[get("/{uuid}")]
-pub async fn get_user<'a>(pool: Data<DbPool>, uuid: Path<Uuid>) -> impl Responder {
-    block(move || User::get(&get_conn(pool), *uuid))
-        .await?
-        .map(Json)
-        .map_err(map_db_error)
+pub async fn get_user<'a>(
+    pool: Data<DbPool>,
+    uuid: Path<Uuid>,
+) -> Result<Json<User>, error::Error> {
+    block(move || Ok(User::get(pool.get()?.deref(), *uuid).map(Json)?)).await?
 }
 
 #[post("/{uuid}")]
@@ -43,21 +41,13 @@ pub async fn edit_user(
     pool: Data<DbPool>,
     uuid: Path<Uuid>,
     edit_user: Json<EditUser>,
-) -> impl Responder {
-    block(move || User::edit(&get_conn(pool), *uuid, edit_user.into_inner()))
-        .await?
-        .map(|val| Json(json!({ "value": val })))
-        .map_err(map_db_error)
+) -> Result<Json<Value>, error::Error> {
+    block(move || {
+        Ok(User::edit(pool.get()?.deref(), *uuid, edit_user.into_inner()).map(val_to_json)?)
+    })
+    .await?
 }
 
-fn map_db_error(err: diesel::result::Error) -> actix_web::Error {
-    match err {
-        _ => ErrorInternalServerError(err.to_string()),
-    }
-}
-
-fn get_conn(
-    pool: Data<DbPool>,
-) -> DbConnection {
-    pool.get().expect("Pool is not in app_data")
+fn val_to_json(val: usize) -> Json<Value> {
+    Json(json!({ "result": val }))
 }

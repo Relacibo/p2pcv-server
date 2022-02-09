@@ -24,6 +24,7 @@ use std::env;
 mod api;
 pub mod schema;
 pub mod user;
+pub mod error;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
