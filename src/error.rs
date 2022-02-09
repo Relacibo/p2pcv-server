@@ -8,26 +8,28 @@ pub enum Error {
     R2d2Error(r2d2::Error),
 }
 
-impl From<Error> for actix_web::error::Error {
-    fn from(err: Error) -> Self {
-        use actix_web::error::{ErrorBadRequest, ErrorInternalServerError, ErrorNotFound};
+impl actix_web::ResponseError for Error {
+    fn error_response(&self) -> actix_web::HttpResponse<actix_web::body::BoxBody> {
+        use actix_web::HttpResponse;
         use diesel::result::Error::{
             AlreadyInTransaction, DatabaseError, DeserializationError, NotFound, QueryBuilderError,
             SerializationError,
         };
         use Error::*;
-        match err {
-            ActixBlockingError(actix_error) => ErrorInternalServerError(actix_error),
-            R2d2Error(r2d2_error) => ErrorInternalServerError(r2d2_error),
-            DieselError(diesel_error) => match diesel_error {
-                DatabaseError(_, _) => ErrorInternalServerError(diesel_error),
-                NotFound => ErrorNotFound(diesel_error),
-                QueryBuilderError(_) => ErrorBadRequest(diesel_error),
-                SerializationError(_) | DeserializationError(_) => ErrorBadRequest(diesel_error),
-                AlreadyInTransaction => ErrorInternalServerError(diesel_error),
-                _ => ErrorInternalServerError(diesel_error),
+        let mut ret = match self {
+            ActixBlockingError(_) => HttpResponse::InternalServerError(),
+            R2d2Error(_) => HttpResponse::InternalServerError(),
+            DieselError(diesel_err) => match diesel_err {
+                DatabaseError(_, _) => HttpResponse::InternalServerError(),
+                NotFound => HttpResponse::NotFound(),
+                QueryBuilderError(_) => HttpResponse::BadRequest(),
+                SerializationError(_) | DeserializationError(_) => HttpResponse::BadRequest(),
+                AlreadyInTransaction => HttpResponse::InternalServerError(),
+                _ => HttpResponse::InternalServerError(),
             },
-        }
+        };
+        // https://github.com/actix/actix-web/issues/1163
+        ret.json(json!({"error": self.to_string()}))
     }
 }
 
