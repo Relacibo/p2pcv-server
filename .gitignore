@@ -5,3 +5,6 @@
 # Added by cargo
 
 /target
+.env*
+!.env.project
+!.devcontainer/.env
