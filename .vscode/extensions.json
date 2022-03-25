@@ -5,8 +5,6 @@
         "matklad.rust-analyzer",
         "ms-vscode-remote.remote-containers",
         "tamasfe.even-better-toml",
-        "serayuzgur.crates",
-		"mtxr.sqltools",
-		"mtxr.sqltools-driver-pg"
+        "serayuzgur.crates"
     ]
 }

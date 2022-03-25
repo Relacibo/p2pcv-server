@@ -22,9 +22,9 @@ use r2d2_diesel::ConnectionManager;
 use std::env;
 
 mod api;
+pub mod error;
 pub mod schema;
 pub mod user;
-pub mod error;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -56,3 +56,5 @@ async fn main() -> std::io::Result<()> {
 
 pub type DbPool = r2d2::Pool<ConnectionManager<PgConnection>>;
 pub type DbConnection = r2d2::PooledConnection<ConnectionManager<PgConnection>>;
+
+// https://github.com/googleapis/google-api-nodejs-client

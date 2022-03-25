@@ -1,4 +1,12 @@
 {
     "sql-formatter.dialect": "pl/sql",
-    "sql-formatter.linesBetweenQueries": 1
+    "sql-formatter.linesBetweenQueries": 1,
+    "files.watcherExclude": {
+        "**/.git/objects/**": true,
+        "**/.git/subtree-cache/**": true,
+        "**/node_modules/*/**": true,
+        "**/.hg/store/**": true,
+        ".flatpak/**": true,
+        "_build/**": true
+    }
 }

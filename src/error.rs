@@ -1,6 +1,8 @@
 use core::fmt;
 use std::error;
 
+use actix_web::{http::StatusCode, HttpResponse, HttpResponseBuilder};
+
 #[derive(Debug)]
 pub enum Error {
     ActixBlockingError(actix_web::error::BlockingError),
@@ -10,27 +12,50 @@ pub enum Error {
 
 impl actix_web::ResponseError for Error {
     fn error_response(&self) -> actix_web::HttpResponse<actix_web::body::BoxBody> {
-        use actix_web::HttpResponse;
         use diesel::result::Error::{
-            AlreadyInTransaction, DatabaseError, DeserializationError, NotFound, QueryBuilderError,
-            SerializationError,
+            DeserializationError, NotFound, QueryBuilderError, SerializationError,
         };
         use Error::*;
-        let mut ret = match self {
-            ActixBlockingError(_) => HttpResponse::InternalServerError(),
-            R2d2Error(_) => HttpResponse::InternalServerError(),
+        match self {
             DieselError(diesel_err) => match diesel_err {
-                DatabaseError(_, _) => HttpResponse::InternalServerError(),
-                NotFound => HttpResponse::NotFound(),
-                QueryBuilderError(_) => HttpResponse::BadRequest(),
-                SerializationError(_) | DeserializationError(_) => HttpResponse::BadRequest(),
-                AlreadyInTransaction => HttpResponse::InternalServerError(),
-                _ => HttpResponse::InternalServerError(),
+                NotFound => {
+                    from_error(StatusCode::NOT_FOUND, diesel_err.to_string().as_str(), None)
+                }
+                QueryBuilderError(_) | SerializationError(_) | DeserializationError(_) => {
+                    from_error(
+                        StatusCode::BAD_REQUEST,
+                        diesel_err.to_string().as_str(),
+                        None,
+                    )
+                }
+                _ => server_error(),
             },
-        };
-        // https://github.com/actix/actix-web/issues/1163
-        ret.json(json!({"error": self.to_string()}))
+            _ => server_error(),
+        }
     }
+}
+
+fn server_error() -> actix_web::HttpResponse<actix_web::body::BoxBody> {
+    from_error(
+        StatusCode::INTERNAL_SERVER_ERROR,
+        "internal server error",
+        None,
+    )
+}
+
+#[derive(Serialize)]
+struct JsonError<'a> {
+    error: &'a str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    data: Option<&'a str>,
+}
+
+fn from_error<'a>(
+    status: StatusCode,
+    error: &'a str,
+    data: Option<&'a str>,
+) -> actix_web::HttpResponse<actix_web::body::BoxBody> {
+    HttpResponseBuilder::new(status).json(JsonError { error, data })
 }
 
 impl fmt::Display for Error {

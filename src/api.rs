@@ -49,5 +49,5 @@ pub async fn edit_user(
 }
 
 fn val_to_json(val: usize) -> Json<Value> {
-    Json(json!({ "result": val }))
+    Json(json!({ "changed": val }))
 }
