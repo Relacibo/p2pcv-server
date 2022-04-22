@@ -17,14 +17,12 @@ extern crate serde_derive;
 #[macro_use]
 extern crate serde_json;
 
-use api::*;
 use r2d2_diesel::ConnectionManager;
 use std::env;
 
 mod api;
+mod db;
 pub mod error;
-pub mod schema;
-pub mod user;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -39,15 +37,14 @@ async fn main() -> std::io::Result<()> {
             .app_data(Data::new(pool.clone()))
             .wrap(Logger::default())
             .service(
-                web::scope("/api").service(
-                    web::scope("/users")
-                        .service(list_users)
-                        .service(delete_user)
-                        .service(new_user)
-                        .service(get_user)
-                        .service(edit_user),
-                ),
+                web::scope("/users")
+                    .service(api::user::list_users)
+                    .service(api::user::delete_user)
+                    .service(api::user::new_user)
+                    .service(api::user::get_user)
+                    .service(api::user::edit_user),
             )
+            .service(web::scope("/oauth").service(web::scope("/google").service()))
     })
     .bind(format!("{actix_host}:{actix_port}"))?
     .run()

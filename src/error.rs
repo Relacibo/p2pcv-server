@@ -1,7 +1,7 @@
 use core::fmt;
 use std::error;
 
-use actix_web::{http::StatusCode, HttpResponse, HttpResponseBuilder};
+use actix_web::{http::StatusCode, HttpResponseBuilder};
 
 #[derive(Debug)]
 pub enum Error {

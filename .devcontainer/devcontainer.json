@@ -42,7 +42,7 @@
   ],
 
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
-  "forwardPorts": ["actix:${containerEnv:ACTIX_PORT}"],
+  "forwardPorts": [8000],
   "onCreateCommand": "cargo clean && cargo update && cargo install diesel_cli --no-default-features --features postgres",
   // Use 'postCreateCommand' to run commands after the container is created.
   "postCreateCommand": "diesel migration run",

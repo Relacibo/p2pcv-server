@@ -3,7 +3,7 @@ use diesel::pg::PgConnection;
 use diesel::prelude::*;
 
 use uuid::Uuid;
-use crate::schema::users as users_table;
+use super::schema::users as users_table;
 
 #[derive(Serialize, Queryable)]
 pub struct User {
