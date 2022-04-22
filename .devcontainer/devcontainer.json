@@ -42,7 +42,7 @@
   ],
 
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
-  "forwardPorts": ["rocket:${containerEnv:ROCKET_PORT}"],
+  "forwardPorts": ["actix:${containerEnv:ACTIX_PORT}"],
 
   // Use 'postCreateCommand' to run commands after the container is created.
   "postCreateCommand": "diesel migration run",

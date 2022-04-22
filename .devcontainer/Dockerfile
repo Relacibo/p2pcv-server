@@ -1,5 +1,5 @@
 # [Choice] Debian OS version (use bullseye on local arm64/Apple Silicon): buster, bullseye
-ARG VARIANT="bullseye"
+ARG VARIANT=bullseye
 FROM mcr.microsoft.com/vscode/devcontainers/rust:0-${VARIANT}
 
 # Include lld linker to improve build times either by using environment variable
@@ -8,4 +8,8 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
    && apt-get -y install clang lld \
    && apt-get autoremove -y && apt-get clean -y
 
-RUN su vscode -c "cargo clean && cargo update && cargo install diesel_cli --no-default-features --features postgres"
+WORKDIR /workspace
+
+COPY Cargo.lock Cargo.toml ./
+
+RUN su - vscode -c "cargo clean && cargo update && cargo install diesel_cli --no-default-features --features postgres"
