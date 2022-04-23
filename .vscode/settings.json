@@ -8,5 +8,6 @@
         "**/.hg/store/**": true,
         ".flatpak/**": true,
         "_build/**": true
-    }
+    },
+    "editor.tabSize": 2
 }

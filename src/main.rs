@@ -1,3 +1,6 @@
+#![feature(result_option_inspect)]
+extern crate dotenv;
+use dotenv::dotenv;
 #[macro_use]
 extern crate diesel;
 extern crate r2d2;
@@ -22,16 +25,17 @@ use std::env;
 
 mod api;
 mod db;
-pub mod error;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    dotenv().ok();
     env_logger::init_from_env(Env::default().default_filter_or("debug"));
     let database_url = env::var("DATABASE_URL").unwrap();
     let actix_host = env::var("ACTIX_HOST").unwrap();
     let actix_port = env::var("ACTIX_PORT").unwrap();
     let manager = r2d2_diesel::ConnectionManager::<PgConnection>::new(database_url);
     let pool: DbPool = r2d2::Pool::new(manager).expect("Failed to create pool.");
+
     HttpServer::new(move || {
         App::new()
             .app_data(Data::new(pool.clone()))
@@ -44,7 +48,10 @@ async fn main() -> std::io::Result<()> {
                     .service(api::user::get_user)
                     .service(api::user::edit_user),
             )
-            .service(web::scope("/oauth").service(web::scope("/google").service()))
+            .service(
+                web::scope("/oauth")
+                    .service(web::scope("/google").service(api::google::oauth_endpoint)),
+            )
     })
     .bind(format!("{actix_host}:{actix_port}"))?
     .run()
@@ -53,5 +60,3 @@ async fn main() -> std::io::Result<()> {
 
 pub type DbPool = r2d2::Pool<ConnectionManager<PgConnection>>;
 pub type DbConnection = r2d2::PooledConnection<ConnectionManager<PgConnection>>;
-
-// https://github.com/googleapis/google-api-nodejs-client

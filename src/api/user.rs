@@ -1,10 +1,10 @@
 use std::ops::Deref;
 
-use crate::error;
 use crate::{db::user::{User, NewUser, EditUser}, DbPool};
 use actix_web::web::{block, Data, Json, Path};
 use serde_json::Value;
 use uuid::Uuid;
+use super::error;
 
 #[get("")]
 pub async fn list_users(pool: Data<DbPool>) -> Result<Json<Vec<User>>, error::Error> {

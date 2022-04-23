@@ -8,3 +8,4 @@
 .env*
 !.env.project
 !.devcontainer/.env
+/generated.rs

@@ -38,7 +38,8 @@
     "serayuzgur.crates",
     "mtxr.sqltools",
     "mtxr.sqltools-driver-pg",
-    "rangav.vscode-thunder-client"
+    "rangav.vscode-thunder-client",
+    "EditorConfig.EditorConfig"
   ],
 
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
