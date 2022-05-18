@@ -19,8 +19,13 @@ uuid = { version = "0.8", features = ["serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 jsonwebtoken = "8.1"
 reqwest = "0.11"
+reqwest-middleware = "0.1.6"
 dotenv = "0.15"
 base64 = "0.13"
+tokio = { version = "1.17", features = ["sync"] }
+http-cache-reqwest = { version = "0.4.3", default-features = false, features = [
+  "manager-moka",
+] }
 
 [build-dependencies]
 static-files = "0.2.1"

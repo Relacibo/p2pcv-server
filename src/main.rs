@@ -1,4 +1,6 @@
 #![feature(result_option_inspect)]
+#![feature(async_closure)]
+#![feature(let_chains)]
 extern crate dotenv;
 use dotenv::dotenv;
 #[macro_use]
@@ -20,8 +22,11 @@ extern crate serde_derive;
 #[macro_use]
 extern crate serde_json;
 
+use http_cache_reqwest::{Cache, CacheMode, HttpCache, MokaManager};
 use r2d2_diesel::ConnectionManager;
-use std::env;
+use reqwest::Client;
+use reqwest_middleware::ClientBuilder;
+use std::{env, sync::Arc};
 
 mod api;
 mod db;
@@ -50,7 +55,7 @@ async fn main() -> std::io::Result<()> {
             )
             .service(
                 web::scope("/oauth")
-                    .service(web::scope("/google").service(api::google::oauth_endpoint)),
+                    .service(web::scope("/google").configure(api::google::config).service(api::google::oauth_endpoint)),
             )
     })
     .bind(format!("{actix_host}:{actix_port}"))?
