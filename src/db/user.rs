@@ -32,7 +32,7 @@ pub struct EditUser {
 
 
 impl User {
-    pub fn add(conn: &PgConnection, user: NewUser) -> QueryResult<usize> {
+    pub fn add(conn: &PgConnection, user: NewUser, sessionId: String) -> QueryResult<usize> {
         use users_table::dsl;
         diesel::insert_into(dsl::users).values(user).execute(conn)
     }

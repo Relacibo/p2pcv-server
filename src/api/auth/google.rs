@@ -19,7 +19,8 @@ pub fn config(cfg: &mut ServiceConfig) {
         certs_uri: env::var("GOOGLE_CERTS_URI").unwrap(),
         issuer: vec!["accounts.google.com", "https://accounts.google.com"],
     }))
-    .app_data(Data::new(keys));
+    .app_data(Data::new(keys))
+    .service(oauth_endpoint);
 }
 
 /* https://developers.google.com/identity/gsi/web/guides/verify-google-id-token?hl=en */
@@ -91,12 +92,7 @@ pub async fn oauth_endpoint(
     validation.set_issuer(&config.issuer);
     let ticket = decode::<Claims>(credential, &decoding_key, &validation)
         .map_err(actix_web::error::ErrorBadRequest)?;
-    let Claims {
-        sub,
-        email,
-        email_verified,
-        ..
-    } = &ticket.claims;
+    let Claims { sub, email, .. } = &ticket.claims;
     Ok(format!("{email:?}"))
 }
 

@@ -22,7 +22,6 @@ extern crate serde_derive;
 #[macro_use]
 extern crate serde_json;
 
-use http_cache_reqwest::{Cache, CacheMode, HttpCache, MokaManager};
 use r2d2_diesel::ConnectionManager;
 use reqwest::Client;
 use reqwest_middleware::ClientBuilder;
@@ -45,17 +44,10 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .app_data(Data::new(pool.clone()))
             .wrap(Logger::default())
+            .service(web::scope("/users").configure(api::users::config))
             .service(
-                web::scope("/users")
-                    .service(api::user::list_users)
-                    .service(api::user::delete_user)
-                    .service(api::user::new_user)
-                    .service(api::user::get_user)
-                    .service(api::user::edit_user),
-            )
-            .service(
-                web::scope("/oauth")
-                    .service(web::scope("/google").configure(api::google::config).service(api::google::oauth_endpoint)),
+                web::scope("/auth")
+                    .service(web::scope("/google").configure(api::auth::google::config)),
             )
     })
     .bind(format!("{actix_host}:{actix_port}"))?

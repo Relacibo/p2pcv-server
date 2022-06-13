@@ -8,3 +8,6 @@ indent_size = 2
 
 [*.rs]
 indent_size = 4
+
+[*.sql]
+insert_final_newline = false

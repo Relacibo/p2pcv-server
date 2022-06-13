@@ -1,6 +1,4 @@
 {
-    "sql-formatter.dialect": "pl/sql",
-    "sql-formatter.linesBetweenQueries": 1,
     "files.watcherExclude": {
         "**/.git/objects/**": true,
         "**/.git/subtree-cache/**": true,

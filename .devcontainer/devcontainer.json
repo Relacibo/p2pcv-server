@@ -26,21 +26,28 @@
         "password": "postgres"
       }
     ],
-    "thunder-client.httpVersion": "HTTP/2"
+    "sqltools.format.language": "pl/sql",
+    "thunder-client.httpVersion": "HTTP/2",
+    "[sql]": {
+      "editor.defaultFormatter": "mtxr.sqltools"
+    },
+    "[rust]": {
+      "editor.defaultFormatter": "rust-lang.rust-analyzer"
+    }
   },
 
   // Add the IDs of extensions you want installed when the container is created.
   "extensions": [
-    "vadimcn.vscode-lldb",
-    "mutantdino.resourcemonitor",
-    "rust-lang.rust-analyzer",
-    "tamasfe.even-better-toml",
-    "serayuzgur.crates",
-    "mtxr.sqltools",
-    "mtxr.sqltools-driver-pg",
-    "rangav.vscode-thunder-client",
-    "EditorConfig.EditorConfig"
-  ],
+	"vadimcn.vscode-lldb",
+	"mutantdino.resourcemonitor",
+	"rust-lang.rust-analyzer",
+	"tamasfe.even-better-toml",
+	"serayuzgur.crates",
+	"mtxr.sqltools",
+	"mtxr.sqltools-driver-pg",
+	"rangav.vscode-thunder-client",
+	"EditorConfig.EditorConfig",
+],
 
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
   "forwardPorts": [8000],
