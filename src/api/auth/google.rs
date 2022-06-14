@@ -48,10 +48,11 @@ pub async fn oauth_endpoint(
     let kid = header
         .kid
         .ok_or_else(|| ErrorBadRequest("No kid in cert!"))?;
-    let old_cache = cached_keys.read().await;
     let now = Instant::now();
-    let should_refetch = old_cache.is_none() || old_cache.as_ref().unwrap().stale_time > now;
-    drop(old_cache);
+    let should_refetch = {
+        let old_cache = cached_keys.read().await;
+        old_cache.is_none() || old_cache.as_ref().unwrap().stale_time > now
+    };
     if should_refetch {
         let res = reqwest::get(&config.certs_uri)
             .await
@@ -75,15 +76,16 @@ pub async fn oauth_endpoint(
             keys: key_map,
         });
     }
-    let cache = cached_keys.read().await;
-    let key = cache
-        .as_ref()
-        .unwrap()
-        .keys
-        .get(&kid)
-        .ok_or_else(|| ErrorBadRequest("Key not valid!"))?
-        .clone();
-    drop(cache);
+    let key = {
+        let cache = cached_keys.read().await;
+        cache
+            .as_ref()
+            .unwrap()
+            .keys
+            .get(&kid)
+            .ok_or_else(|| ErrorBadRequest("Key not valid!"))?
+            .clone()
+    };
 
     let PublicKey { n, e, .. } = &key;
     let decoding_key = DecodingKey::from_rsa_raw_components(n, e);
@@ -93,6 +95,7 @@ pub async fn oauth_endpoint(
     let ticket = decode::<Claims>(credential, &decoding_key, &validation)
         .map_err(actix_web::error::ErrorBadRequest)?;
     let Claims { sub, email, .. } = &ticket.claims;
+
     Ok(format!("{email:?}"))
 }
 

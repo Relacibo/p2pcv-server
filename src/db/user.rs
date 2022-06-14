@@ -2,8 +2,8 @@ use chrono::NaiveDateTime;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 
+use super::schema::generated::users as users_table;
 use uuid::Uuid;
-use super::schema::users as users_table;
 
 #[derive(Serialize, Queryable)]
 pub struct User {
@@ -30,16 +30,15 @@ pub struct EditUser {
     pub email: Option<String>,
 }
 
-
 impl User {
-    pub fn add(conn: &PgConnection, user: NewUser, sessionId: String) -> QueryResult<usize> {
+    pub fn add(conn: &PgConnection, user: NewUser) -> QueryResult<usize> {
         use users_table::dsl;
         diesel::insert_into(dsl::users).values(user).execute(conn)
     }
 
     pub fn edit(conn: &PgConnection, uuid: Uuid, edit: EditUser) -> QueryResult<usize> {
-        use users_table::dsl::{users, uuid as dbUuid};
-        diesel::update(users.filter(dbUuid.eq(uuid)))
+        use users_table::dsl::{id, users};
+        diesel::update(users.filter(id.eq(uuid)))
             .set(&edit)
             .execute(conn)
     }

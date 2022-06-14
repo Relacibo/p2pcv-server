@@ -1,10 +1,5 @@
-use std::ops::Deref;
-
 use super::{db_error, DbConn};
-use crate::{
-    db::user::{EditUser, NewUser, User},
-    DbPool,
-};
+use crate::db::user::{EditUser, NewUser, User};
 use actix_web::web::{block, Data, Json, Path, ServiceConfig};
 use serde_json::Value;
 use uuid::Uuid;
