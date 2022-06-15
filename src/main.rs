@@ -6,7 +6,6 @@ use dotenv::dotenv;
 #[macro_use]
 extern crate diesel;
 extern crate r2d2;
-extern crate r2d2_diesel;
 #[macro_use]
 extern crate actix_web;
 extern crate env_logger;
@@ -22,10 +21,8 @@ extern crate serde_derive;
 #[macro_use]
 extern crate serde_json;
 
-use r2d2_diesel::ConnectionManager;
-use reqwest::Client;
-use reqwest_middleware::ClientBuilder;
-use std::{env, sync::Arc};
+use diesel::r2d2::ConnectionManager;
+use std::env;
 
 mod api;
 mod db;
@@ -37,7 +34,7 @@ async fn main() -> std::io::Result<()> {
     let database_url = env::var("DATABASE_URL").unwrap();
     let actix_host = env::var("ACTIX_HOST").unwrap();
     let actix_port = env::var("ACTIX_PORT").unwrap();
-    let manager = r2d2_diesel::ConnectionManager::<PgConnection>::new(database_url);
+    let manager = ConnectionManager::<PgConnection>::new(database_url);
     let pool: DbPool = r2d2::Pool::new(manager).expect("Failed to create pool.");
 
     HttpServer::new(move || {
@@ -56,4 +53,3 @@ async fn main() -> std::io::Result<()> {
 }
 
 pub type DbPool = r2d2::Pool<ConnectionManager<PgConnection>>;
-pub type DbConnection = r2d2::PooledConnection<ConnectionManager<PgConnection>>;

@@ -9,9 +9,7 @@ use uuid::Uuid;
 
 #[derive(Serialize, Queryable)]
 pub struct User {
-    #[serde(skip)]
-    pub id: i64,
-    pub uuid: Uuid,
+    pub id: Uuid,
     pub name: String,
     pub email: String,
     pub created_at: NaiveDateTime,
@@ -32,14 +30,24 @@ pub struct EditUser {
     pub email: Option<String>,
 }
 
+#[derive(Serialize, Queryable)]
+pub struct PublicUser {
+    pub id: Uuid,
+    pub name: String,
+    pub created_at: NaiveDateTime,
+}
+
 impl User {
-    pub fn add(conn: &PgConnection, user: NewUser) -> QueryResult<usize> {
-        use users_table::dsl;
-        diesel::insert_into(dsl::users).values(user).execute(conn)
+    pub fn add(conn: &PgConnection, user: NewUser) -> QueryResult<User> {
+        use users_table::dsl::*;
+        diesel::insert_into(users)
+            .values(user)
+            .returning((id, name, email, created_at, updated_at))
+            .get_result(conn)
     }
 
     pub fn edit(conn: &PgConnection, uuid: Uuid, edit: EditUser) -> QueryResult<usize> {
-        use users_table::dsl::users;
+        use users_table::dsl::*;
         diesel::update(users.find(uuid)).set(&edit).execute(conn)
     }
 
@@ -48,13 +56,19 @@ impl User {
         diesel::delete(users.find(uuid)).execute(conn)
     }
 
-    pub fn list(conn: &PgConnection) -> QueryResult<Vec<User>> {
+    pub fn list(conn: &PgConnection) -> QueryResult<Vec<PublicUser>> {
         use users_view_table::dsl::*;
-        users_view.get_results(conn)
+        users_view.limit(100).load(conn)
     }
 
     pub fn get(conn: &PgConnection, uuid: Uuid) -> QueryResult<User> {
         use users_table::dsl::users;
         users.find(uuid).get_result(conn)
+    }
+
+    pub fn get_with_email(conn: &PgConnection, email: String) -> QueryResult<User> {
+        use users_table::dsl::email as dbEmail;
+        use users_table::dsl::users;
+        users.filter(dbEmail.like(email)).get_result(conn)
     }
 }

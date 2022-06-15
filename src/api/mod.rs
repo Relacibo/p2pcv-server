@@ -2,9 +2,10 @@ use actix_web::{
     web::{block, Data},
     FromRequest,
 };
+use diesel::{r2d2::ConnectionManager, PgConnection};
 use futures::future::LocalBoxFuture;
 
-use crate::{DbConnection, DbPool};
+use crate::DbPool;
 
 use self::db_error::DbError;
 
@@ -12,7 +13,8 @@ pub mod auth;
 pub mod db_error;
 pub mod users;
 
-struct DbConn(DbConnection);
+pub type DbConnection = r2d2::PooledConnection<ConnectionManager<PgConnection>>;
+pub struct DbConn(DbConnection);
 
 impl From<DbConnection> for DbConn {
     fn from(conn: DbConnection) -> Self {
@@ -25,15 +27,8 @@ impl FromRequest for DbConn {
 
     type Future = LocalBoxFuture<'static, Result<Self, Self::Error>>;
 
-    fn from_request(
-        req: &actix_web::HttpRequest,
-        payload: &mut actix_web::dev::Payload,
-    ) -> Self::Future {
-        Box::pin(async move {
-            let pool = Data::<DbPool>::from_request(req, payload).await.unwrap();
-            let connection = pool.get()?;
-            let res = block(move || connection).await?;
-            Ok(res.into())
-        })
+    fn from_request(req: &actix_web::HttpRequest, _: &mut actix_web::dev::Payload) -> Self::Future {
+        let pool = req.app_data::<Data<DbPool>>().unwrap().clone();
+        Box::pin(async move { Ok(pool.get()?.into()) })
     }
 }
