@@ -1,11 +1,4 @@
 table! {
-    user_sessions (id) {
-        id -> Uuid,
-        secret -> Text,
-    }
-}
-
-table! {
     users (id) {
         id -> Uuid,
         name -> Varchar,
@@ -15,9 +8,17 @@ table! {
     }
 }
 
-joinable!(user_sessions -> users (id));
+table! {
+    users_google (id) {
+        id -> Uuid,
+        google_id -> Varchar,
+        created_at -> Timestamp,
+    }
+}
+
+joinable!(users_google -> users (id));
 
 allow_tables_to_appear_in_same_query!(
-    user_sessions,
     users,
+    users_google,
 );

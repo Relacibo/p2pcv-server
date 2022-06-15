@@ -1,5 +1,5 @@
-DROP TABLE user_sessions;
+DROP INDEX users_google_id_index;
+DROP TABLE users_google;
 DROP VIEW users_view;
-DROP INDEX users_email_index;
 DROP TABLE users;
 DROP EXTENSION pgcrypto;

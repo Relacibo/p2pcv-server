@@ -5,11 +5,19 @@ use actix_web::{
     web::{Data, Form, Json, ServiceConfig},
     HttpRequest, Result,
 };
+use diesel::{
+    result::{DatabaseErrorKind, Error::NotFound},
+    QueryResult,
+};
 use jsonwebtoken::{decode, decode_header, Algorithm, DecodingKey, Validation};
 use serde::Deserialize;
 use tokio::sync::RwLock;
 
-use crate::{api::auth::key_store::PublicKey, db::user::User, DbPool};
+use crate::{
+    api::{auth::key_store::PublicKey, db_error::DbError},
+    db::user::{NewUser, User, NewGoogleUser},
+    DbPool,
+};
 
 use super::key_store::KeyStore;
 
@@ -24,7 +32,7 @@ pub fn config(cfg: &mut ServiceConfig) {
 
 /* https://developers.google.com/identity/gsi/web/guides/verify-google-id-token?hl=en */
 #[post("")]
-pub async fn oauth_endpoint(
+async fn oauth_endpoint(
     config: Data<Config>,
     key_store: Data<KeyStore>,
     request: HttpRequest,
@@ -60,13 +68,27 @@ pub async fn oauth_endpoint(
     validation.set_issuer(&config.issuer);
     let ticket = decode::<Claims>(credential, &decoding_key, &validation)
         .map_err(actix_web::error::ErrorBadRequest)?;
-    let Claims { sub, email, .. } = &ticket.claims;
+    let Claims {
+        sub, name, email, ..
+    } = &ticket.claims;
 
     let pool = request.app_data::<Data<DbPool>>().unwrap().clone();
     let conn = pool.get().map_err(ErrorInternalServerError)?;
 
-    let user_result = User::get_with_email(&conn, email.clone());
-    if let Ok(user) = user_result {}
+    let user_result = User::get_with_google_id(&conn, sub);
+    let user = match user_result {
+        Ok(user) => user,
+        Err(NotFound) => User::add_with_google_id(
+            &conn,
+            NewGoogleUser {
+                google_id: sub.clone(),
+                name: name.clone(),
+                email: email.clone(),
+            },
+        )
+        .map_err(ErrorInternalServerError)?,
+        Err(err) => return Err(ErrorInternalServerError(err)),
+    };
     todo!();
 }
 

@@ -44,7 +44,7 @@ async fn main() -> std::io::Result<()> {
             .service(web::scope("/users").configure(api::users::config))
             .service(
                 web::scope("/auth")
-                    .service(web::scope("/google").configure(api::auth::google::config)),
+                    .configure(crate::api::auth::config),
             )
     })
     .bind(format!("{actix_host}:{actix_port}"))?

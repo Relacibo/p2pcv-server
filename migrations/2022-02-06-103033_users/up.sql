@@ -1,6 +1,6 @@
 CREATE EXTENSION pgcrypto;
 CREATE TABLE users (
-  id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   name VARCHAR(20) NOT NULL,
   email VARCHAR(32) NOT NULL UNIQUE,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -16,8 +16,9 @@ SELECT id,
   name,
   created_at
 FROM users;
-CREATE INDEX users_email_index ON users (email);
-CREATE TABLE user_sessions (
+CREATE TABLE users_google (
   id UUID PRIMARY KEY REFERENCES users,
-  secret TEXT NOT NULL DEFAULT gen_salt('md5')
+  google_id VARCHAR(255) NOT NULL UNIQUE,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+CREATE INDEX users_google_id_index ON users_google (google_id);
