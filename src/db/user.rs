@@ -2,6 +2,8 @@ use chrono::NaiveDateTime;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 
+use crate::db::schema::manual::users_view as users_view_table;
+
 use super::schema::generated::users as users_table;
 use uuid::Uuid;
 
@@ -37,24 +39,22 @@ impl User {
     }
 
     pub fn edit(conn: &PgConnection, uuid: Uuid, edit: EditUser) -> QueryResult<usize> {
-        use users_table::dsl::{id, users};
-        diesel::update(users.filter(id.eq(uuid)))
-            .set(&edit)
-            .execute(conn)
+        use users_table::dsl::users;
+        diesel::update(users.find(uuid)).set(&edit).execute(conn)
     }
 
     pub fn delete(conn: &PgConnection, uuid: Uuid) -> QueryResult<usize> {
-        use users_table::dsl::{users, uuid as dbUuid};
-        diesel::delete(users.filter(dbUuid.eq(uuid))).execute(conn)
+        use users_table::dsl::users;
+        diesel::delete(users.find(uuid)).execute(conn)
     }
 
     pub fn list(conn: &PgConnection) -> QueryResult<Vec<User>> {
-        use users_table::dsl::*;
-        users.get_results(conn)
+        use users_view_table::dsl::*;
+        users_view.get_results(conn)
     }
 
     pub fn get(conn: &PgConnection, uuid: Uuid) -> QueryResult<User> {
-        use users_table::dsl::{users, uuid as dbUuid};
-        users.filter(dbUuid.eq(uuid)).get_result(conn)
+        use users_table::dsl::users;
+        users.find(uuid).get_result(conn)
     }
 }
