@@ -2,7 +2,7 @@
 name = "p2pcv-server"
 version = "0.1.1-snapshot"
 edition = "2021"
-license = "AGPLV3"
+license = "AGPL-3.0-or-later"
 repository = "https://github.com/Relacibo/p2pcv-server"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

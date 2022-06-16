@@ -2,11 +2,12 @@ use chrono::NaiveDateTime;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 
-use crate::api::auth::google;
+use crate::db::schema::manual::insert_user_with_google;
 use crate::db::schema::manual::users_view as users_view_table;
 
+use super::schema::generated::google as google_table;
 use super::schema::generated::users as users_table;
-use super::schema::generated::users_google as users_google_table;
+use super::schema::manual::lookup_user_with_google;
 use uuid::Uuid;
 
 #[derive(Serialize, Queryable)]
@@ -25,12 +26,11 @@ pub struct NewUser {
     pub email: String,
 }
 
-#[derive(Deserialize, Associations)]
-#[belongs_to(NewUser, foreign_key = "id")]
-#[table_name = "users_google_table"]
+#[derive(Deserialize)]
 pub struct NewGoogle {
-    pub id: Uuid,
-    pub google_id: String,
+    pub id: String,
+    pub name: String,
+    pub email: String,
 }
 
 #[derive(AsChangeset, Deserialize)]
@@ -80,28 +80,13 @@ impl User {
 
     pub fn add_with_google_id(
         conn: &PgConnection,
-        query_name: String,
-        query_email: String,
-        query_google_id: String,
+        new_google_user: NewGoogle,
     ) -> QueryResult<User> {
-        use users_google_table::dsl::google_id;
-        use users_google_table::dsl::users_google;
-        use users_table::dsl::*;
-        diesel::insert_into(users_google.inner_join(users))
-            .values()
-            .returning((id, name, email, created_at, updated_at))
-            .get_result(conn)
-        diesel::sql_query(format!("INSERT INTO users (\"{name}\", \"{email}\")")).get_result(conn)
+        let NewGoogle { id, name, email } = new_google_user;
+        diesel::select(insert_user_with_google(id, name, email)).get_result(conn)
     }
 
     pub fn get_with_google_id(conn: &PgConnection, query_google_id: &String) -> QueryResult<User> {
-        use users_google_table::dsl::google_id;
-        use users_google_table::dsl::users_google;
-        use users_table::dsl::*;
-        users_google
-            .inner_join(users)
-            .filter(google_id.like(query_google_id))
-            .select((id, name, email, created_at, updated_at))
-            .get_result(conn)
+        diesel::select(lookup_user_with_google(query_google_id)).get_result(conn)
     }
 }

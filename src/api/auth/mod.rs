@@ -11,7 +11,9 @@ pub fn config(cfg: &mut ServiceConfig) {
     cfg.service(scope("/google").configure(google::config));
 }
 
-pub fn generate_token(user_id: Uuid) -> String {}
+pub fn generate_token(user_id: Uuid) -> String {
+    todo!()
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Claims {

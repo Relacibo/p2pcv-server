@@ -1,39 +1,39 @@
-CREATE TABLE auth.google (
+CREATE TABLE google (
   id VARCHAR(255) PRIMARY KEY NOT NULL,
-  user_id UUID REFERENCES auth.users(id),
+  user_id UUID REFERENCES users(id),
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
-CREATE OR REPLACE FUNCTION auth.insert_login(
+CREATE OR REPLACE FUNCTION insert_user_with_google(
+    param_google_id VARCHAR(255),
     param_name VARCHAR(20),
-    param_email VARCHAR(32),
-    param_google_id VARCHAR(255)
+    param_email VARCHAR(32)
   )
-  RETURNS auth.users
+  RETURNS users
   LANGUAGE plpgsql
   SECURITY DEFINER
   AS $$
   DECLARE
-    user_entry auth.users;
+    user_entry users;
 BEGIN
-  INSERT INTO auth.users (name, email)
+  INSERT INTO users (name, email)
     VALUES (param_name, param_email)
     RETURNING * 
     INTO user_entry;
-  INSERT INTO auth.google (id, user_id)
+  INSERT INTO google (id, user_id)
     VALUES (param_google_id, user_entry.id);
   RETURN user_entry;
 END;
 $$;
-CREATE OR REPLACE FUNCTION auth.lookup_user_with_google(
+CREATE OR REPLACE FUNCTION lookup_user_with_google(
     param_google_id VARCHAR(255)
   ) 
-  RETURNS auth.users 
+  RETURNS users 
   LANGUAGE plpgsql 
   SECURITY DEFINER 
   AS $$ 
 BEGIN
-  RETURN (SELECT u FROM auth.google g 
-    INNER JOIN auth.users u 
+  RETURN (SELECT u FROM google g 
+    INNER JOIN users u 
       ON g.user_id = u.id
       AND g.id = param_google_id);
 END;

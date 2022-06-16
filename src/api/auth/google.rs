@@ -15,7 +15,7 @@ use tokio::sync::RwLock;
 
 use crate::{
     api::{auth::key_store::PublicKey, db_error::DbError},
-    db::user::{NewUser, User, NewGoogleUser},
+    db::user::{NewGoogle, NewUser, User},
     DbPool,
 };
 
@@ -80,8 +80,8 @@ async fn oauth_endpoint(
         Ok(user) => user,
         Err(NotFound) => User::add_with_google_id(
             &conn,
-            NewGoogleUser {
-                google_id: sub.clone(),
+            NewGoogle {
+                id: sub.clone(),
                 name: name.clone(),
                 email: email.clone(),
             },
@@ -89,7 +89,7 @@ async fn oauth_endpoint(
         .map_err(ErrorInternalServerError)?,
         Err(err) => return Err(ErrorInternalServerError(err)),
     };
-    todo!();
+    return Err(ErrorInternalServerError("Fuck you!!!"))
 }
 
 #[derive(Serialize)]

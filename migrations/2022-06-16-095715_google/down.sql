@@ -1,3 +1,3 @@
-DROP FUNCTION IF EXISTS auth.lookup_user_with_google();
-DROP FUNCTION IF EXISTS auth.insert_login();
-DROP TABLE IF EXISTS auth.google;
+DROP FUNCTION IF EXISTS lookup_user_with_google();
+DROP FUNCTION IF EXISTS insert_user_with_google();
+DROP TABLE IF EXISTS google;
