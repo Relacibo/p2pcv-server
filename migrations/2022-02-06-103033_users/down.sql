@@ -1,5 +1,4 @@
-DROP INDEX users_google_id_index;
-DROP TABLE users_google;
-DROP VIEW users_view;
-DROP TABLE users;
-DROP EXTENSION pgcrypto;
+DROP VIEW IF EXISTS auth.user_view;
+DROP TABLE IF EXISTS auth.user;
+DROP SCHEMA IF EXISTS auth;
+DROP EXTENSION IF EXISTS pgcrypto;

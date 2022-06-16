@@ -7,5 +7,9 @@
         ".flatpak/**": true,
         "_build/**": true
     },
-    "editor.tabSize": 2
+    "editor.tabSize": 2,
+    "[sql]": {
+      "editor.defaultFormatter": null, 
+      "editor.formatOnType": false
+    },
 }

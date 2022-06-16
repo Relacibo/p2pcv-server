@@ -26,10 +26,10 @@
         "password": "postgres"
       }
     ],
-    "sqltools.format.language": "pl/sql",
     "thunder-client.httpVersion": "HTTP/2",
     "[sql]": {
-      "editor.defaultFormatter": "mtxr.sqltools"
+      "editor.defaultFormatter": null, 
+      "editor.formatOnType": false
     },
     "[rust]": {
       "editor.defaultFormatter": "rust-lang.rust-analyzer"
@@ -46,14 +46,14 @@
 	"mtxr.sqltools",
 	"mtxr.sqltools-driver-pg",
 	"rangav.vscode-thunder-client",
-	"EditorConfig.EditorConfig",
+	"EditorConfig.EditorConfig"
 ],
 
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
   "forwardPorts": [8000],
   "onCreateCommand": "cargo clean && cargo update && cargo install diesel_cli --no-default-features --features postgres",
   // Use 'postCreateCommand' to run commands after the container is created.
-  "postCreateCommand": "diesel migration run",
+  //"postCreateCommand": "",
 
   // Comment out to connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
   "remoteUser": "vscode"
