@@ -1,13 +1,7 @@
+use super::schema::generated::users as users_table;
 use chrono::NaiveDateTime;
 use diesel::pg::PgConnection;
-use diesel::prelude::*;
-
-use crate::db::schema::manual::insert_user_with_google;
-use crate::db::schema::manual::users_view as users_view_table;
-
-use super::schema::generated::google as google_table;
-use super::schema::generated::users as users_table;
-use super::schema::manual::lookup_user_with_google;
+use diesel::{prelude::*, insert_into};
 use uuid::Uuid;
 
 #[derive(Serialize, Queryable)]
@@ -69,8 +63,8 @@ impl User {
     }
 
     pub fn list(conn: &PgConnection) -> QueryResult<Vec<PublicUser>> {
-        use users_view_table::dsl::*;
-        users_view.limit(100).load(conn)
+        use users_table::dsl::{users, id};
+        users.order(id).limit(100).get_results(conn)
     }
 
     pub fn get(conn: &PgConnection, query_uuid: Uuid) -> QueryResult<User> {
@@ -82,7 +76,8 @@ impl User {
         conn: &PgConnection,
         new_google_user: NewGoogle,
     ) -> QueryResult<User> {
-        let NewGoogle { id, name, email } = new_google_user;
+        use users_table::dsl::users;
+        insert_into(users).values(&new_google_user)
         diesel::select(insert_user_with_google(id, name, email)).get_result(conn)
     }
 
