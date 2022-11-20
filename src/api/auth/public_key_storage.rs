@@ -4,6 +4,8 @@ use reqwest::header::CACHE_CONTROL;
 use serde::{Deserialize, Deserializer};
 use tokio::{sync::Mutex, time::Instant};
 
+use crate::app_error::AppError;
+
 pub struct CachedKeys {
     pub stale_time: Option<Instant>,
     pub keys: HashMap<String, PublicKey>,
@@ -25,7 +27,7 @@ impl KeyStore {
         }
     }
 
-    pub async fn get_key(&self, key_id: &String) -> Option<PublicKey> {
+    pub async fn get_key(&self, key_id: &String) -> Result<PublicKey, AppError> {
         let now = Instant::now();
         let mut cache = self.public_keys.lock().await;
         let should_refetch = cache.stale_time.is_none() || cache.stale_time.unwrap() > now;
@@ -33,16 +35,16 @@ impl KeyStore {
             let new_cached_keys = self.fetch_public_keys(now).await?;
             *cache = new_cached_keys;
         }
-        cache.keys.get(key_id).cloned()
+        cache.keys.get(key_id).cloned().ok_or(AppError::Unexpected)
     }
 
-    async fn fetch_public_keys(&self, now: Instant) -> Option<CachedKeys> {
-        let res = reqwest::get(&self.certs_uri).await.ok()?;
+    async fn fetch_public_keys(&self, now: Instant) -> Result<CachedKeys, AppError> {
+        let res = reqwest::get(&self.certs_uri).await?;
         let cc_string = {
             let cache_control = res.headers().get(CACHE_CONTROL).unwrap();
             cache_control.to_str().unwrap_or("").to_string()
         };
-        let body = res.text().await.ok()?;
+        let body = res.text().await?;
         let deserialized = serde_json::from_str::<KeyResponse>(&body).unwrap();
         let key_map = deserialized
             .keys
@@ -55,7 +57,7 @@ impl KeyStore {
             stale_time: Some(stale_time),
             keys: key_map,
         };
-        Some(ret)
+        Ok(ret)
     }
 }
 

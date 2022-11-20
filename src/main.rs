@@ -3,11 +3,12 @@
 #![feature(let_chains)]
 extern crate dotenv;
 use api::auth;
-use diesel_async::AsyncPgConnection;
+use db::db_conn::DbPool;
+use diesel_async::{pooled_connection::AsyncDieselConnectionManager, AsyncPgConnection};
 use dotenv::dotenv;
 #[macro_use]
 extern crate diesel;
-extern crate r2d2;
+extern crate bb8;
 #[macro_use]
 extern crate actix_web;
 extern crate env_logger;
@@ -16,18 +17,17 @@ use actix_web::{
     web::{self, Data},
     App, HttpServer,
 };
-use diesel::PgConnection;
 use env_logger::Env;
 #[macro_use]
 extern crate serde_derive;
-#[macro_use]
 extern crate serde_json;
 
-use diesel::r2d2::ConnectionManager;
 use std::env;
 
 mod api;
 mod db;
+mod app_error;
+mod app_result;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -36,8 +36,11 @@ async fn main() -> std::io::Result<()> {
     let database_url = env::var("DATABASE_URL").unwrap();
     let actix_host = env::var("ACTIX_HOST").unwrap();
     let actix_port = env::var("ACTIX_PORT").unwrap();
-    let manager = ConnectionManager::<AsyncPgConnection>::new(database_url);
-    let pool: DbPool = r2d2::Pool::new(manager).expect("Failed to create pool.");
+    let manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new(database_url);
+    let pool: DbPool = bb8::Pool::builder()
+        .build(manager)
+        .await
+        .expect("Failed to create pool.");
 
     HttpServer::new(move || {
         App::new()
@@ -45,14 +48,9 @@ async fn main() -> std::io::Result<()> {
             .app_data(Data::new(pool.clone()))
             .wrap(Logger::default())
             .service(web::scope("/users").configure(api::users::config))
-            .service(
-                web::scope("/auth")
-                    .configure(crate::api::auth::config),
-            )
+            .service(web::scope("/auth").configure(crate::api::auth::config))
     })
     .bind(format!("{actix_host}:{actix_port}"))?
     .run()
     .await
 }
-
-pub type DbPool = r2d2::Pool<ConnectionManager<AsyncPgConnection>>;

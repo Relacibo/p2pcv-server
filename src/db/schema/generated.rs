@@ -11,7 +11,8 @@ diesel::table! {
 diesel::table! {
     users (id) {
         id -> Uuid,
-        name -> Nullable<Varchar>,
+        name -> Varchar,
+        nick_name -> Nullable<Varchar>,
         given_name -> Nullable<Varchar>,
         middle_name -> Nullable<Varchar>,
         family_name -> Nullable<Varchar>,

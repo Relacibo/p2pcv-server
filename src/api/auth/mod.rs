@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 pub mod google;
 pub mod auth;
-mod key_store;
+mod public_key_storage;
 mod util;
 
 pub fn config(cfg: &mut ServiceConfig) {

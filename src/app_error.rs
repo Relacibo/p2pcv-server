@@ -8,11 +8,23 @@ pub enum AppError {
     #[error("database")]
     Diesel(#[from] diesel::result::Error),
     #[error("unknown")]
-    R2d2(#[from] r2d2::Error),
+    Bb8,
     #[error("authentication-failed")]
     JwtParse(#[from] ParseError),
     #[error("authentication-failed")]
     Jwt(#[from] jsonwebtoken::errors::Error),
+    #[error("authentication-failed")]
+    OpenId,
+    #[error("unknown")]
+    Reqwest(#[from] reqwest::Error),
+    #[error("unknown")]
+    Unexpected,
+}
+
+impl<E> From<bb8::RunError<E>> for AppError {
+    fn from(value: bb8::RunError<E>) -> Self {
+        AppError::Bb8
+    }
 }
 
 impl actix_web::ResponseError for AppError {
@@ -20,14 +32,14 @@ impl actix_web::ResponseError for AppError {
         use diesel::result::DatabaseErrorKind::{ForeignKeyViolation, UniqueViolation};
         use diesel::result::Error::{DatabaseError, NotFound};
         use AppError::*;
-        match *self {
+        match self {
             Diesel(diesel_err) => match diesel_err {
                 NotFound => StatusCode::NOT_FOUND,
                 DatabaseError(UniqueViolation | ForeignKeyViolation, _) => StatusCode::BAD_REQUEST,
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             },
-            ActixBlocking(_) | R2d2(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            JwtParse(_) | Jwt(_) => StatusCode::UNAUTHORIZED,
+            ActixBlocking(_) | Bb8 | Reqwest(_) | Unexpected => StatusCode::INTERNAL_SERVER_ERROR,
+            JwtParse(_) | Jwt(_) | OpenId => StatusCode::UNAUTHORIZED,
         }
     }
     fn error_response(&self) -> actix_web::HttpResponse<actix_web::body::BoxBody> {

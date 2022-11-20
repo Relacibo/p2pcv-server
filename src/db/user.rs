@@ -1,89 +1,145 @@
+use crate::api::users::new_user;
+use crate::app_error::AppError;
+use crate::app_result::EndpointResult;
+use crate::db::{schema::generated::google_users, user};
+
+use super::schema::generated::google_users as google_users_table;
 use super::schema::generated::users as users_table;
-use chrono::NaiveDateTime;
+use chrono::{DateTime, NaiveDateTime, Utc};
 use derive_builder::Builder;
 use diesel::prelude::*;
-use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
+use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl, SimpleAsyncConnection};
 use uuid::Uuid;
 
-#[derive(Serialize, Queryable)]
+#[derive(Serialize, Queryable, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct User {
     pub id: Uuid,
     pub name: String,
-    pub given_name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub nick_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub given_name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub middle_name: Option<String>,
-    pub last_name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub family_name: Option<String>,
     pub email: String,
-    pub created_at: NaiveDateTime,
-    pub updated_at: NaiveDateTime,
+    pub locale: String,
+    pub verified_email: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub picture: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Insertable, Deserialize, Builder)]
+pub const ALL_USER_COLUMNS: (
+    users_table::id,
+    users_table::name,
+    users_table::nick_name,
+    users_table::given_name,
+    users_table::middle_name,
+    users_table::family_name,
+    users_table::email,
+    users_table::locale,
+    users_table::verified_email,
+    users_table::picture,
+    users_table::created_at,
+    users_table::updated_at,
+) = (
+    users_table::id,
+    users_table::name,
+    users_table::nick_name,
+    users_table::given_name,
+    users_table::middle_name,
+    users_table::family_name,
+    users_table::email,
+    users_table::locale,
+    users_table::verified_email,
+    users_table::picture,
+    users_table::created_at,
+    users_table::updated_at,
+);
+
+#[derive(Insertable, Deserialize, Clone, Debug)]
 #[table_name = "users_table"]
 #[serde(rename_all = "camelCase")]
 pub struct NewUser {
-    pub id: Option<Uuid>,
     pub name: String,
-    pub given_name: String,
+    pub nick_name: Option<String>,
+    pub given_name: Option<String>,
     pub middle_name: Option<String>,
-    pub last_name: String,
+    pub family_name: Option<String>,
     pub email: String,
     pub locale: String,
+    pub verified_email: bool,
+    pub picture: Option<String>,
 }
 
-#[derive(Insertable, Deserialize)]
-#[table_name = "google_users"]
-#[serde(rename_all = "camelCase")]
-pub struct NewGoogleUser {
-    pub id: String,
-    pub user_id: Uuid,
-}
-
-#[derive(AsChangeset, Deserialize)]
+#[derive(Insertable, Deserialize, Clone, Debug)]
 #[table_name = "users_table"]
 #[serde(rename_all = "camelCase")]
-pub struct EditUser {
-    pub first_name: Option<String>,
+pub struct NewUserWithId {
+    pub id: Uuid,
+    pub name: String,
+    pub nick_name: Option<String>,
+    pub given_name: Option<String>,
     pub middle_name: Option<String>,
-    pub last_name: Option<String>,
-    pub email: Option<String>,
-    pub locale: Option<String>,
+    pub family_name: Option<String>,
+    pub email: String,
+    pub locale: String,
+    pub verified_email: bool,
+    pub picture: Option<String>,
 }
 
-#[derive(Serialize, Queryable)]
+#[derive(Serialize, Queryable, PartialEq, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct PublicUser {
     pub id: Uuid,
-    pub name: String,
-    pub created_at: NaiveDateTime,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub nick_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub picture: Option<String>,
+    pub created_at: DateTime<Utc>,
 }
+
+pub const PUBLIC_USER_COLUMNS: (
+    users_table::id,
+    users_table::nick_name,
+    users_table::picture,
+    users_table::created_at,
+) = (
+    users_table::id,
+    users_table::nick_name,
+    users_table::picture,
+    users_table::created_at,
+);
 
 impl User {
     pub async fn add(conn: &mut AsyncPgConnection, user: NewUser) -> QueryResult<()> {
         use users_table::dsl::*;
-        diesel::insert_into(users).values(user).execute(conn).await
-    }
-
-    pub async fn edit(
-        conn: &mut AsyncPgConnection,
-        query_uuid: Uuid,
-        edit: EditUser,
-    ) -> QueryResult<usize> {
-        use users_table::dsl::*;
-        diesel::update(users.find(query_uuid))
-            .set(&edit)
+        diesel::insert_into(users)
+            .values(user)
             .execute(conn)
+            .await
+            .map(|_| ())
     }
 
-    pub async fn delete(conn: &mut AsyncPgConnection, query_uuid: Uuid) -> QueryResult<usize> {
+    pub async fn delete(conn: &mut AsyncPgConnection, query_uuid: Uuid) -> QueryResult<()> {
         use users_table::dsl::users;
-        diesel::delete(users.find(query_uuid)).execute(conn)
+        diesel::delete(users.find(query_uuid))
+            .execute(conn)
+            .await
+            .map(|_| ())
     }
 
     pub async fn list(conn: &mut AsyncPgConnection) -> QueryResult<Vec<PublicUser>> {
-        use users_table::dsl::{id, users};
-        users.order(id).limit(100).get_results(conn)
+        use users_table::dsl::{id, nick_name, users};
+        users
+            .select(PUBLIC_USER_COLUMNS)
+            .order(nick_name.asc())
+            .load(conn)
+            .await
     }
 
     pub async fn get(conn: &mut AsyncPgConnection, query_uuid: Uuid) -> QueryResult<User> {
@@ -93,23 +149,72 @@ impl User {
 
     pub async fn add_with_google_id(
         conn: &mut AsyncPgConnection,
-        new_user: NewUser,
-        new_google_user: NewGoogleUser,
-    ) -> QueryResult<User> {
+        user: NewUser,
+        google_id: &str,
+    ) -> Result<User, AppError> {
+        use google_users_table::dsl::{google_users, id as g_id, user_id as g_user_id};
         use users_table::dsl::users;
-        conn.transaction(|conn| {
-            diesel::insert_into(google_users)
-                .values(new_google_user)
-                .execute(conn)
-        })
+        let google_id = google_id.to_string();
+        let user_id = Uuid::new_v4();
+        let user = user.clone().with_id(user_id);
+        let user = conn
+            .transaction::<_, AppError, _>(|conn| {
+                Box::pin(async move {
+                    let user: User = diesel::insert_into(users)
+                        .values(user)
+                        .returning(ALL_USER_COLUMNS)
+                        .get_result(conn)
+                        .await?;
+                    diesel::insert_into(google_users)
+                        .values((g_id.eq(google_id), g_user_id.eq(user_id)))
+                        .execute(conn)
+                        .await?;
+                    Ok(user)
+                })
+            })
+            .await?;
+        Ok(user)
     }
 
     pub async fn get_with_google_id(
         conn: &mut AsyncPgConnection,
         query_google_id: &String,
     ) -> QueryResult<User> {
-        diesel::select(lookup_user_with_google(query_google_id))
+        use google_users_table::dsl::{google_users, id};
+        use users_table::dsl::users;
+        google_users
+            .find(id)
+            .inner_join(users)
+            .select(ALL_USER_COLUMNS)
             .get_result(conn)
             .await
+    }
+}
+
+impl NewUser {
+    pub fn with_id(self, id: Uuid) -> NewUserWithId {
+        let Self {
+            name,
+            nick_name,
+            given_name,
+            middle_name,
+            family_name,
+            email,
+            locale,
+            verified_email,
+            picture,
+        } = self;
+        NewUserWithId {
+            id,
+            name,
+            nick_name,
+            given_name,
+            middle_name,
+            family_name,
+            email,
+            locale,
+            verified_email,
+            picture,
+        }
     }
 }
