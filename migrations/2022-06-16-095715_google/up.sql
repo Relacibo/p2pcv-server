@@ -1,11 +1,5 @@
-CREATE TABLE google (
-  id VARCHAR(255) PRIMARY KEY NOT NULL,
-  user_id UUID REFERENCES users(id),
+CREATE TABLE google_users (
+  id VARCHAR NOT NULL PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES users(id),
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE google_public_keys (
-  id VARCHAR PRIMARY KEY NOT NULL,
-  content BYTEA NOT NULL,
-  expires_at TIMESTAMP NOT NULL
 );

@@ -4,6 +4,7 @@ use actix_web::web::{scope, Data, Json, ServiceConfig};
 use uuid::Uuid;
 
 pub mod google;
+pub mod auth;
 mod key_store;
 mod util;
 

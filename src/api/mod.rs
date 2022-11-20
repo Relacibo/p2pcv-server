@@ -7,10 +7,10 @@ use futures::future::LocalBoxFuture;
 
 use crate::DbPool;
 
-use self::db_error::DbError;
+use self::app_error::AppError;
 
 pub mod auth;
-pub mod db_error;
+pub mod app_error;
 pub mod users;
 
 pub type DbConnection = r2d2::PooledConnection<ConnectionManager<PgConnection>>;
@@ -23,7 +23,7 @@ impl From<DbConnection> for DbConn {
 }
 
 impl FromRequest for DbConn {
-    type Error = DbError;
+    type Error = AppError;
 
     type Future = LocalBoxFuture<'static, Result<Self, Self::Error>>;
 

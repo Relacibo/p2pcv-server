@@ -2,6 +2,8 @@
 #![feature(async_closure)]
 #![feature(let_chains)]
 extern crate dotenv;
+use api::auth;
+use diesel_async::AsyncPgConnection;
 use dotenv::dotenv;
 #[macro_use]
 extern crate diesel;
@@ -34,11 +36,12 @@ async fn main() -> std::io::Result<()> {
     let database_url = env::var("DATABASE_URL").unwrap();
     let actix_host = env::var("ACTIX_HOST").unwrap();
     let actix_port = env::var("ACTIX_PORT").unwrap();
-    let manager = ConnectionManager::<PgConnection>::new(database_url);
+    let manager = ConnectionManager::<AsyncPgConnection>::new(database_url);
     let pool: DbPool = r2d2::Pool::new(manager).expect("Failed to create pool.");
 
     HttpServer::new(move || {
         App::new()
+            .configure(auth::auth::config)
             .app_data(Data::new(pool.clone()))
             .wrap(Logger::default())
             .service(web::scope("/users").configure(api::users::config))
@@ -52,4 +55,4 @@ async fn main() -> std::io::Result<()> {
     .await
 }
 
-pub type DbPool = r2d2::Pool<ConnectionManager<PgConnection>>;
+pub type DbPool = r2d2::Pool<ConnectionManager<AsyncPgConnection>>;

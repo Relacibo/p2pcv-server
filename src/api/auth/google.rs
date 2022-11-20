@@ -14,8 +14,8 @@ use serde::Deserialize;
 use tokio::sync::RwLock;
 
 use crate::{
-    api::{auth::key_store::PublicKey, db_error::DbError},
-    db::user::{NewGoogle, NewUser, User},
+    api::{auth::key_store::PublicKey, app_error::AppError},
+    db::user::{NewGoogleUser, NewUser, User},
     DbPool,
 };
 
@@ -80,8 +80,8 @@ async fn oauth_endpoint(
         Ok(user) => user,
         Err(NotFound) => User::add_with_google_id(
             &conn,
-            NewGoogle {
-                id: sub.clone(),
+            NewGoogleUser {
+                google_id: sub.clone(),
                 name: name.clone(),
                 email: email.clone(),
             },
