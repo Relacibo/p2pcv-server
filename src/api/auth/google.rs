@@ -1,24 +1,21 @@
 use std::env;
 
 use actix_web::{
-    error::{Error, ErrorBadRequest, ErrorInternalServerError},
-    web::{Data, Form, Json, ServiceConfig},
-    HttpRequest, Result,
+    web::{Data, Form, ServiceConfig},
+    HttpRequest,
 };
 use diesel::{
-    result::{DatabaseErrorKind, Error::NotFound},
-    QueryResult,
+    result::{Error::NotFound},
 };
 use jsonwebtoken::{decode, decode_header, Algorithm, DecodingKey, Validation};
 use serde::Deserialize;
-use tokio::sync::RwLock;
+
 
 use crate::{
     api::auth::public_key_storage::PublicKey,
     app_error::AppError,
     app_result::EndpointResult,
     db::{
-        db_conn::DbConnection,
         user::{NewUser, User},
     },
     DbPool,
@@ -81,7 +78,7 @@ async fn oauth_endpoint(
     } = ticket.claims;
 
     let user_result = User::get_with_google_id(&mut db, &sub).await;
-    let user = match user_result {
+    let _user = match user_result {
         Ok(user) => user,
         Err(NotFound) => {
             let new_user = NewUser {

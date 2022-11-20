@@ -1,14 +1,14 @@
-use crate::api::users::new_user;
+
 use crate::app_error::AppError;
-use crate::app_result::EndpointResult;
-use crate::db::{schema::generated::google_users, user};
+
+
 
 use super::schema::generated::google_users as google_users_table;
 use super::schema::generated::users as users_table;
-use chrono::{DateTime, NaiveDateTime, Utc};
-use derive_builder::Builder;
+use chrono::{DateTime, Utc};
+
 use diesel::prelude::*;
-use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl, SimpleAsyncConnection};
+use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
 use uuid::Uuid;
 
 #[derive(Serialize, Queryable, Clone, Debug)]
@@ -134,7 +134,7 @@ impl User {
     }
 
     pub async fn list(conn: &mut AsyncPgConnection) -> QueryResult<Vec<PublicUser>> {
-        use users_table::dsl::{id, nick_name, users};
+        use users_table::dsl::{nick_name, users};
         users
             .select(PUBLIC_USER_COLUMNS)
             .order(nick_name.asc())
@@ -178,7 +178,7 @@ impl User {
 
     pub async fn get_with_google_id(
         conn: &mut AsyncPgConnection,
-        query_google_id: &String,
+        _query_google_id: &String,
     ) -> QueryResult<User> {
         use google_users_table::dsl::{google_users, id};
         use users_table::dsl::users;

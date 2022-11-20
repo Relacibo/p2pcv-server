@@ -1,6 +1,6 @@
-use std::env;
 
-use actix_web::web::{scope, Data, Json, ServiceConfig};
+
+use actix_web::web::{scope, ServiceConfig};
 use uuid::Uuid;
 
 pub mod google;
@@ -12,7 +12,7 @@ pub fn config(cfg: &mut ServiceConfig) {
     cfg.service(scope("/google").configure(google::config));
 }
 
-pub fn generate_token(user_id: Uuid) -> String {
+pub fn generate_token(_user_id: Uuid) -> String {
     todo!()
 }
 

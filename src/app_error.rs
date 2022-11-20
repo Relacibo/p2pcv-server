@@ -22,7 +22,7 @@ pub enum AppError {
 }
 
 impl<E> From<bb8::RunError<E>> for AppError {
-    fn from(value: bb8::RunError<E>) -> Self {
+    fn from(_value: bb8::RunError<E>) -> Self {
         AppError::Bb8
     }
 }

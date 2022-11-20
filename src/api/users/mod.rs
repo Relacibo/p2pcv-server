@@ -1,10 +1,10 @@
-use std::cell::RefCell;
+
 
 use crate::{
     app_error::AppError,
     app_result::EndpointResult,
     db::{
-        db_conn::{DbConnection, DbExtractor, DbPool},
+        db_conn::{DbPool},
         user::{NewUser, PublicUser, User},
     },
 };
@@ -30,10 +30,10 @@ pub async fn list_users(pool: Data<DbPool>) -> Result<Json<Vec<PublicUser>>, App
 pub async fn delete_user(
     pool: Data<DbPool>,
     uuid: Path<Uuid>,
-    auth: BearerAuth,
+    _auth: BearerAuth,
 ) -> EndpointResult<()> {
     let mut db = pool.get().await?;
-    let res = User::delete(&mut db, *uuid).await?;
+    let _res = User::delete(&mut db, *uuid).await?;
     Ok(Json(()))
 }
 

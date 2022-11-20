@@ -1,13 +1,12 @@
-use std::cell::RefCell;
+
 
 use actix_web::{
-    web::{block, Data},
-    FromRequest,
+    web::{Data},
 };
 use diesel_async::{pooled_connection::AsyncDieselConnectionManager, AsyncPgConnection};
-use futures::future::LocalBoxFuture;
 
-use crate::app_error::AppError;
+
+
 
 pub type DbPool = bb8::Pool<AsyncDieselConnectionManager<AsyncPgConnection>>;
 pub type DbConnection<'a> =
