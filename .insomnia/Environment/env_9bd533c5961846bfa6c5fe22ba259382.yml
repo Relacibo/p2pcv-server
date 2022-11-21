@@ -1,0 +1,18 @@
+_id: env_9bd533c5961846bfa6c5fe22ba259382
+type: Environment
+parentId: env_f089b1f00a0c07a7e956d20f18ac35ffe34c1c86
+modified: 1668991558907
+created: 1668991452224
+name: local
+data:
+  HOST: http://localhost:8000
+  USER_ID: ""
+  USER_TOKEN: ""
+dataPropertyOrder:
+  "&":
+    - HOST
+    - USER_ID
+    - USER_TOKEN
+color: null
+isPrivate: false
+metaSortKey: 1668991452224
