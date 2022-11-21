@@ -78,7 +78,7 @@ pub struct Auth {
 
 #[serde_as]
 #[derive(Clone, Debug, Serialize, Deserialize)]
-struct Claims {
+pub struct Claims {
     pub sub: Uuid,
     pub aud: Vec<String>,
     pub iss: Vec<String>,
@@ -127,7 +127,7 @@ impl Claims {
 }
 
 #[derive(Clone)]
-struct JwtConfig {
+pub struct JwtConfig {
     jwt_decoding_key: DecodingKey,
     jwt_encoding_key: EncodingKey,
     jwt_validation: Validation,

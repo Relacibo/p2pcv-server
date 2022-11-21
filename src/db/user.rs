@@ -1,7 +1,4 @@
-
 use crate::app_error::AppError;
-
-
 
 use super::schema::generated::google_users as google_users_table;
 use super::schema::generated::users as users_table;
@@ -178,14 +175,26 @@ impl User {
 
     pub async fn get_with_google_id(
         conn: &mut AsyncPgConnection,
-        _query_google_id: &String,
+        google_id: &str,
     ) -> QueryResult<User> {
-        use google_users_table::dsl::{google_users, id};
+        use google_users_table::dsl::google_users;
         use users_table::dsl::users;
         google_users
-            .find(id)
+            .find(google_id)
             .inner_join(users)
             .select(ALL_USER_COLUMNS)
+            .get_result(conn)
+            .await
+    }
+
+    pub async fn get_id_with_google_id(
+        conn: &mut AsyncPgConnection,
+        google_id: &str,
+    ) -> QueryResult<Uuid> {
+        use google_users_table::dsl::{google_users, user_id};
+        google_users
+            .find(google_id)
+            .select(user_id)
             .get_result(conn)
             .await
     }

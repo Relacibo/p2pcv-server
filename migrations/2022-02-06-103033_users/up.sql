@@ -15,3 +15,16 @@ CREATE TABLE users (
 
 SELECT
   diesel_manage_updated_at('users');
+
+CREATE TABLE friends (
+  id SERIAL PRIMARY KEY,
+  user_id1 UUID NOT NULL REFERENCES users(id),
+  user_id2 UUID NOT NULL REFERENCES users(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE peers (
+  peer_id UUID PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES users(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

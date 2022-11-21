@@ -18,7 +18,7 @@
           "**/target/**": true
         },
         "rust-analyzer.checkOnSave.command": "clippy",
-        "sqltools.autoConnectTo": "postgres",
+        "sqltools.autoConnectTo": "data",
         "sqltools.connections": [
           {
             "previewLimit": 50,
@@ -26,7 +26,7 @@
             "port": 5432,
             "driver": "PostgreSQL",
             "name": "postgres",
-            "database": "postgres",
+            "database": "data",
             "username": "postgres",
             "password": "postgres"
           }
@@ -59,7 +59,7 @@
     8000
   ],
   // Use 'postCreateCommand' to run commands after the container is created.
-  "postCreateCommand": "cargo update",
+  //"postCreateCommand": "cargo update",
   // Comment out to connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
   "remoteUser": "vscode",
   "features": {

@@ -1,23 +1,21 @@
 use std::env;
 
 use actix_web::{
-    web::{Data, Form, ServiceConfig},
+    web::{Data, Form, Json, ServiceConfig},
     HttpRequest,
 };
-use diesel::{
-    result::{Error::NotFound},
-};
+use diesel::result::Error::NotFound;
 use jsonwebtoken::{decode, decode_header, Algorithm, DecodingKey, Validation};
 use serde::Deserialize;
 
-
 use crate::{
-    api::auth::public_key_storage::PublicKey,
+    api::auth::{
+        auth::{Claims, JwtConfig},
+        public_key_storage::PublicKey,
+    },
     app_error::AppError,
     app_result::EndpointResult,
-    db::{
-        user::{NewUser, User},
-    },
+    db::user::{NewUser, User},
     DbPool,
 };
 
@@ -40,6 +38,7 @@ async fn oauth_endpoint(
     request: HttpRequest,
     payload: Form<OAuthPayload>,
     pool: Data<DbPool>,
+    jwt_config: Data<JwtConfig>,
 ) -> EndpointResult<LoginResponse> {
     let mut db = pool.get().await?;
     let OAuthPayload {
@@ -61,9 +60,9 @@ async fn oauth_endpoint(
     let mut validation = Validation::new(Algorithm::RS256);
     validation.set_audience(&[config.client_id.clone()]);
     validation.set_issuer(&config.issuer);
-    let ticket = decode::<Claims>(credential, &decoding_key, &validation)?;
+    let ticket = decode::<GoogleClaims>(credential, &decoding_key, &validation)?;
 
-    let Claims {
+    let GoogleClaims {
         sub,
         name,
         nick_name,
@@ -78,7 +77,7 @@ async fn oauth_endpoint(
     } = ticket.claims;
 
     let user_result = User::get_with_google_id(&mut db, &sub).await;
-    let _user = match user_result {
+    let user = match user_result {
         Ok(user) => user,
         Err(NotFound) => {
             let new_user = NewUser {
@@ -97,7 +96,10 @@ async fn oauth_endpoint(
         }
         err => err?,
     };
-    todo!()
+    let claims = Claims::new_24_hours(&jwt_config, user.id)?;
+    let token = claims.generate_token(&jwt_config)?;
+    let res = LoginResponse { token, user };
+    Ok(Json(res))
 }
 
 #[derive(Serialize)]
@@ -113,7 +115,7 @@ pub struct OAuthPayload {
 }
 
 #[derive(Clone, Debug, Deserialize)]
-struct Claims {
+struct GoogleClaims {
     aud: String,
     exp: usize,
     iat: usize,

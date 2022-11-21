@@ -1,10 +1,27 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
+    friends (id) {
+        id -> Int4,
+        user_id1 -> Uuid,
+        user_id2 -> Uuid,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     google_users (id) {
         id -> Varchar,
         user_id -> Uuid,
         created_at -> Timestamp,
+    }
+}
+
+diesel::table! {
+    peers (peer_id) {
+        peer_id -> Uuid,
+        user_id -> Uuid,
+        created_at -> Timestamptz,
     }
 }
 
@@ -26,8 +43,11 @@ diesel::table! {
 }
 
 diesel::joinable!(google_users -> users (user_id));
+diesel::joinable!(peers -> users (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
+    friends,
     google_users,
+    peers,
     users,
 );
