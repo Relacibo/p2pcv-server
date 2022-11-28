@@ -1,7 +1,7 @@
 use std::env;
 
 use actix_web::{
-    web::{Data, Form, Json, ServiceConfig},
+    web::{scope, Data, Form, Json, ServiceConfig},
     HttpRequest,
 };
 use diesel::result::Error::NotFound;
@@ -25,20 +25,23 @@ pub fn config(cfg: &mut ServiceConfig) {
     let client_id = env::var("GOOGLE_CLIENT_ID").unwrap();
     let certs_uri = env::var("GOOGLE_CERTS_URI").unwrap();
     let issuer = vec!["accounts.google.com", "https://accounts.google.com"];
-    cfg.app_data(Data::new(Config { client_id, issuer }))
-        .app_data(Data::new(KeyStore::new(certs_uri)))
-        .service(oauth_endpoint);
+    cfg.service(
+        scope("/google")
+            .app_data(Data::new(Config { client_id, issuer }))
+            .app_data(Data::new(KeyStore::new(certs_uri)))
+            .service(oauth_endpoint),
+    );
 }
 
 /* https://developers.google.com/identity/gsi/web/guides/verify-google-id-token?hl=en */
 #[post("")]
 async fn oauth_endpoint(
     config: Data<Config>,
+    jwt_config: Data<JwtConfig>,
     key_store: Data<KeyStore>,
     request: HttpRequest,
     payload: Form<OAuthPayload>,
     pool: Data<DbPool>,
-    jwt_config: Data<JwtConfig>,
 ) -> EndpointResult<LoginResponse> {
     let mut db = pool.get().await?;
     let OAuthPayload {

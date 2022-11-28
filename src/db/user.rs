@@ -123,7 +123,11 @@ impl User {
     }
 
     pub async fn delete(conn: &mut AsyncPgConnection, query_uuid: Uuid) -> QueryResult<()> {
+        use google_users_table::dsl::{google_users, user_id};
         use users_table::dsl::users;
+        diesel::delete(google_users.filter(user_id.eq(query_uuid)))
+            .execute(conn)
+            .await?;
         diesel::delete(users.find(query_uuid))
             .execute(conn)
             .await

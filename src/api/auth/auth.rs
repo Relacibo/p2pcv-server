@@ -1,7 +1,5 @@
-
-
 use actix_web::{
-    http::header::{Header},
+    http::header::Header,
     web::{Data, ServiceConfig},
     FromRequest,
 };
@@ -133,4 +131,16 @@ pub struct JwtConfig {
     jwt_validation: Validation,
     jwt_audience: Vec<String>,
     jwt_issuers: Vec<String>,
+}
+
+impl Auth {
+    pub fn is_user(&self, user_id: Uuid) -> bool {
+        self.user_id == user_id
+    }
+    pub fn should_be_user(self, user_id: Uuid) -> Result<Auth, AppError> {
+        if !self.is_user(user_id) {
+            return Err(AppError::Unauthorized);
+        }
+        Ok(self)
+    }
 }

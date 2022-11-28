@@ -25,9 +25,9 @@ extern crate serde_json;
 use std::env;
 
 mod api;
-mod db;
 mod app_error;
 mod app_result;
+mod db;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -47,8 +47,8 @@ async fn main() -> std::io::Result<()> {
             .configure(auth::auth::config)
             .app_data(Data::new(pool.clone()))
             .wrap(Logger::default())
-            .service(web::scope("/users").configure(api::users::config))
-            .service(web::scope("/auth").configure(crate::api::auth::config))
+            .configure(api::users::config)
+            .configure(api::auth::config)
     })
     .bind(format!("{actix_host}:{actix_port}"))?
     .run()
