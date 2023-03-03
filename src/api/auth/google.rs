@@ -39,19 +39,19 @@ async fn oauth_endpoint(
     config: Data<Config>,
     jwt_config: Data<JwtConfig>,
     key_store: Data<KeyStore>,
-    request: HttpRequest,
-    payload: Form<OAuthPayload>,
     pool: Data<DbPool>,
+    // request: HttpRequest,
+    payload: Json<OAuthPayload>,
 ) -> EndpointResult<LoginResponse> {
     let mut db = pool.get().await?;
     let OAuthPayload {
-        g_csrf_token,
+        // g_csrf_token,
         credential,
     } = &*payload;
-    let g_csrf_token_cookie = request.cookie("g_csrf_token").ok_or(AppError::OpenId)?;
-    if g_csrf_token != g_csrf_token_cookie.value() {
-        return Err(AppError::OpenId);
-    }
+    // let g_csrf_token_cookie = request.cookie("g_csrf_token").ok_or(AppError::OpenId)?;
+    // if g_csrf_token != g_csrf_token_cookie.value() {
+    //     return Err(AppError::OpenId);
+    // }
     // Find out kid to use
     let header = decode_header(credential)?;
     let kid = header.kid.ok_or(AppError::OpenId)?;
@@ -90,12 +90,12 @@ async fn oauth_endpoint(
                 middle_name,
                 family_name,
                 email,
-                locale,
+                locale: locale.unwrap_or("en".to_string()),
                 verified_email,
                 picture,
             };
-            let user = User::add_with_google_id(&mut db, new_user, &sub).await?;
-            user
+
+            User::add_with_google_id(&mut db, new_user, &sub).await?
         }
         err => err?,
     };
@@ -113,7 +113,7 @@ pub struct LoginResponse {
 
 #[derive(Debug, Deserialize)]
 pub struct OAuthPayload {
-    g_csrf_token: String,
+    // g_csrf_token: String,
     credential: String,
 }
 
@@ -131,7 +131,7 @@ struct GoogleClaims {
     middle_name: Option<String>,
     family_name: Option<String>,
     email: String,
-    locale: String,
+    locale: Option<String>,
     #[serde(default)]
     verified_email: bool,
     picture: Option<String>,

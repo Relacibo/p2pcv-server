@@ -12,6 +12,7 @@ use uuid::Uuid;
 #[serde(rename_all = "camelCase")]
 pub struct User {
     pub id: Uuid,
+    pub user_name: Option<String>,
     pub name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub nick_name: Option<String>,
@@ -32,6 +33,7 @@ pub struct User {
 
 pub const ALL_USER_COLUMNS: (
     users_table::id,
+    users_table::user_name,
     users_table::name,
     users_table::nick_name,
     users_table::given_name,
@@ -45,6 +47,7 @@ pub const ALL_USER_COLUMNS: (
     users_table::updated_at,
 ) = (
     users_table::id,
+    users_table::user_name,
     users_table::name,
     users_table::nick_name,
     users_table::given_name,
@@ -94,7 +97,7 @@ pub struct NewUserWithId {
 pub struct PublicUser {
     pub id: Uuid,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub nick_name: Option<String>,
+    pub user_name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub picture: Option<String>,
     pub created_at: DateTime<Utc>,
@@ -102,12 +105,12 @@ pub struct PublicUser {
 
 pub const PUBLIC_USER_COLUMNS: (
     users_table::id,
-    users_table::nick_name,
+    users_table::user_name,
     users_table::picture,
     users_table::created_at,
 ) = (
     users_table::id,
-    users_table::nick_name,
+    users_table::user_name,
     users_table::picture,
     users_table::created_at,
 );

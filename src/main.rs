@@ -11,12 +11,10 @@ extern crate diesel;
 extern crate bb8;
 #[macro_use]
 extern crate actix_web;
+#[macro_use]
+extern crate serde_with;
 extern crate env_logger;
-use actix_web::{
-    middleware::Logger,
-    web::{self, Data},
-    App, HttpServer,
-};
+use actix_web::{middleware::Logger, web::Data, App, HttpServer};
 use env_logger::Env;
 #[macro_use]
 extern crate serde_derive;
