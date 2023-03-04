@@ -2,16 +2,21 @@ use std::env;
 
 use actix_web::{
     web::{scope, Data, Form, Json, ServiceConfig},
-    HttpRequest,
+    HttpRequest, HttpResponse,
 };
-use diesel::result::Error::NotFound;
+use diesel::result::{
+    DatabaseErrorKind,
+    Error::{DatabaseError, NotFound},
+};
 use jsonwebtoken::{decode, decode_header, Algorithm, DecodingKey, Validation};
 use serde::Deserialize;
+use uuid::Uuid;
 
 use crate::{
     api::auth::{
         auth::{Claims, JwtConfig},
         public_key_storage::PublicKey,
+        util::{generate_login_token, suggest_username},
     },
     app_error::AppError,
     app_result::EndpointResult,
@@ -29,41 +34,21 @@ pub fn config(cfg: &mut ServiceConfig) {
         scope("/google")
             .app_data(Data::new(Config { client_id, issuer }))
             .app_data(Data::new(KeyStore::new(certs_uri)))
-            .service(oauth_endpoint),
+            .service(signin),
     );
 }
 
 /* https://developers.google.com/identity/gsi/web/guides/verify-google-id-token?hl=en */
-#[post("")]
-async fn oauth_endpoint(
+#[post("signin")]
+async fn signin(
     config: Data<Config>,
     jwt_config: Data<JwtConfig>,
     key_store: Data<KeyStore>,
     pool: Data<DbPool>,
-    // request: HttpRequest,
-    payload: Json<OAuthPayload>,
+    payload: Json<SigninPayload>,
 ) -> EndpointResult<LoginResponse> {
     let mut db = pool.get().await?;
-    let OAuthPayload {
-        // g_csrf_token,
-        credential,
-    } = &*payload;
-    // let g_csrf_token_cookie = request.cookie("g_csrf_token").ok_or(AppError::OpenId)?;
-    // if g_csrf_token != g_csrf_token_cookie.value() {
-    //     return Err(AppError::OpenId);
-    // }
-    // Find out kid to use
-    let header = decode_header(credential)?;
-    let kid = header.kid.ok_or(AppError::OpenId)?;
-
-    let key = key_store.get_key(&kid).await?;
-
-    let PublicKey { n, e, .. } = &key;
-    let decoding_key = DecodingKey::from_rsa_raw_components(n, e);
-    let mut validation = Validation::new(Algorithm::RS256);
-    validation.set_audience(&[config.client_id.clone()]);
-    validation.set_issuer(&config.issuer);
-    let ticket = decode::<GoogleClaims>(credential, &decoding_key, &validation)?;
+    let SigninPayload { credential } = payload.into_inner();
 
     let GoogleClaims {
         sub,
@@ -77,43 +62,129 @@ async fn oauth_endpoint(
         verified_email,
         picture,
         ..
-    } = ticket.claims;
+    } = get_google_claims(&config, &key_store, &credential).await?;
 
     let user_result = User::get_with_google_id(&mut db, &sub).await;
     let user = match user_result {
         Ok(user) => user,
         Err(NotFound) => {
-            let new_user = NewUser {
-                name,
-                nick_name,
-                given_name,
-                middle_name,
-                family_name,
-                email,
-                locale: locale.unwrap_or("en".to_string()),
-                verified_email,
-                picture,
-            };
-
-            User::add_with_google_id(&mut db, new_user, &sub).await?
+            let username_suggestion = suggest_username(&db, &name).await?;
+            return Ok(Json(LoginResponse::NotRegistered {
+                username_suggestion,
+            }));
         }
         err => err?,
     };
-    let claims = Claims::new_24_hours(&jwt_config, user.id)?;
-    let token = claims.generate_token(&jwt_config)?;
-    let res = LoginResponse { token, user };
+    let token = generate_login_token(&jwt_config, user.id)?;
+    let res = LoginResponse::success(token, user);
+    Ok(Json(res))
+}
+
+async fn get_google_claims(
+    config: &Config,
+    key_store: &KeyStore,
+    credential: &str,
+) -> Result<GoogleClaims, AppError> {
+    // Find out kid to use
+    let header = decode_header(credential)?;
+    let kid = header.kid.ok_or(AppError::OpenId)?;
+
+    let key = key_store.get_key(&kid).await?;
+
+    let PublicKey { n, e, .. } = &key;
+    let decoding_key = DecodingKey::from_rsa_raw_components(n, e);
+    let mut validation = Validation::new(Algorithm::RS256);
+    validation.set_audience(&[config.client_id.clone()]);
+    validation.set_issuer(&config.issuer);
+    let ticket = decode::<GoogleClaims>(credential, &decoding_key, &validation)?;
+    Ok(ticket.claims)
+}
+
+#[post("signon")]
+async fn signon(
+    config: Data<Config>,
+    jwt_config: Data<JwtConfig>,
+    key_store: Data<KeyStore>,
+    pool: Data<DbPool>,
+    payload: Json<SignonPayload>,
+) -> EndpointResult<LoginResponse> {
+    let mut db = pool.get().await?;
+    let SignonPayload {
+        username,
+        credential,
+    } = &*payload;
+
+    let GoogleClaims {
+        sub,
+        name,
+        nick_name,
+        given_name,
+        middle_name,
+        family_name,
+        email,
+        locale,
+        verified_email,
+        picture,
+        ..
+    } = get_google_claims(&config, &key_store, credential).await?;
+
+    let new_user = NewUser {
+        name,
+        nick_name,
+        given_name,
+        middle_name,
+        family_name,
+        email,
+        locale: locale.unwrap_or("en".to_string()),
+        verified_email,
+        picture,
+    };
+    let insert_result = User::add_with_google_id(&mut db, new_user, &sub).await;
+    let user = match insert_result {
+        Err(AppError::Diesel(DatabaseError(DatabaseErrorKind::UniqueViolation, _))) => {
+            let username_suggestion = suggest_username(&db, username).await?;
+            let res = LoginResponse::NotRegistered {
+                username_suggestion,
+            };
+            return Ok(Json(res));
+        }
+        res => res?,
+    };
+    let token = generate_login_token(&jwt_config, user.id)?;
+    let res = LoginResponse::success(token, user);
     Ok(Json(res))
 }
 
 #[derive(Serialize)]
-pub struct LoginResponse {
+#[serde(rename_all = "kebab-case", tag = "result")]
+pub enum LoginResponse {
+    Success(Box<LoginResponseSuccess>),
+    #[serde(rename_all = "camelCase")]
+    NotRegistered {
+        username_suggestion: String,
+    },
+}
+
+impl LoginResponse {
+    fn success(token: String, user: User) -> Self {
+        Self::Success(Box::new(LoginResponseSuccess { token, user }))
+    }
+}
+
+#[derive(Serialize)]
+pub struct LoginResponseSuccess {
     token: String,
     user: User,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct OAuthPayload {
-    // g_csrf_token: String,
+pub struct SigninPayload {
+    credential: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct SignonPayload {
+    username: String,
     credential: String,
 }
 

@@ -1,6 +1,6 @@
 CREATE TABLE users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_name VARCHAR NULL UNIQUE,
+  user_name VARCHAR NOT NULL UNIQUE,
   name VARCHAR NOT NULL,
   nick_name VARCHAR NULL,
   given_name VARCHAR NULL,
@@ -29,3 +29,5 @@ CREATE TABLE peers (
   user_id UUID NOT NULL REFERENCES users(id),
   created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+-- CREATE FUNCTION suggest_username
