@@ -20,7 +20,7 @@ use crate::{
     },
     app_error::AppError,
     app_result::EndpointResult,
-    db::user::{NewUser, User},
+    db::user::{NewUser, UpdateUserGoogle, User},
     DbPool,
 };
 
@@ -34,7 +34,8 @@ pub fn config(cfg: &mut ServiceConfig) {
         scope("/google")
             .app_data(Data::new(Config { client_id, issuer }))
             .app_data(Data::new(KeyStore::new(certs_uri)))
-            .service(signin),
+            .service(signin)
+            .service(signup),
     );
 }
 
@@ -50,23 +51,16 @@ async fn signin(
     let mut db = pool.get().await?;
     let SigninPayload { credential } = payload.into_inner();
 
-    let GoogleClaims {
-        sub,
-        name,
-        nick_name,
-        given_name,
-        middle_name,
-        family_name,
-        email,
-        locale,
-        verified_email,
-        picture,
-        ..
-    } = get_google_claims(&config, &key_store, &credential).await?;
+    let claims = extract_google_claims(&config, &key_store, &credential).await?;
+    let sub = claims.sub.clone();
+    let name = claims.name.clone();
 
     let user_result = User::get_with_google_id(&mut db, &sub).await;
     let user = match user_result {
-        Ok(user) => user,
+        Ok(user) => {
+            User::update_google_user(&mut db, user.id, claims.into()).await?;
+            user
+        }
         Err(NotFound) => {
             let username_suggestion = suggest_username(&db, &name).await?;
             return Ok(Json(LoginResponse::NotRegistered {
@@ -80,7 +74,7 @@ async fn signin(
     Ok(Json(res))
 }
 
-async fn get_google_claims(
+async fn extract_google_claims(
     config: &Config,
     key_store: &KeyStore,
     credential: &str,
@@ -100,8 +94,8 @@ async fn get_google_claims(
     Ok(ticket.claims)
 }
 
-#[post("signon")]
-async fn signon(
+#[post("signup")]
+async fn signup(
     config: Data<Config>,
     jwt_config: Data<JwtConfig>,
     key_store: Data<KeyStore>,
@@ -114,34 +108,15 @@ async fn signon(
         credential,
     } = &*payload;
 
-    let GoogleClaims {
-        sub,
-        name,
-        nick_name,
-        given_name,
-        middle_name,
-        family_name,
-        email,
-        locale,
-        verified_email,
-        picture,
-        ..
-    } = get_google_claims(&config, &key_store, credential).await?;
+    let claims = extract_google_claims(&config, &key_store, credential).await?;
+    let sub = claims.sub.clone();
 
-    let new_user = NewUser {
-        name,
-        nick_name,
-        given_name,
-        middle_name,
-        family_name,
-        email,
-        locale: locale.unwrap_or("en".to_string()),
-        verified_email,
-        picture,
-    };
+    let new_user: NewUser = user_from_google_claims_and_username(claims, username.clone());
     let insert_result = User::add_with_google_id(&mut db, new_user, &sub).await;
     let user = match insert_result {
-        Err(AppError::Diesel(DatabaseError(DatabaseErrorKind::UniqueViolation, _))) => {
+        Err(AppError::Diesel(DatabaseError(DatabaseErrorKind::UniqueViolation, a)))
+            if a.table_name() == Some("users") =>
+        {
             let username_suggestion = suggest_username(&db, username).await?;
             let res = LoginResponse::NotRegistered {
                 username_suggestion,
@@ -211,4 +186,59 @@ struct GoogleClaims {
 pub struct Config {
     client_id: String,
     issuer: Vec<&'static str>,
+}
+
+fn user_from_google_claims_and_username(claims: GoogleClaims, user_name: String) -> NewUser {
+    let GoogleClaims {
+        name,
+        nick_name,
+        given_name,
+        middle_name,
+        family_name,
+        email,
+        locale,
+        verified_email,
+        picture,
+        ..
+    } = claims;
+    NewUser {
+        user_name,
+        name,
+        nick_name,
+        given_name,
+        middle_name,
+        family_name,
+        email,
+        locale: locale.unwrap_or("en".to_string()),
+        verified_email,
+        picture,
+    }
+}
+
+impl From<GoogleClaims> for UpdateUserGoogle {
+    fn from(val: GoogleClaims) -> Self {
+        let GoogleClaims {
+            name,
+            nick_name,
+            given_name,
+            middle_name,
+            family_name,
+            email,
+            locale,
+            verified_email,
+            picture,
+            ..
+        } = val;
+        UpdateUserGoogle {
+            name: Some(name),
+            nick_name: Some(nick_name),
+            given_name: Some(given_name),
+            middle_name: Some(middle_name),
+            family_name: Some(family_name),
+            email: Some(email),
+            locale,
+            verified_email: Some(verified_email),
+            picture: Some(picture),
+        }
+    }
 }

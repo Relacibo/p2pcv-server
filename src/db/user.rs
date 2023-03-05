@@ -1,4 +1,5 @@
 use crate::app_error::AppError;
+use crate::db::schema::generated::friends::dsl;
 
 use super::schema::generated::google_users as google_users_table;
 use super::schema::generated::users as users_table;
@@ -12,7 +13,7 @@ use uuid::Uuid;
 #[serde(rename_all = "camelCase")]
 pub struct User {
     pub id: Uuid,
-    pub user_name: Option<String>,
+    pub user_name: String,
     pub name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub nick_name: Option<String>,
@@ -61,10 +62,26 @@ pub const ALL_USER_COLUMNS: (
     users_table::updated_at,
 );
 
-#[derive(Insertable, Deserialize, Clone, Debug)]
+#[derive(Insertable, Clone, Debug)]
 #[table_name = "users_table"]
-#[serde(rename_all = "camelCase")]
 pub struct NewUser {
+    pub name: String,
+    pub user_name: String,
+    pub nick_name: Option<String>,
+    pub given_name: Option<String>,
+    pub middle_name: Option<String>,
+    pub family_name: Option<String>,
+    pub email: String,
+    pub locale: String,
+    pub verified_email: bool,
+    pub picture: Option<String>,
+}
+
+#[derive(Insertable, Clone, Debug)]
+#[table_name = "users_table"]
+pub struct NewUserWithId {
+    pub id: Uuid,
+    pub user_name: String,
     pub name: String,
     pub nick_name: Option<String>,
     pub given_name: Option<String>,
@@ -76,28 +93,25 @@ pub struct NewUser {
     pub picture: Option<String>,
 }
 
-#[derive(Insertable, Deserialize, Clone, Debug)]
+#[derive(AsChangeset, Clone, Debug)]
 #[table_name = "users_table"]
-#[serde(rename_all = "camelCase")]
-pub struct NewUserWithId {
-    pub id: Uuid,
-    pub name: String,
-    pub nick_name: Option<String>,
-    pub given_name: Option<String>,
-    pub middle_name: Option<String>,
-    pub family_name: Option<String>,
-    pub email: String,
-    pub locale: String,
-    pub verified_email: bool,
-    pub picture: Option<String>,
+pub struct UpdateUserGoogle {
+    pub name: Option<String>,
+    pub nick_name: Option<Option<String>>,
+    pub given_name: Option<Option<String>>,
+    pub middle_name: Option<Option<String>>,
+    pub family_name: Option<Option<String>>,
+    pub email: Option<String>,
+    pub locale: Option<String>,
+    pub verified_email: Option<bool>,
+    pub picture: Option<Option<String>>,
 }
 
 #[derive(Serialize, Queryable, PartialEq, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct PublicUser {
     pub id: Uuid,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub user_name: Option<String>,
+    pub user_name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub picture: Option<String>,
     pub created_at: DateTime<Utc>,
@@ -116,7 +130,7 @@ pub const PUBLIC_USER_COLUMNS: (
 );
 
 impl User {
-    pub async fn add(conn: &mut AsyncPgConnection, user: NewUser) -> QueryResult<()> {
+    pub async fn insert(conn: &mut AsyncPgConnection, user: NewUser) -> QueryResult<()> {
         use users_table::dsl::*;
         diesel::insert_into(users)
             .values(user)
@@ -205,11 +219,25 @@ impl User {
             .get_result(conn)
             .await
     }
+
+    pub async fn update_google_user(
+        conn: &mut AsyncPgConnection,
+        user_id: Uuid,
+        user: UpdateUserGoogle,
+    ) -> QueryResult<User> {
+        use users_table::dsl::id;
+        diesel::update(users_table::table)
+            .filter(id.eq(user_id))
+            .set(&user)
+            .get_result(conn)
+            .await
+    }
 }
 
 impl NewUser {
     pub fn with_id(self, id: Uuid) -> NewUserWithId {
         let Self {
+            user_name,
             name,
             nick_name,
             given_name,
@@ -222,6 +250,7 @@ impl NewUser {
         } = self;
         NewUserWithId {
             id,
+            user_name,
             name,
             nick_name,
             given_name,
