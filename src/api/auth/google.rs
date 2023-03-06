@@ -14,7 +14,7 @@ use uuid::Uuid;
 
 use crate::{
     api::auth::{
-        auth::{Claims, JwtConfig},
+        jwt::{Claims, JwtConfig},
         public_key_storage::PublicKey,
         util::{generate_login_token, suggest_username},
     },

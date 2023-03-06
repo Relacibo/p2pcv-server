@@ -1,8 +1,8 @@
 use actix_web::web::{scope, ServiceConfig};
 use uuid::Uuid;
 
-pub mod auth;
 pub mod google;
+pub mod jwt;
 mod public_key_storage;
 mod util;
 

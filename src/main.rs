@@ -42,11 +42,11 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(move || {
         App::new()
-            .configure(auth::auth::config)
-            .app_data(Data::new(pool.clone()))
-            .wrap(Logger::default())
+            .configure(api::auth::jwt::config)
             .configure(api::users::config)
             .configure(api::auth::config)
+            .app_data(Data::new(pool.clone()))
+            .wrap(Logger::default())
     })
     .bind(format!("{actix_host}:{actix_port}"))?
     .run()

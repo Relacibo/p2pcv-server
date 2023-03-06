@@ -1,5 +1,5 @@
 use crate::{
-    api::auth::auth::Auth,
+    api::auth::jwt::Auth,
     app_error::AppError,
     app_result::EndpointResult,
     db::{
