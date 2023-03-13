@@ -1,11 +1,9 @@
 #![feature(result_option_inspect)]
 #![feature(async_closure)]
 #![feature(let_chains)]
-extern crate dotenv;
-use api::auth;
 use db::db_conn::DbPool;
 use diesel_async::{pooled_connection::AsyncDieselConnectionManager, AsyncPgConnection};
-use dotenv::dotenv;
+use dotenvy::dotenv;
 #[macro_use]
 extern crate diesel;
 extern crate bb8;
