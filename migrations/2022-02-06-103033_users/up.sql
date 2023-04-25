@@ -18,10 +18,12 @@ SELECT
   diesel_manage_updated_at('users');
 
 CREATE TABLE friends (
-  id SERIAL PRIMARY KEY,
-  user_id1 UUID NOT NULL REFERENCES users(id),
-  user_id2 UUID NOT NULL REFERENCES users(id),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+  id BIGSERIAL PRIMARY KEY,
+  user1_id UUID NOT NULL REFERENCES users(id),
+  user2_id UUID NOT NULL REFERENCES users(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (user1_id, user2_id),
+  CHECK (user2_id > user1_id)
 );
 
 CREATE TABLE peers (

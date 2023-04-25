@@ -9,6 +9,7 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
 
 USER vscode
 RUN rustup default nightly
-RUN cargo install diesel_cli@^2.0 --no-default-features --features postgres
+# RUN cargo install diesel_cli@^2.0 --no-default-features --features postgres
+RUN cargo install refinery_cli@0.8.7
 
 USER root
