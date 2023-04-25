@@ -1,17 +1,19 @@
-_id: req_debce2075e6346f9a7acdfc70415fac0
+_id: req_e18d10f526ed4709bc12c52f5fb9b105
 type: Request
 parentId: wrk_5bc847a5f8134d76ad33e98dbff49718
-modified: 1668992314650
-created: 1664961102682
-url: "{{ _.HOST }}/users"
-name: get users
+modified: 1682429191891
+created: 1668992320351
+url: "{{ _.HOST }}/users/{{ _.USER_ID }}"
+name: get user
 description: ""
 method: GET
 body: {}
 parameters: []
 headers: []
-authentication: {}
-metaSortKey: -1664961102682
+authentication:
+  type: bearer
+  token: "{{ _.USER_TOKEN }}"
+metaSortKey: -1664961102632
 isPrivate: false
 settingStoreCookies: true
 settingSendCookies: true
