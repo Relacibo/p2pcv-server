@@ -19,6 +19,8 @@ pub enum AppError {
     Reqwest(#[from] reqwest::Error),
     #[error("unknown")]
     Unexpected,
+    #[error("Unauthorized")]
+    Unauthorized,
 }
 
 impl<E> From<bb8::RunError<E>> for AppError {
@@ -39,7 +41,7 @@ impl actix_web::ResponseError for AppError {
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             },
             ActixBlocking(_) | Bb8 | Reqwest(_) | Unexpected => StatusCode::INTERNAL_SERVER_ERROR,
-            JwtParse(_) | Jwt(_) | OpenId => StatusCode::UNAUTHORIZED,
+            JwtParse(_) | Jwt(_) | OpenId | Unauthorized => StatusCode::UNAUTHORIZED,
         }
     }
     fn error_response(&self) -> actix_web::HttpResponse<actix_web::body::BoxBody> {

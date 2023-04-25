@@ -1,17 +1,19 @@
 use crate::app_error::AppError;
 
-use super::schema::generated::google_users as google_users_table;
-use super::schema::generated::users as users_table;
+use super::schema::generated::google_users as db_google_users;
+use super::schema::generated::users as db_users;
 use chrono::{DateTime, Utc};
 
 use diesel::prelude::*;
 use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
 use uuid::Uuid;
 
-#[derive(Serialize, Queryable, Clone, Debug)]
+#[derive(Serialize, Queryable, Clone, Debug, Selectable)]
 #[serde(rename_all = "camelCase")]
+#[diesel(table_name = db_users)]
 pub struct User {
     pub id: Uuid,
+    pub user_name: String,
     pub name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub nick_name: Option<String>,
@@ -30,39 +32,11 @@ pub struct User {
     pub updated_at: DateTime<Utc>,
 }
 
-pub const ALL_USER_COLUMNS: (
-    users_table::id,
-    users_table::name,
-    users_table::nick_name,
-    users_table::given_name,
-    users_table::middle_name,
-    users_table::family_name,
-    users_table::email,
-    users_table::locale,
-    users_table::verified_email,
-    users_table::picture,
-    users_table::created_at,
-    users_table::updated_at,
-) = (
-    users_table::id,
-    users_table::name,
-    users_table::nick_name,
-    users_table::given_name,
-    users_table::middle_name,
-    users_table::family_name,
-    users_table::email,
-    users_table::locale,
-    users_table::verified_email,
-    users_table::picture,
-    users_table::created_at,
-    users_table::updated_at,
-);
-
-#[derive(Insertable, Deserialize, Clone, Debug)]
-#[table_name = "users_table"]
-#[serde(rename_all = "camelCase")]
+#[derive(Insertable, Clone, Debug)]
+#[diesel(table_name = db_users)]
 pub struct NewUser {
     pub name: String,
+    pub user_name: String,
     pub nick_name: Option<String>,
     pub given_name: Option<String>,
     pub middle_name: Option<String>,
@@ -73,11 +47,11 @@ pub struct NewUser {
     pub picture: Option<String>,
 }
 
-#[derive(Insertable, Deserialize, Clone, Debug)]
-#[table_name = "users_table"]
-#[serde(rename_all = "camelCase")]
+#[derive(Insertable, Clone, Debug)]
+#[diesel(table_name = db_users)]
 pub struct NewUserWithId {
     pub id: Uuid,
+    pub user_name: String,
     pub name: String,
     pub nick_name: Option<String>,
     pub given_name: Option<String>,
@@ -89,32 +63,34 @@ pub struct NewUserWithId {
     pub picture: Option<String>,
 }
 
-#[derive(Serialize, Queryable, PartialEq, Debug, Clone)]
+#[derive(AsChangeset, Clone, Debug)]
+#[diesel(table_name = db_users)]
+pub struct UpdateUserGoogle {
+    pub name: Option<String>,
+    pub nick_name: Option<Option<String>>,
+    pub given_name: Option<Option<String>>,
+    pub middle_name: Option<Option<String>>,
+    pub family_name: Option<Option<String>>,
+    pub email: Option<String>,
+    pub locale: Option<String>,
+    pub verified_email: Option<bool>,
+    pub picture: Option<Option<String>>,
+}
+
+#[derive(Serialize, Queryable, PartialEq, Debug, Clone, Selectable)]
 #[serde(rename_all = "camelCase")]
+#[diesel(table_name = db_users)]
 pub struct PublicUser {
     pub id: Uuid,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub nick_name: Option<String>,
+    pub user_name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub picture: Option<String>,
     pub created_at: DateTime<Utc>,
 }
 
-pub const PUBLIC_USER_COLUMNS: (
-    users_table::id,
-    users_table::nick_name,
-    users_table::picture,
-    users_table::created_at,
-) = (
-    users_table::id,
-    users_table::nick_name,
-    users_table::picture,
-    users_table::created_at,
-);
-
 impl User {
-    pub async fn add(conn: &mut AsyncPgConnection, user: NewUser) -> QueryResult<()> {
-        use users_table::dsl::*;
+    pub async fn insert(conn: &mut AsyncPgConnection, user: NewUser) -> QueryResult<()> {
+        use db_users::dsl::*;
         diesel::insert_into(users)
             .values(user)
             .execute(conn)
@@ -123,7 +99,11 @@ impl User {
     }
 
     pub async fn delete(conn: &mut AsyncPgConnection, query_uuid: Uuid) -> QueryResult<()> {
-        use users_table::dsl::users;
+        use db_google_users::dsl::{google_users, user_id};
+        use db_users::dsl::users;
+        diesel::delete(google_users.filter(user_id.eq(query_uuid)))
+            .execute(conn)
+            .await?;
         diesel::delete(users.find(query_uuid))
             .execute(conn)
             .await
@@ -131,16 +111,16 @@ impl User {
     }
 
     pub async fn list(conn: &mut AsyncPgConnection) -> QueryResult<Vec<PublicUser>> {
-        use users_table::dsl::{nick_name, users};
+        use db_users::dsl::{nick_name, users};
         users
-            .select(PUBLIC_USER_COLUMNS)
             .order(nick_name.asc())
+            .select(PublicUser::as_select())
             .load(conn)
             .await
     }
 
     pub async fn get(conn: &mut AsyncPgConnection, query_uuid: Uuid) -> QueryResult<User> {
-        use users_table::dsl::users;
+        use db_users::dsl::users;
         users.find(query_uuid).get_result(conn).await
     }
 
@@ -149,8 +129,8 @@ impl User {
         user: NewUser,
         google_id: &str,
     ) -> Result<User, AppError> {
-        use google_users_table::dsl::{google_users, id as g_id, user_id as g_user_id};
-        use users_table::dsl::users;
+        use db_google_users::dsl::{google_users, id as g_id, user_id as g_user_id};
+        use db_users::dsl::users;
         let google_id = google_id.to_string();
         let user_id = Uuid::new_v4();
         let user = user.clone().with_id(user_id);
@@ -159,7 +139,7 @@ impl User {
                 Box::pin(async move {
                     let user: User = diesel::insert_into(users)
                         .values(user)
-                        .returning(ALL_USER_COLUMNS)
+                        .returning(users::all_columns())
                         .get_result(conn)
                         .await?;
                     diesel::insert_into(google_users)
@@ -177,12 +157,12 @@ impl User {
         conn: &mut AsyncPgConnection,
         google_id: &str,
     ) -> QueryResult<User> {
-        use google_users_table::dsl::google_users;
-        use users_table::dsl::users;
+        use db_google_users::dsl::google_users;
+        use db_users::dsl::users;
         google_users
             .find(google_id)
             .inner_join(users)
-            .select(ALL_USER_COLUMNS)
+            .select(users::all_columns())
             .get_result(conn)
             .await
     }
@@ -191,10 +171,23 @@ impl User {
         conn: &mut AsyncPgConnection,
         google_id: &str,
     ) -> QueryResult<Uuid> {
-        use google_users_table::dsl::{google_users, user_id};
+        use db_google_users::dsl::{google_users, user_id};
         google_users
             .find(google_id)
             .select(user_id)
+            .get_result(conn)
+            .await
+    }
+
+    pub async fn update_google_user(
+        conn: &mut AsyncPgConnection,
+        user_id: Uuid,
+        user: UpdateUserGoogle,
+    ) -> QueryResult<User> {
+        use db_users::dsl::id;
+        diesel::update(db_users::table)
+            .filter(id.eq(user_id))
+            .set(&user)
             .get_result(conn)
             .await
     }
@@ -203,6 +196,7 @@ impl User {
 impl NewUser {
     pub fn with_id(self, id: Uuid) -> NewUserWithId {
         let Self {
+            user_name,
             name,
             nick_name,
             given_name,
@@ -215,6 +209,7 @@ impl NewUser {
         } = self;
         NewUserWithId {
             id,
+            user_name,
             name,
             nick_name,
             given_name,

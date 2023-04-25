@@ -2,6 +2,8 @@ use std::{collections::HashMap, time::Duration};
 
 use reqwest::header::CACHE_CONTROL;
 use serde::{Deserialize, Deserializer};
+use serde_with::base64::Base64;
+use serde_with::base64::UrlSafe;
 use tokio::{sync::Mutex, time::Instant};
 
 use crate::app_error::AppError;
@@ -45,6 +47,7 @@ impl KeyStore {
             cache_control.to_str().unwrap_or("").to_string()
         };
         let body = res.text().await?;
+        println!("{body}");
         let deserialized = serde_json::from_str::<KeyResponse>(&body).unwrap();
         let key_map = deserialized
             .keys
@@ -61,22 +64,18 @@ impl KeyStore {
     }
 }
 
+#[serde_as]
 #[derive(Debug, Deserialize, Clone)]
 pub struct PublicKey {
     pub kty: String,
-    #[serde(deserialize_with = "deserialize_base64")]
+    #[serde_as(as = "Base64<UrlSafe>")]
     pub n: Vec<u8>,
     #[serde(rename = "use")]
     pub _use: String,
     pub kid: String,
-    #[serde(deserialize_with = "deserialize_base64")]
+    #[serde_as(as = "Base64<UrlSafe>")]
     pub e: Vec<u8>,
     pub alg: String,
-}
-
-pub fn deserialize_base64<'de, D: Deserializer<'de>>(d: D) -> Result<Vec<u8>, D::Error> {
-    let base64 = String::deserialize(d)?;
-    base64::decode_config(base64.as_bytes(), base64::URL_SAFE).map_err(serde::de::Error::custom)
 }
 
 #[derive(Debug, Deserialize)]

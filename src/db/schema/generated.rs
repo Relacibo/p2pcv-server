@@ -1,10 +1,20 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
+    friend_requests (id) {
+        id -> Int8,
+        sender_id -> Uuid,
+        receiver_id -> Uuid,
+        message -> Nullable<Varchar>,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     friends (id) {
-        id -> Int4,
-        user_id1 -> Uuid,
-        user_id2 -> Uuid,
+        id -> Int8,
+        user1_id -> Uuid,
+        user2_id -> Uuid,
         created_at -> Timestamptz,
     }
 }
@@ -28,6 +38,7 @@ diesel::table! {
 diesel::table! {
     users (id) {
         id -> Uuid,
+        user_name -> Varchar,
         name -> Varchar,
         nick_name -> Nullable<Varchar>,
         given_name -> Nullable<Varchar>,
@@ -46,6 +57,7 @@ diesel::joinable!(google_users -> users (user_id));
 diesel::joinable!(peers -> users (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
+    friend_requests,
     friends,
     google_users,
     peers,

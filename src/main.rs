@@ -1,22 +1,18 @@
 #![feature(result_option_inspect)]
 #![feature(async_closure)]
 #![feature(let_chains)]
-extern crate dotenv;
-use api::auth;
 use db::db_conn::DbPool;
 use diesel_async::{pooled_connection::AsyncDieselConnectionManager, AsyncPgConnection};
-use dotenv::dotenv;
+use dotenvy::dotenv;
 #[macro_use]
 extern crate diesel;
 extern crate bb8;
 #[macro_use]
 extern crate actix_web;
+#[macro_use]
+extern crate serde_with;
 extern crate env_logger;
-use actix_web::{
-    middleware::Logger,
-    web::{self, Data},
-    App, HttpServer,
-};
+use actix_web::{middleware::Logger, web::Data, App, HttpServer};
 use env_logger::Env;
 #[macro_use]
 extern crate serde_derive;
@@ -25,9 +21,9 @@ extern crate serde_json;
 use std::env;
 
 mod api;
-mod db;
 mod app_error;
 mod app_result;
+mod db;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -44,11 +40,11 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(move || {
         App::new()
-            .configure(auth::auth::config)
+            .configure(api::auth::jwt::config)
+            .configure(api::users::config)
+            .configure(api::auth::config)
             .app_data(Data::new(pool.clone()))
             .wrap(Logger::default())
-            .service(web::scope("/users").configure(api::users::config))
-            .service(web::scope("/auth").configure(crate::api::auth::config))
     })
     .bind(format!("{actix_host}:{actix_port}"))?
     .run()

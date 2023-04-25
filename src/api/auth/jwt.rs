@@ -1,15 +1,13 @@
-
-
 use actix_web::{
-    http::header::{Header},
+    http::header::Header,
     web::{Data, ServiceConfig},
     FromRequest,
 };
 use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
-use chrono::{DateTime, Duration, Utc};
+use chrono::{DateTime, Duration, NaiveDate, NaiveDateTime, Utc};
 use futures::future::LocalBoxFuture;
 use jsonwebtoken::{DecodingKey, EncodingKey, Validation};
-use serde_with::{formats::Flexible, serde_as, TimestampSeconds};
+use serde_with::{formats::Flexible, serde_as, TimestampMilliSeconds, TimestampSeconds};
 use uuid::Uuid;
 
 use crate::app_error::AppError;
@@ -63,7 +61,7 @@ impl FromRequest for Auth {
                 jwt_decoding_key,
                 jwt_validation,
                 ..
-            } = req.app_data().unwrap();
+            } = req.app_data::<Data<JwtConfig>>().unwrap().as_ref();
             let claims =
                 jsonwebtoken::decode::<Claims>(jwt, jwt_decoding_key, jwt_validation)?.claims;
 
@@ -82,9 +80,9 @@ pub struct Claims {
     pub sub: Uuid,
     pub aud: Vec<String>,
     pub iss: Vec<String>,
-    #[serde_as(as = "TimestampSeconds<String, Flexible>")]
+    #[serde_as(as = "TimestampMilliSeconds<i64, Flexible>")]
     pub exp: DateTime<Utc>,
-    #[serde_as(as = "TimestampSeconds<String, Flexible>")]
+    #[serde_as(as = "TimestampMilliSeconds<i64, Flexible>")]
     pub iat: DateTime<Utc>,
 }
 
@@ -133,4 +131,16 @@ pub struct JwtConfig {
     jwt_validation: Validation,
     jwt_audience: Vec<String>,
     jwt_issuers: Vec<String>,
+}
+
+impl Auth {
+    pub fn is_user(&self, user_id: Uuid) -> bool {
+        self.user_id == user_id
+    }
+    pub fn should_be_user(self, user_id: Uuid) -> Result<Auth, AppError> {
+        if !self.is_user(user_id) {
+            return Err(AppError::Unauthorized);
+        }
+        Ok(self)
+    }
 }
