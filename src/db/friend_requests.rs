@@ -1,10 +1,11 @@
+use crate::api::users::friend_requests;
 use crate::db::users::User;
 
 use super::schema::generated::{friend_requests as db_friend_requests, users as db_users};
 use super::users::PublicUser;
 use chrono::{DateTime, Utc};
-use diesel::prelude::*;
 use diesel::QueryDsl;
+use diesel::{insert_into, prelude::*};
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use uuid::Uuid;
 
@@ -17,6 +18,14 @@ pub struct FriendRequest {
     pub receiver_id: Uuid,
     pub message: Option<String>,
     pub created_at: DateTime<Utc>,
+}
+
+#[derive(Clone, Debug, Deserialize, Insertable)]
+#[diesel(table_name = db_friend_requests)]
+pub struct NewFriendRequest {
+    pub sender_id: Uuid,
+    pub receiver_id: Uuid,
+    pub message: Option<String>,
 }
 
 impl FriendRequest {
@@ -46,5 +55,17 @@ impl FriendRequest {
             .select((FriendRequest::as_select(), PublicUser::as_select()))
             .load(conn)
             .await
+    }
+
+    pub async fn insert(
+        conn: &mut AsyncPgConnection,
+        new_friend_request: NewFriendRequest,
+    ) -> QueryResult<()> {
+        use db_friend_requests::dsl::*;
+        insert_into(friend_requests)
+            .values(&new_friend_request)
+            .execute(conn)
+            .await?;
+        Ok(())
     }
 }

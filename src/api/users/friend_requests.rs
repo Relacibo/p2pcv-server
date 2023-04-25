@@ -4,8 +4,13 @@ use uuid::Uuid;
 
 use crate::{
     api::auth::jwt::Auth,
+    app_error::AppError,
     app_result::EndpointResult,
-    db::{db_conn::DbPool, friend_requests::FriendRequest, users::PublicUser},
+    db::{
+        db_conn::DbPool,
+        friend_requests::{FriendRequest, NewFriendRequest},
+        users::PublicUser,
+    },
 };
 
 pub fn config(cfg: &mut ServiceConfig) {
@@ -46,6 +51,29 @@ async fn list_from(
         friend_requests,
     };
     Ok(Json(res))
+}
+
+#[post("/{user_id}/friend-requests/send-to/{receiver_id}")]
+async fn send_friend_request(
+    pool: Data<DbPool>,
+    path: Path<(Uuid, Uuid)>,
+    auth: Auth,
+    Json(json): Json<SendFriendRequestRequestBody>,
+) -> EndpointResult<()> {
+    let (user_id, receiver_id) = path.into_inner();
+    auth.should_be_user(user_id)?;
+    let mut db = pool.get().await?;
+
+    let SendFriendRequestRequestBody { message } = json;
+
+    let new_friend_request = NewFriendRequest {
+        sender_id: user_id,
+        receiver_id,
+        message,
+    };
+
+    FriendRequest::insert(&mut db, new_friend_request).await?;
+    Ok(Json(()))
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -107,4 +135,9 @@ impl From<(FriendRequest, PublicUser)> for FriendRequestToResponseBody {
             sender: user,
         }
     }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct SendFriendRequestRequestBody {
+    message: Option<String>,
 }

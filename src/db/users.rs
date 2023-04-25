@@ -124,7 +124,7 @@ impl User {
         users.find(query_uuid).get_result(conn).await
     }
 
-    pub async fn add_with_google_id(
+    pub async fn insert_with_google_id(
         conn: &mut AsyncPgConnection,
         user: NewUser,
         google_id: &str,

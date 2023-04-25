@@ -112,7 +112,7 @@ async fn signup(
     let sub = claims.sub.clone();
 
     let new_user: NewUser = user_from_google_claims_and_username(claims, username.clone());
-    let insert_result = User::add_with_google_id(&mut db, new_user, &sub).await;
+    let insert_result = User::insert_with_google_id(&mut db, new_user, &sub).await;
     let user = match insert_result {
         Err(AppError::Diesel(DatabaseError(DatabaseErrorKind::UniqueViolation, a)))
             if a.table_name() == Some("users") =>
