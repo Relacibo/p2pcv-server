@@ -1,17 +1,19 @@
-_id: req_debce2075e6346f9a7acdfc70415fac0
+_id: req_93f4d6f181cd4f4a9fb98a7712455d33
 type: Request
 parentId: wrk_5bc847a5f8134d76ad33e98dbff49718
-modified: 1668992314650
-created: 1664961102682
-url: "{{ _.HOST }}/users"
-name: get users
+modified: 1682429194396
+created: 1682429120746
+url: "{{ _.HOST }}/users/{{ _.USER_ID }}/friend-requests/outgoing"
+name: list friend requests received
 description: ""
 method: GET
 body: {}
 parameters: []
 headers: []
-authentication: {}
-metaSortKey: -1664961102682
+authentication:
+  type: bearer
+  token: "{{ _.USER_TOKEN }}"
+metaSortKey: -1673694969197
 isPrivate: false
 settingStoreCookies: true
 settingSendCookies: true

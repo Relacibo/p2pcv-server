@@ -1,13 +1,13 @@
 _id: env_9bd533c5961846bfa6c5fe22ba259382
 type: Environment
 parentId: env_f089b1f00a0c07a7e956d20f18ac35ffe34c1c86
-modified: 1668991558907
+modified: 1682428719226
 created: 1668991452224
 name: local
 data:
   HOST: http://localhost:8000
-  USER_ID: ""
-  USER_TOKEN: ""
+  USER_ID: ca45a857-dec2-436c-868a-50986f53394e
+  USER_TOKEN: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJjYTQ1YTg1Ny1kZWMyLTQzNmMtODY4YS01MDk4NmY1MzM5NGUiLCJhdWQiOlsiZGV2LmdnY2hlc3Mub3JnIl0sImlzcyI6WyJkZXYuZ2djaGVzcy5vcmciXSwiZXhwIjoyMDAwMDAwMDAwMDAwLCJpYXQiOjE2ODI0MjU3MDc4Nzl9.4U1PXjJnEi8NWoee10GtRvmvq2lzXhJEJXhv_vpBfb8
 dataPropertyOrder:
   "&":
     - HOST
