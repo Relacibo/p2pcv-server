@@ -4,34 +4,32 @@ use crate::{
     app_result::EndpointResult,
     db::{
         db_conn::DbPool,
-        user::{PublicUser, User},
+        users::{PublicUser, User},
     },
 };
 use actix_web::web::{self, Data, Json, Path, ServiceConfig};
 use uuid::Uuid;
+pub mod friend_requests;
 
 pub fn config(cfg: &mut ServiceConfig) {
     cfg.service(
         web::scope("/users")
-            .service(list_users)
-            .service(delete_user)
-            .service(get_user),
+            .service(list)
+            .service(delete)
+            .service(get)
+            .configure(friend_requests::config),
     );
 }
 
 #[get("")]
-pub async fn list_users(pool: Data<DbPool>) -> Result<Json<Vec<PublicUser>>, AppError> {
+pub async fn list(pool: Data<DbPool>) -> EndpointResult<Vec<PublicUser>> {
     let mut db = pool.get().await?;
     let res = User::list(&mut db).await?;
     Ok(Json(res))
 }
 
 #[delete("/{uuid}")]
-pub async fn delete_user(
-    pool: Data<DbPool>,
-    user_id: Path<Uuid>,
-    auth: Auth,
-) -> EndpointResult<()> {
+pub async fn delete(pool: Data<DbPool>, user_id: Path<Uuid>, auth: Auth) -> EndpointResult<()> {
     auth.should_be_user(*user_id)?;
     let mut db = pool.get().await?;
     User::delete(&mut db, *user_id).await?;
@@ -39,11 +37,7 @@ pub async fn delete_user(
 }
 
 #[get("/{uuid}")]
-pub async fn get_user(
-    pool: Data<DbPool>,
-    auth: Auth,
-    user_id: Path<Uuid>,
-) -> Result<Json<User>, AppError> {
+pub async fn get(pool: Data<DbPool>, auth: Auth, user_id: Path<Uuid>) -> EndpointResult<User> {
     auth.should_be_user(*user_id)?;
     let mut db = pool.get().await?;
     let res = User::get(&mut db, *user_id).await?;

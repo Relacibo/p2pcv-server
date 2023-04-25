@@ -20,7 +20,7 @@ use crate::{
     },
     app_error::AppError,
     app_result::EndpointResult,
-    db::user::{NewUser, UpdateUserGoogle, User},
+    db::users::{NewUser, UpdateUserGoogle, User},
     DbPool,
 };
 

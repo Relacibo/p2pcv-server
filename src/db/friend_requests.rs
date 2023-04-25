@@ -33,4 +33,18 @@ impl FriendRequest {
             .load(conn)
             .await
     }
+
+    pub async fn list_to(
+        conn: &mut AsyncPgConnection,
+        user_id: Uuid,
+    ) -> QueryResult<Vec<(FriendRequest, PublicUser)>> {
+        use db_friend_requests::dsl::*;
+        use db_users::dsl::{id as u_id, users};
+        friend_requests
+            .filter(receiver_id.eq(user_id))
+            .inner_join(users.on(sender_id.eq(u_id)))
+            .select((FriendRequest::as_select(), PublicUser::as_select()))
+            .load(conn)
+            .await
+    }
 }
