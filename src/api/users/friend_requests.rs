@@ -3,6 +3,7 @@ use actix_web::{
     HttpResponse,
 };
 use chrono::{DateTime, Utc};
+use diesel_async::AsyncConnection;
 use uuid::Uuid;
 
 use crate::{
@@ -12,24 +13,30 @@ use crate::{
     db::{
         db_conn::DbPool,
         friend_requests::{FriendRequest, NewFriendRequest},
+        friends::Friends,
         users::PublicUser,
     },
 };
 
 pub fn config(cfg: &mut ServiceConfig) {
-    cfg.service(list_to).service(list_from).service(send).service(delete_by_sender);
+    cfg.service(list_to)
+        .service(list_from)
+        .service(send)
+        .service(delete_by_sender)
+        .service(delete_by_receiver)
+        .service(accept);
 }
 
 #[get("/{user_id}/friend-requests/incoming")]
 async fn list_to(
     pool: Data<DbPool>,
-    path: Path<Uuid>,
     auth: Auth,
+    path: Path<Uuid>,
 ) -> EndpointResult<ListToResponseBody> {
     let user_id = path.into_inner();
     auth.should_be_user(user_id)?;
     let mut db = pool.get().await?;
-    let query_result = FriendRequest::list_to(&mut db, user_id).await?;
+    let query_result = FriendRequest::list_by_receiver(&mut db, user_id).await?;
     let friend_requests = query_result.into_iter().map(|t| t.into()).collect();
     let res = ListToResponseBody {
         receiver_id: user_id,
@@ -41,13 +48,13 @@ async fn list_to(
 #[get("/{user_id}/friend-requests/outgoing")]
 async fn list_from(
     pool: Data<DbPool>,
-    path: Path<Uuid>,
     auth: Auth,
+    path: Path<Uuid>,
 ) -> EndpointResult<ListFromResponseBody> {
     let user_id = path.into_inner();
     auth.should_be_user(user_id)?;
     let mut db = pool.get().await?;
-    let query_result = FriendRequest::list_from(&mut db, user_id).await?;
+    let query_result = FriendRequest::list_by_sender(&mut db, user_id).await?;
     let friend_requests = query_result.into_iter().map(|t| t.into()).collect();
     let res = ListFromResponseBody {
         sender_id: user_id,
@@ -59,13 +66,19 @@ async fn list_from(
 #[post("/{user_id}/friend-requests/send-to/{receiver_id}")]
 async fn send(
     pool: Data<DbPool>,
-    path: Path<(Uuid, Uuid)>,
     auth: Auth,
+    path: Path<(Uuid, Uuid)>,
     Json(json): Json<SendRequestBody>,
 ) -> EndpointResultHttpResponse {
     let (user_id, receiver_id) = path.into_inner();
     auth.should_be_user(user_id)?;
     let mut db = pool.get().await?;
+
+    if Friends::exists(&mut db, user_id, receiver_id).await? {
+        return Err(AppError::AlreadyFriends);
+    }
+
+    // TODO: Check if friend exist in the other direction exists.
 
     let SendRequestBody { message } = json;
 
@@ -82,14 +95,55 @@ async fn send(
 #[delete("/{user_id}/friend-requests/by-sender/{sender_id}")]
 async fn delete_by_sender(
     pool: Data<DbPool>,
-    path: Path<(Uuid, Uuid)>,
     auth: Auth,
+    path: Path<(Uuid, Uuid)>,
 ) -> EndpointResultHttpResponse {
     let (user_id, sender_id) = path.into_inner();
     auth.should_be_user(user_id)?;
     let mut db = pool.get().await?;
 
     FriendRequest::delete_by_user_ids(&mut db, sender_id, user_id).await?;
+
+    Ok(HttpResponse::Ok().finish())
+}
+
+#[delete("/{user_id}/friend-requests/by-receiver/{receiver_id}")]
+async fn delete_by_receiver(
+    pool: Data<DbPool>,
+    auth: Auth,
+    path: Path<(Uuid, Uuid)>,
+) -> EndpointResultHttpResponse {
+    let (user_id, receiver_id) = path.into_inner();
+    auth.should_be_user(user_id)?;
+    let mut db = pool.get().await?;
+
+    FriendRequest::delete_by_user_ids(&mut db, user_id, receiver_id).await?;
+
+    Ok(HttpResponse::Ok().finish())
+}
+
+#[post("{user_id}/friend-requests/by-sender/{sender_id}/accept")]
+async fn accept(
+    pool: Data<DbPool>,
+    auth: Auth,
+    path: Path<(Uuid, Uuid)>,
+) -> EndpointResultHttpResponse {
+    let (user_id, sender_id) = path.into_inner();
+    auth.should_be_user(user_id)?;
+    let mut db = pool.get().await?;
+
+    db.transaction::<_, AppError, _>(|txn| {
+        Box::pin(async move {
+            let deleted = FriendRequest::delete_by_user_ids(txn, sender_id, user_id).await?;
+            if deleted == 0 {
+                return Err(AppError::FriendRequestDoesntExist);
+            }
+
+            Friends::insert(txn, user_id, sender_id).await?;
+            Ok(())
+        })
+    })
+    .await?;
 
     Ok(HttpResponse::Ok().finish())
 }

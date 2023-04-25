@@ -222,6 +222,7 @@ COPY public.__diesel_schema_migrations (version, run_on) FROM stdin;
 --
 
 COPY public.friend_requests (id, sender_id, receiver_id, message, created_at) FROM stdin;
+12	ca45a857-dec2-436c-868a-50986f53394e	ac4758f7-1b76-4cf3-a8d9-dd0df25672f0	AH	2023-04-25 15:36:33.098617+00
 \.
 
 
@@ -256,6 +257,7 @@ COPY public.peers (peer_id, user_id, created_at) FROM stdin;
 
 COPY public.users (id, user_name, name, nick_name, given_name, middle_name, family_name, email, locale, verified_email, picture, created_at, updated_at) FROM stdin;
 ca45a857-dec2-436c-868a-50986f53394e	Reinhard Bronner	Reinhard Bronner	\N	Reinhard	\N	Bronner	womakid@gmail.com	en	f	https://lh3.googleusercontent.com/a/AGNmyxY3ZMIKb3ZizNIMuJwYDPEtCl3iKUPAh5DWoG1GIA=s96-c	2023-04-25 12:28:27.86294+00	2023-04-25 12:28:27.86294+00
+ac4758f7-1b76-4cf3-a8d9-dd0df25672f0	test-user	Test	test-user	\N	\N	User	test@user.com	de-DE	f	\N	2023-04-25 14:06:21.294383+00	2023-04-25 14:06:21.294383+00
 \.
 
 
@@ -263,14 +265,14 @@ ca45a857-dec2-436c-868a-50986f53394e	Reinhard Bronner	Reinhard Bronner	\N	Reinha
 -- Name: friend_requests_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.friend_requests_id_seq', 1, false);
+SELECT pg_catalog.setval('public.friend_requests_id_seq', 12, true);
 
 
 --
 -- Name: friends_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.friends_id_seq', 1, false);
+SELECT pg_catalog.setval('public.friends_id_seq', 12, true);
 
 
 --

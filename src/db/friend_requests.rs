@@ -13,6 +13,7 @@ use uuid::Uuid;
 #[serde(rename_all = "camelCase")]
 #[diesel(table_name = db_friend_requests)]
 pub struct FriendRequest {
+    #[serde(skip_serializing)]
     pub id: i64,
     pub sender_id: Uuid,
     pub receiver_id: Uuid,
@@ -29,7 +30,7 @@ pub struct NewFriendRequest {
 }
 
 impl FriendRequest {
-    pub async fn list_from(
+    pub async fn list_by_sender(
         conn: &mut AsyncPgConnection,
         user_id: Uuid,
     ) -> QueryResult<Vec<(FriendRequest, PublicUser)>> {
@@ -43,7 +44,7 @@ impl FriendRequest {
             .await
     }
 
-    pub async fn list_to(
+    pub async fn list_by_receiver(
         conn: &mut AsyncPgConnection,
         user_id: Uuid,
     ) -> QueryResult<Vec<(FriendRequest, PublicUser)>> {
@@ -73,13 +74,12 @@ impl FriendRequest {
         conn: &mut AsyncPgConnection,
         sender_u_id: Uuid,
         receiver_u_id: Uuid,
-    ) -> QueryResult<()> {
+    ) -> QueryResult<usize> {
         use db_friend_requests::dsl::*;
         delete(friend_requests)
             .filter(sender_id.eq(sender_u_id))
             .filter(receiver_id.eq(receiver_u_id))
             .execute(conn)
-            .await?;
-        Ok(())
+            .await
     }
 }
