@@ -1,0 +1,12 @@
+{
+  "name": "p2pcv-server",
+  "repository": "git@github.com:Relacibo/p2pcv-server.git",
+  "author": "Reinhard Bronner <reinhard_bronner@t-online.de>",
+  "license": "AGPL-3.0-or-later",
+  "private": false,
+  "scripts": {
+    "dump": "pg_dump > test_db/test_data.sql",
+    "reset": "dropdb --force $PGDATABASE && createdb $PGDATABASE && yarn run seed",
+    "seed": "psql < test_db/test_data.sql"
+  }
+}
