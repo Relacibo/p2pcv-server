@@ -1,13 +1,16 @@
 use crate::{
     api::auth::jwt::Auth,
     app_error::AppError,
-    app_result::EndpointResult,
+    app_result::{EndpointResult, EndpointResultHttpResponse},
     db::{
         db_conn::DbPool,
         users::{PublicUser, User},
     },
 };
-use actix_web::web::{self, Data, Json, Path, ServiceConfig};
+use actix_web::{
+    web::{self, Data, Json, Path, ServiceConfig},
+    HttpResponse,
+};
 use uuid::Uuid;
 pub mod friend_requests;
 
@@ -29,11 +32,15 @@ pub async fn list(pool: Data<DbPool>) -> EndpointResult<Vec<PublicUser>> {
 }
 
 #[delete("/{uuid}")]
-pub async fn delete(pool: Data<DbPool>, user_id: Path<Uuid>, auth: Auth) -> EndpointResult<()> {
+pub async fn delete(
+    pool: Data<DbPool>,
+    user_id: Path<Uuid>,
+    auth: Auth,
+) -> EndpointResultHttpResponse {
     auth.should_be_user(*user_id)?;
     let mut db = pool.get().await?;
     User::delete(&mut db, *user_id).await?;
-    Ok(Json(()))
+    Ok(HttpResponse::Ok().finish())
 }
 
 #[get("/{uuid}")]

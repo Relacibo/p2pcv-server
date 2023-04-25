@@ -4,7 +4,7 @@ use crate::db::users::User;
 use super::schema::generated::{friend_requests as db_friend_requests, users as db_users};
 use super::users::PublicUser;
 use chrono::{DateTime, Utc};
-use diesel::QueryDsl;
+use diesel::{delete, QueryDsl};
 use diesel::{insert_into, prelude::*};
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use uuid::Uuid;
@@ -64,6 +64,20 @@ impl FriendRequest {
         use db_friend_requests::dsl::*;
         insert_into(friend_requests)
             .values(&new_friend_request)
+            .execute(conn)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn delete_by_user_ids(
+        conn: &mut AsyncPgConnection,
+        sender_u_id: Uuid,
+        receiver_u_id: Uuid,
+    ) -> QueryResult<()> {
+        use db_friend_requests::dsl::*;
+        delete(friend_requests)
+            .filter(sender_id.eq(sender_u_id))
+            .filter(receiver_id.eq(receiver_u_id))
             .execute(conn)
             .await?;
         Ok(())
