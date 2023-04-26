@@ -1,10 +1,10 @@
 _id: req_93f4d6f181cd4f4a9fb98a7712455d33
 type: Request
 parentId: wrk_5bc847a5f8134d76ad33e98dbff49718
-modified: 1682429194396
+modified: 1682431820039
 created: 1682429120746
 url: "{{ _.HOST }}/users/{{ _.USER_ID }}/friend-requests/outgoing"
-name: list friend requests received
+name: list friend requests sent
 description: ""
 method: GET
 body: {}

@@ -1,0 +1,35 @@
+_id: req_fd78a2671843452689bb49e1d83ba4e0
+type: Request
+parentId: wrk_5bc847a5f8134d76ad33e98dbff49718
+modified: 1682436994163
+created: 1682432698437
+url: "{{ _.HOST }}/users/{{ _.OTHER_USER }}/friend-requests/by-sender/{{
+  _.USER_ID }}"
+name: delete friend request
+description: ""
+method: DELETE
+body:
+  mimeType: application/json
+  text: |-
+    {
+    	"message": "AH"
+    }
+parameters: []
+headers:
+  - id: pair_a7fed54140f04a798021b425219742cc
+    name: ""
+    value: ""
+    description: ""
+  - name: Content-Type
+    value: application/json
+authentication:
+  type: bearer
+  token: "{{ _.OTHER_USER_TOKEN }}"
+metaSortKey: -1682429810437
+isPrivate: false
+settingStoreCookies: true
+settingSendCookies: true
+settingDisableRenderRequestBody: false
+settingEncodeUrl: true
+settingRebuildPath: true
+settingFollowRedirects: global
