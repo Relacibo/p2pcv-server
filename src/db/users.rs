@@ -77,7 +77,7 @@ pub struct UpdateUserGoogle {
     pub picture: Option<Option<String>>,
 }
 
-#[derive(Serialize, Queryable, PartialEq, Debug, Clone, Selectable)]
+#[derive(Serialize, Queryable, QueryableByName, PartialEq, Debug, Clone, Selectable)]
 #[serde(rename_all = "camelCase")]
 #[diesel(table_name = db_users)]
 pub struct PublicUser {
@@ -94,8 +94,8 @@ impl User {
         diesel::insert_into(users)
             .values(user)
             .execute(conn)
-            .await
-            .map(|_| ())
+            .await?;
+        Ok(())
     }
 
     pub async fn delete(conn: &mut AsyncPgConnection, query_uuid: Uuid) -> QueryResult<()> {
@@ -104,16 +104,14 @@ impl User {
         diesel::delete(google_users.filter(user_id.eq(query_uuid)))
             .execute(conn)
             .await?;
-        diesel::delete(users.find(query_uuid))
-            .execute(conn)
-            .await
-            .map(|_| ())
+        diesel::delete(users.find(query_uuid)).execute(conn).await?;
+        Ok(())
     }
 
     pub async fn list(conn: &mut AsyncPgConnection) -> QueryResult<Vec<PublicUser>> {
-        use db_users::dsl::{nick_name, users};
+        use db_users::dsl::{user_name, users};
         users
-            .order(nick_name.asc())
+            .order(user_name.asc())
             .select(PublicUser::as_select())
             .load(conn)
             .await

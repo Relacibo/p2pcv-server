@@ -53,6 +53,32 @@ $$;
 
 ALTER FUNCTION public.diesel_set_updated_at() OWNER TO postgres;
 
+--
+-- Name: get_friend_entries(uuid); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION public.get_friend_entries(user_id uuid) RETURNS record
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+  ret RECORD;
+BEGIN
+  SELECT * INTO ret FROM (
+    SELECT user2_id AS friend_user_id, created_at 
+      FROM friends 
+      WHERE user1_id = user_id
+    UNION 
+    SELECT user1_id AS friend_user_id, created_at 
+      FROM friends 
+      WHERE user2_id = user_id
+  ) AS tmp;
+  RETURN ret;
+END;
+$$;
+
+
+ALTER FUNCTION public.get_friend_entries(user_id uuid) OWNER TO postgres;
+
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
@@ -214,6 +240,7 @@ COPY public.__diesel_schema_migrations (version, run_on) FROM stdin;
 20220206103033	2023-04-25 11:33:54.184053
 20220616095715	2023-04-25 11:33:54.235865
 20230314101254	2023-04-25 11:33:54.255361
+20230425173432	2023-04-26 13:13:36.635332
 \.
 
 

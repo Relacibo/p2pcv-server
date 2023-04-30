@@ -35,11 +35,12 @@ impl FriendRequest {
         user_id: Uuid,
     ) -> QueryResult<Vec<(FriendRequest, PublicUser)>> {
         use db_friend_requests::dsl::*;
-        use db_users::dsl::{id as u_id, users};
+        use db_users::dsl::{id as u_id, user_name, users};
         friend_requests
             .filter(sender_id.eq(user_id))
             .inner_join(users.on(receiver_id.eq(u_id)))
             .select((FriendRequest::as_select(), PublicUser::as_select()))
+            .order(user_name.asc())
             .load(conn)
             .await
     }
@@ -49,11 +50,12 @@ impl FriendRequest {
         user_id: Uuid,
     ) -> QueryResult<Vec<(FriendRequest, PublicUser)>> {
         use db_friend_requests::dsl::*;
-        use db_users::dsl::{id as u_id, users};
+        use db_users::dsl::{id as u_id, user_name, users};
         friend_requests
             .filter(receiver_id.eq(user_id))
             .inner_join(users.on(sender_id.eq(u_id)))
             .select((FriendRequest::as_select(), PublicUser::as_select()))
+            .order(user_name.asc())
             .load(conn)
             .await
     }

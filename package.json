@@ -6,7 +6,7 @@
   "private": false,
   "scripts": {
     "dump": "pg_dump > test_db/test_data.sql",
-    "reset": "dropdb --force $PGDATABASE && createdb $PGDATABASE && yarn run seed",
-    "seed": "psql < test_db/test_data.sql"
+    "reset": "dropdb --force $PGDATABASE && yarn run create",
+    "create": "createdb $PGDATABASE && psql < test_db/test_data.sql"
   }
 }

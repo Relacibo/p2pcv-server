@@ -2,17 +2,19 @@ use actix_web::{
     web::{Data, Json, Path, ServiceConfig},
     HttpResponse,
 };
-use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
 use crate::{
     api::auth::jwt::Auth,
     app_result::{EndpointResult, EndpointResultHttpResponse},
-    db::{db_conn::DbPool, friends::Friends, users::PublicUser},
+    db::{
+        db_conn::DbPool,
+        friends::{Friends, FriendEntry},
+    },
 };
 
 pub fn config(cfg: &mut ServiceConfig) {
-    cfg.service(delete);
+    cfg.service(delete).service(list);
 }
 
 #[delete("/{user_id}/friends/{friend_user_id}")]
@@ -34,24 +36,18 @@ pub async fn delete(
 async fn list(
     pool: Data<DbPool>,
     auth: Auth,
-    path: Path<Uuid>,) -> EndpointResult<ListResponseBody> {
-        let user_id = path.into_inner();
-        auth.should_be_user(user_id)?;
-        let mut db = pool.get().await?;
-        let friends = Friends::list_by_user(&mut db, user_id).await?;
-
-    let res = ListResponseBody { friends:  };
+    path: Path<Uuid>,
+) -> EndpointResult<ListResponseBody> {
+    let user_id = path.into_inner();
+    auth.should_be_user(user_id)?;
+    let mut db = pool.get().await?;
+    let friends = Friends::list_by_user(&mut db, user_id).await?;
+    let res = ListResponseBody { friends };
     Ok(Json(res))
 }
 
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct ListResponseBody {
-    friends: Vec<FriendResponseBody>,
-}
-
-#[derive(Clone, Debug, Serialize)]
-struct FriendResponseBody {
-    created_at: DateTime<Utc>,
-    friend: PublicUser,
+    friends: Vec<FriendEntry>,
 }
