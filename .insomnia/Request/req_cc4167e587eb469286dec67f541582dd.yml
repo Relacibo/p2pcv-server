@@ -1,7 +1,7 @@
 _id: req_cc4167e587eb469286dec67f541582dd
 type: Request
 parentId: wrk_5bc847a5f8134d76ad33e98dbff49718
-modified: 1682854534684
+modified: 1682854635407
 created: 1682854468019
 url: "{{ _.HOST }}/users/{{ _.USER_ID }}/friends"
 name: list friends
@@ -10,7 +10,9 @@ method: GET
 body: {}
 parameters: []
 headers: []
-authentication: {}
+authentication:
+  type: bearer
+  token: "{{ _.USER_TOKEN }}"
 metaSortKey: -1682854468019
 isPrivate: false
 settingStoreCookies: true
