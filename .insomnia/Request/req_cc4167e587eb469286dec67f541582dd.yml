@@ -1,0 +1,21 @@
+_id: req_cc4167e587eb469286dec67f541582dd
+type: Request
+parentId: wrk_5bc847a5f8134d76ad33e98dbff49718
+modified: 1682854534684
+created: 1682854468019
+url: "{{ _.HOST }}/users/{{ _.USER_ID }}/friends"
+name: list friends
+description: ""
+method: GET
+body: {}
+parameters: []
+headers: []
+authentication: {}
+metaSortKey: -1682854468019
+isPrivate: false
+settingStoreCookies: true
+settingSendCookies: true
+settingDisableRenderRequestBody: false
+settingEncodeUrl: true
+settingRebuildPath: true
+settingFollowRedirects: global
