@@ -98,14 +98,19 @@ impl Friends {
             id: Uuid,
             #[sql_type = "diesel::sql_types::VarChar"]
             user_name: String,
+            #[sql_type = "diesel::sql_types::Nullable<diesel::sql_types::VarChar>"]
+            picture: Option<String>,
             #[sql_type = "diesel::sql_types::Timestamptz"]
             created_at: DateTime<Utc>,
             #[sql_type = "diesel::sql_types::Timestamptz"]
             friends_created_at: DateTime<Utc>,
         }
-        let qr: Vec<Resp> = sql_query("\
-            SELECT users.id, \
+        let qr: Vec<Resp> = sql_query(
+            "\
+            SELECT \
+                users.id, \
                 user_name, \
+                picture, \
                 created_at, \
                 tmp.created_at_ret AS friends_created_at \
             FROM users \
@@ -113,13 +118,18 @@ impl Friends {
                 SELECT * FROM get_friend_entries($1)\
             ) AS tmp ON users.id = tmp.friend_user_id_ret \
             ORDER BY user_name;\
-        ").bind::<diesel::sql_types::Uuid, _>(user_u_id).load(conn).await?;
+        ",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(user_u_id)
+        .load(conn)
+        .await?;
         let res = qr
             .into_iter()
             .map(
                 |Resp {
                      id,
                      user_name,
+                     picture,
                      created_at,
                      friends_created_at,
                  }| FriendEntry {
@@ -127,7 +137,7 @@ impl Friends {
                     friend: PublicUser {
                         id,
                         user_name,
-                        picture: None,
+                        picture,
                         created_at,
                     },
                 },
