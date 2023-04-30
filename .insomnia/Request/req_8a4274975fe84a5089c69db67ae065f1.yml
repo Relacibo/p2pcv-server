@@ -1,0 +1,34 @@
+_id: req_8a4274975fe84a5089c69db67ae065f1
+type: Request
+parentId: wrk_5bc847a5f8134d76ad33e98dbff49718
+modified: 1682436991110
+created: 1682430785162
+url: "{{ _.HOST }}/users/{{ _.USER_ID }}/friend-requests/send-to/{{ _.OTHER_USER }}"
+name: send friend request
+description: ""
+method: POST
+body:
+  mimeType: application/json
+  text: |-
+    {
+    	"message": "AH"
+    }
+parameters: []
+headers:
+  - id: pair_a7fed54140f04a798021b425219742cc
+    name: ""
+    value: ""
+    description: ""
+  - name: Content-Type
+    value: application/json
+authentication:
+  type: bearer
+  token: "{{ _.USER_TOKEN }}"
+metaSortKey: -1682430785162
+isPrivate: false
+settingStoreCookies: true
+settingSendCookies: true
+settingDisableRenderRequestBody: false
+settingEncodeUrl: true
+settingRebuildPath: true
+settingFollowRedirects: global
