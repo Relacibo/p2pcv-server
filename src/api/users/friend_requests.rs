@@ -78,8 +78,10 @@ async fn send(
         return Err(AppError::AlreadyFriends);
     }
 
-    // TODO: Check if friend exist in the other direction exists.
-
+    // Check if friend request in the opposite direction exists
+    if FriendRequest::exists(&mut db, receiver_id, user_id).await? {
+        return Err(AppError::FriendRequestExistsInOtherDirection);
+    }
     let SendRequestBody { message } = json;
 
     let new_friend_request = NewFriendRequest {

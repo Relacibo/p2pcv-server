@@ -84,4 +84,19 @@ impl FriendRequest {
             .execute(conn)
             .await
     }
+
+    pub async fn exists(
+        conn: &mut AsyncPgConnection,
+        sender_u_id: Uuid,
+        receiver_u_id: Uuid,
+    ) -> QueryResult<bool> {
+        use db_friend_requests::dsl::*;
+        let count: i64 = friend_requests
+            .filter(sender_id.eq(sender_u_id))
+            .filter(receiver_id.eq(receiver_u_id))
+            .count()
+            .get_result(conn)
+            .await?;
+        Ok(count > 0)
+    }
 }

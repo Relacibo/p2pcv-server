@@ -25,6 +25,8 @@ pub enum AppError {
     AlreadyFriends,
     #[error("friend-request-doesnt-exist")]
     FriendRequestDoesntExist,
+    #[error("friend-request-exists-in-other-direction")]
+    FriendRequestExistsInOtherDirection,
 }
 
 impl<E> From<bb8::RunError<E>> for AppError {
@@ -46,7 +48,9 @@ impl actix_web::ResponseError for AppError {
             },
             ActixBlocking(_) | Bb8 | Reqwest(_) | Unexpected => StatusCode::INTERNAL_SERVER_ERROR,
             JwtParse(_) | Jwt(_) | OpenId | Unauthorized => StatusCode::UNAUTHORIZED,
-            AlreadyFriends | FriendRequestDoesntExist => StatusCode::BAD_REQUEST,
+            AlreadyFriends | FriendRequestDoesntExist | FriendRequestExistsInOtherDirection => {
+                StatusCode::BAD_REQUEST
+            }
         }
     }
     fn error_response(&self) -> actix_web::HttpResponse<actix_web::body::BoxBody> {
