@@ -1,5 +1,5 @@
 # [Choice] Debian OS version (use bullseye on local arm64/Apple Silicon): buster, bullseye
-FROM mcr.microsoft.com/devcontainers/rust:1-bullseye
+FROM mcr.microsoft.com/devcontainers/rust:latest
 
 RUN sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
 RUN wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
@@ -13,7 +13,6 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
 RUN npm install --global yarn
 
 USER vscode
-RUN rustup default nightly
 RUN cargo install diesel_cli@^2.0 --no-default-features --features postgres
 
 USER root

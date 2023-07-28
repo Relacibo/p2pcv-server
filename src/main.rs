@@ -1,6 +1,3 @@
-#![feature(result_option_inspect)]
-#![feature(async_closure)]
-#![feature(let_chains)]
 use db::db_conn::DbPool;
 use diesel_async::{pooled_connection::AsyncDieselConnectionManager, AsyncPgConnection};
 use dotenvy::dotenv;

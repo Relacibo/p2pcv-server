@@ -12,7 +12,7 @@ actix-web = "^4.3"
 env_logger = "^0.10"
 diesel = { version = "^2.0", features = ["postgres", "uuid", "chrono"] }
 diesel_migrations = { version = "^2.0", features = ["postgres"] }
-diesel-async = { version = "^0.2", features = ["postgres", "bb8"] }
+diesel-async = { version = "^0.3", features = ["postgres", "bb8"] }
 bb8 = "^0.8"
 serde = { version = "^1.0", features = ["derive"] }
 serde_derive = "^1.0"
@@ -27,7 +27,7 @@ tokio = { version = "^1.17", features = ["sync"] }
 futures = "^0.3"
 actix-web-httpauth = "^0.8"
 thiserror = "1.0"
-serde_with = { version = "2.1.0", features = ["chrono", "base64"] }
+serde_with = { version = "3.1.0", features = ["chrono", "base64"] }
 derive_builder = "0.12"
 
 [build-dependencies]

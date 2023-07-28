@@ -62,7 +62,10 @@
   //"postCreateCommand": "cargo update",
   // Comment out to connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
   "remoteUser": "vscode",
+  // https://github.com/devcontainers/features/tree/main/src
   "features": {
-    "git": "os-provided"
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
   }
 }
