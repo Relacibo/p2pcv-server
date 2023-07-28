@@ -33,7 +33,7 @@ env:
   AWS_REGION: ${{ vars.AWS_REGION }}                   # set this to your preferred AWS region, e.g. us-west-1
   # ECR_REPOSITORY: ${{ vars.AWS_ECR_REPOSITORY }}           # set this to your Amazon ECR repository name
   REGISTRY: ghcr.io
-  IMAGE: ${{ env.GITHUB_REPOSITORY }}-dev
+  IMAGE: ${{ github.repository }}-dev
   ECS_SERVICE: ${{ vars.AWS_ECS_SERVICE }}                 # set this to your Amazon ECS service name
   ECS_CLUSTER:  ${{ vars.AWS_ECS_CLUSTER }}                  # set this to your Amazon ECS cluster name
   ECS_TASK_DEFINITION: ${{ vars.AWS_TASK_DEFINITION }} # set this to the path to your Amazon ECS task definition
