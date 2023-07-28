@@ -42,16 +42,17 @@
       },
       // Add the IDs of extensions you want installed when the container is created.
       "extensions": [
-        "vadimcn.vscode-lldb",
-        "mutantdino.resourcemonitor",
-        "rust-lang.rust-analyzer",
-        "tamasfe.even-better-toml",
-        "serayuzgur.crates",
-        "mtxr.sqltools",
-        "mtxr.sqltools-driver-pg",
-        "rangav.vscode-thunder-client",
-        "EditorConfig.EditorConfig"
-      ]
+		"vadimcn.vscode-lldb",
+		"mutantdino.resourcemonitor",
+		"rust-lang.rust-analyzer",
+		"tamasfe.even-better-toml",
+		"serayuzgur.crates",
+		"mtxr.sqltools",
+		"mtxr.sqltools-driver-pg",
+		"rangav.vscode-thunder-client",
+		"EditorConfig.EditorConfig",
+		"eamodio.gitlens"
+	]
     }
   },
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
