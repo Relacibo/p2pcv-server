@@ -34,6 +34,7 @@ env:
   # ECR_REPOSITORY: ${{ vars.AWS_ECR_REPOSITORY }}           # set this to your Amazon ECR repository name
   REGISTRY: ghcr.io
   IMAGE: ${{ github.repository }}-dev
+  FULL_IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE }}
   ECS_SERVICE: ${{ vars.AWS_ECS_SERVICE }}                 # set this to your Amazon ECS service name
   ECS_CLUSTER:  ${{ vars.AWS_ECS_CLUSTER }}                  # set this to your Amazon ECS cluster name
   ECS_TASK_DEFINITION: ${{ vars.AWS_TASK_DEFINITION }} # set this to the path to your Amazon ECS task definition
@@ -56,35 +57,27 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
 
-    # - name: Login to Amazon ECR
-    #   id: login-ecr
-    #   uses: aws-actions/amazon-ecr-login@v1
-
-    # - name: Build, tag, and push image to Amazon ECR
-    #   id: build-image
-    #   env:
-    #     ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-    #     IMAGE_TAG: ${{ github.sha }}
-    #   run: |
-    #     # Build a docker container and
-    #     # push it to ECR so that it can
-    #     # be deployed to ECS.
-    #     docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-    #     docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-    #     echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
-
     - name: Log in to the Container registry
       uses: docker/login-action@v2
       with:
         registry: ${{ env.REGISTRY }}
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Build and push builder stage
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        push: true
+        tags: ${{ env.FULL_IMAGE }}:buildcache
+        cache-from: type=registry,ref=${{ env.FULL_IMAGE }}:buildcache
+        target: builder
     
     - name: Extract metadata (tags, labels) for Docker
       id: meta
       uses: docker/metadata-action@v4
       with:
-        images: ${{ env.REGISTRY }}/${{ env.IMAGE }}
+        images: ${{ env.FULL_IMAGE }}
         tags: |
           latest
 
@@ -95,6 +88,9 @@ jobs:
         push: true
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
+        cache-from: |
+          ${{ env.FULL_IMAGE }}:buildcache
+          ${{ env.FULL_IMAGE }}:latest
 
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
@@ -109,7 +105,7 @@ jobs:
       with:
         task-definition: ${{ env.ECS_TASK_DEFINITION }}
         container-name: ${{ env.CONTAINER_NAME }}
-        image: ${{ env.REGISTRY }}/${{ env.IMAGE }}:latest
+        image: ${{ env.FULL_IMAGE }}:latest
 
     - name: Deploy Amazon ECS task definition
       uses: aws-actions/amazon-ecs-deploy-task-definition@v1
