@@ -31,7 +31,9 @@ on:
     branches: [ "main" ]
 env:
   AWS_REGION: ${{ vars.AWS_REGION }}                   # set this to your preferred AWS region, e.g. us-west-1
-  ECR_REPOSITORY: ${{ vars.AWS_ECR_REPOSITORY }}           # set this to your Amazon ECR repository name
+  # ECR_REPOSITORY: ${{ vars.AWS_ECR_REPOSITORY }}           # set this to your Amazon ECR repository name
+  REGISTRY: ghcr.io
+  IMAGE: ${{ GITHUB_REPOSITORY }}-dev
   ECS_SERVICE: ${{ vars.AWS_ECS_SERVICE }}                 # set this to your Amazon ECS service name
   ECS_CLUSTER:  ${{ vars.AWS_ECS_CLUSTER }}                  # set this to your Amazon ECS cluster name
   ECS_TASK_DEFINITION: ${{ vars.AWS_TASK_DEFINITION }} # set this to the path to your Amazon ECS task definition
@@ -47,10 +49,52 @@ jobs:
     name: Deploy
     runs-on: ubuntu-latest
     environment: dev
-
+    permissions:
+      contents: read
+      packages: write
     steps:
     - name: Checkout
       uses: actions/checkout@v3
+
+    # - name: Login to Amazon ECR
+    #   id: login-ecr
+    #   uses: aws-actions/amazon-ecr-login@v1
+
+    # - name: Build, tag, and push image to Amazon ECR
+    #   id: build-image
+    #   env:
+    #     ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+    #     IMAGE_TAG: ${{ github.sha }}
+    #   run: |
+    #     # Build a docker container and
+    #     # push it to ECR so that it can
+    #     # be deployed to ECS.
+    #     docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+    #     docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+    #     echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+    - name: Log in to the Container registry
+      uses: docker/login-action@v2
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Extract metadata (tags, labels) for Docker
+      id: meta
+      uses: docker/metadata-action@v4
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE }}
+        tags: |
+          latest
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
 
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
@@ -59,30 +103,13 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ env.AWS_REGION }}
 
-    - name: Login to Amazon ECR
-      id: login-ecr
-      uses: aws-actions/amazon-ecr-login@v1
-
-    - name: Build, tag, and push image to Amazon ECR
-      id: build-image
-      env:
-        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        IMAGE_TAG: ${{ github.sha }}
-      run: |
-        # Build a docker container and
-        # push it to ECR so that it can
-        # be deployed to ECS.
-        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-        echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
-
     - name: Fill in the new image ID in the Amazon ECS task definition
       id: task-def
       uses: aws-actions/amazon-ecs-render-task-definition@v1
       with:
         task-definition: ${{ env.ECS_TASK_DEFINITION }}
         container-name: ${{ env.CONTAINER_NAME }}
-        image: ${{ steps.build-image.outputs.image }}
+        image: ${{ env.REGISTRY }}/${{ env.IMAGE }}:latest
 
     - name: Deploy Amazon ECS task definition
       uses: aws-actions/amazon-ecs-deploy-task-definition@v1
