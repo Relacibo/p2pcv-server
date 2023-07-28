@@ -34,7 +34,7 @@ env:
   # ECR_REPOSITORY: ${{ vars.AWS_ECR_REPOSITORY }}           # set this to your Amazon ECR repository name
   REGISTRY: ghcr.io
   IMAGE: ${{ github.repository }}-dev
-  FULL_IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE }}
+  FULL_IMAGE: ghcr.io/${{ env.IMAGE }}
   ECS_SERVICE: ${{ vars.AWS_ECS_SERVICE }}                 # set this to your Amazon ECS service name
   ECS_CLUSTER:  ${{ vars.AWS_ECS_CLUSTER }}                  # set this to your Amazon ECS cluster name
   ECS_TASK_DEFINITION: ${{ vars.AWS_TASK_DEFINITION }} # set this to the path to your Amazon ECS task definition
