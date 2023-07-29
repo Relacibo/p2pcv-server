@@ -33,8 +33,8 @@ env:
   AWS_REGION: ${{ vars.AWS_REGION }}                   # set this to your preferred AWS region, e.g. us-west-1
   # ECR_REPOSITORY: ${{ vars.AWS_ECR_REPOSITORY }}           # set this to your Amazon ECR repository name
   REGISTRY: ghcr.io
-  IMAGE: ${{ env.REPOSITORY }}-dev
-  FULL_IMAGE: ghcr.io/${{ env.REPOSITORY }}-dev
+  IMAGE: ${{ github.repository }}-dev
+  FULL_IMAGE: ghcr.io/${{ github.repository }}-dev
   ECS_SERVICE: ${{ vars.AWS_ECS_SERVICE }}                 # set this to your Amazon ECS service name
   ECS_CLUSTER:  ${{ vars.AWS_ECS_CLUSTER }}                  # set this to your Amazon ECS cluster name
   ECS_TASK_DEFINITION: ${{ vars.AWS_TASK_DEFINITION }} # set this to the path to your Amazon ECS task definition
@@ -63,14 +63,22 @@ jobs:
         registry: ${{ env.REGISTRY }}
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Extract metadata (tags, labels) for Docker
+      id: meta-buildcache
+      uses: docker/metadata-action@v4
+      with:
+        images: ${{ env.FULL_IMAGE }}
+        tags: |
+          buildcache
 
     - name: Build and push builder stage
       uses: docker/build-push-action@v4
       with:
         context: .
         push: true
-        tags: ${{ env.FULL_IMAGE }}:buildcache
-        cache-from: type=registry,ref=${{ env.FULL_IMAGE }}:buildcache
+        tags: ${{ steps.meta-buildcache.outputs.tags }}
+        cache-from: type=registry,ref=${{ steps.meta-buildcache.outputs.tags }}
         target: builder
     
     - name: Extract metadata (tags, labels) for Docker
@@ -89,8 +97,8 @@ jobs:
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
         cache-from: |
-          ${{ env.FULL_IMAGE }}:buildcache
-          ${{ env.FULL_IMAGE }}:latest
+          ${{ steps.meta-buildcache.outputs.tags }}
+          ${{ steps.meta.outputs.tags }}
 
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
