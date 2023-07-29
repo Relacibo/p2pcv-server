@@ -64,7 +64,7 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
     
-    - name: Extract metadata (tags, labels) for Docker
+    - name: Build tag for buildcache
       id: meta-buildcache
       uses: docker/metadata-action@v4
       with:
