@@ -11,8 +11,9 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
    && apt-get autoremove -y && apt-get clean -y
 
 RUN npm install --global yarn
+RUN npm install --global dotenv-vault
 
 USER vscode
-RUN cargo install diesel_cli@^2.0 --no-default-features --features postgres
+RUN cargo install diesel_cli@^2.1 --no-default-features --features postgres
 
 USER root

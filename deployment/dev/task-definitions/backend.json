@@ -1,0 +1,81 @@
+{
+  "family": "p2pchessvariants-backend-dev",
+  "containerDefinitions": [
+    {
+      "name": "p2pcv-server-dev",
+      "image": "ghcr.io/Relacibo/p2pcv-server-dev:latest",
+      "cpu": 0,
+      "links": [],
+      "portMappings": [
+        {
+          "name": "p2pcv-server-dev-8000-tcp",
+          "containerPort": 8000,
+          "hostPort": 8000,
+          "protocol": "tcp",
+          "appProtocol": "http"
+        }
+      ],
+      "essential": true,
+      "environment": [],
+      "environmentFiles": [],
+      "mountPoints": [],
+      "volumesFrom": [],
+      "secrets": [
+        {
+          "name": "GOOGLE_CERTS_URI",
+          "valueFrom": "/p2pcv-server/dev/dotenv/GOOGLE_CERTS_URI"
+        },
+        {
+          "name": "JWT_ISSUER",
+          "valueFrom": "/p2pcv-server/dev/dotenv/JWT_ISSUER"
+        },
+        {
+          "name": "JWT_AUDIENCE",
+          "valueFrom": "/p2pcv-server/dev/dotenv/JWT_AUDIENCE"
+        },
+        {
+          "name": "GOOGLE_CLIENT_SECRET",
+          "valueFrom": "/p2pcv-server/dev/dotenv/GOOGLE_CLIENT_SECRET"
+        },
+        {
+          "name": "JWT_SECRET",
+          "valueFrom": "/p2pcv-server/dev/dotenv/JWT_SECRET"
+        },
+        {
+          "name": "GOOGLE_CLIENT_ID",
+          "valueFrom": "/p2pcv-server/dev/dotenv/GOOGLE_CLIENT_ID"
+        }
+      ],
+      "dockerSecurityOptions": [],
+      "ulimits": [],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-create-group": "true",
+          "awslogs-group": "/ecs/p2pchessvariants-backend-dev",
+          "awslogs-region": "eu-central-1",
+          "awslogs-stream-prefix": "ecs"
+        },
+        "secretOptions": []
+      },
+      "systemControls": []
+    }
+  ],
+  "executionRoleArn": "arn:aws:iam::465088096375:role/ecsTaskExecutionRole",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "cpu": "256",
+  "memory": "1024",
+  "runtimePlatform": {
+    "cpuArchitecture": "X86_64",
+    "operatingSystemFamily": "LINUX"
+  },
+  "tags": [
+    {
+      "key": "ecs:taskDefinition:createdFrom",
+      "value": "ecs-console-v2"
+    }
+  ]
+}

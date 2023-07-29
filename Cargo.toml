@@ -10,8 +10,8 @@ repository = "https://github.com/Relacibo/p2pcv-server"
 [dependencies]
 actix-web = "^4.3"
 env_logger = "^0.10"
-diesel = { version = "^2.0", features = ["postgres", "uuid", "chrono"] }
-diesel_migrations = { version = "^2.0", features = ["postgres"] }
+diesel = { version = "^2.1", features = ["postgres", "uuid", "chrono"] }
+diesel_migrations = { version = "^2.1", features = ["postgres"] }
 diesel-async = { version = "^0.3", features = ["postgres", "bb8"] }
 bb8 = "^0.8"
 serde = { version = "^1.0", features = ["derive"] }

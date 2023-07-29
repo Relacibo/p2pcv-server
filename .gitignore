@@ -9,3 +9,6 @@
 !.env.project
 !.devcontainer/.env
 /generated.rs
+
+.flaskenv*
+!.env.vault
