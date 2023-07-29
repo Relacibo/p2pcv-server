@@ -66,7 +66,7 @@ jobs:
     
     # Planner
 
-    - name: Build tag for planner
+    - name: Build tag for planner stage
       id: meta-plannercache
       uses: docker/metadata-action@v4
       with:
@@ -74,7 +74,7 @@ jobs:
         tags: |
           plannercache
 
-    - name: Build and push builder planner
+    - name: Build and push planner stage
       uses: docker/build-push-action@v4
       with:
         context: .
@@ -84,7 +84,7 @@ jobs:
         target: planner
 
     # Builder
-    - name: Build tag for buildcache
+    - name: Build tag for builder stage
       id: meta-buildcache
       uses: docker/metadata-action@v4
       with:
