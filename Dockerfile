@@ -1,11 +1,10 @@
-FROM lukemathwalker/cargo-chef:latest-rust-1.71-bookworm AS chef
+FROM lukemathwalker/cargo-chef:latest-rust-1.71-bookworm AS planner
 WORKDIR /app
-
-FROM chef AS planner
 COPY . .
 RUN cargo chef prepare --recipe-path recipe.json
 
-FROM chef AS builder 
+FROM lukemathwalker/cargo-chef:latest-rust-1.71-bookworm AS builder 
+WORKDIR /app
 COPY --from=planner /app/recipe.json recipe.json
 # Build dependencies - this is the caching Docker layer!
 RUN cargo chef cook --release --recipe-path recipe.json

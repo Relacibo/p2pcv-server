@@ -64,6 +64,26 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
     
+    # Planner
+
+    - name: Build tag for planner
+      id: meta-plannercache
+      uses: docker/metadata-action@v4
+      with:
+        images: ${{ env.FULL_IMAGE }}
+        tags: |
+          plannercache
+
+    - name: Build and push builder planner
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        push: true
+        tags: ${{ steps.meta-plannercache.outputs.tags }}
+        cache-from: ${{ steps.meta-plannercache.outputs.tags }}
+        target: planner
+
+    # Builder
     - name: Build tag for buildcache
       id: meta-buildcache
       uses: docker/metadata-action@v4
@@ -78,7 +98,9 @@ jobs:
         context: .
         push: true
         tags: ${{ steps.meta-buildcache.outputs.tags }}
-        cache-from: type=registry,ref=${{ steps.meta-buildcache.outputs.tags }}
+        cache-from: |
+          ${{ steps.meta-plannercache.outputs.tags }}
+          ${{ steps.meta-buildcache.outputs.tags }}
         target: builder
     
     - name: Extract metadata (tags, labels) for Docker
@@ -97,6 +119,7 @@ jobs:
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
         cache-from: |
+          ${{ steps.meta-plannercache.outputs.tags }}
           ${{ steps.meta-buildcache.outputs.tags }}
           ${{ steps.meta.outputs.tags }}
 
