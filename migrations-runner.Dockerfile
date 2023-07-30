@@ -2,6 +2,8 @@ FROM rust:slim-bookworm
 RUN apt update && apt install postgresql-client
 RUN cargo install diesel_cli@^2.1 --no-default-features --features postgres
 
-COPY migrations .
+COPY /deployment/base/migrations-runner/run.sh /usr/local/bin
 
-CMD ["diesel", "migration", "run"]
+WORKDIR /app
+
+CMD [ "/usr/local/bin/run.sh" ]
