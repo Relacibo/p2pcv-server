@@ -18,6 +18,10 @@ env:
 permissions:
   contents: read
 
+concurrency:
+  group: migrate-dev
+  cancel-in-progress: true
+
 jobs:
   migrate:
     name: Migrate
