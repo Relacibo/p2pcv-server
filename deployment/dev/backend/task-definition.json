@@ -44,6 +44,46 @@
         {
           "name": "GOOGLE_CLIENT_ID",
           "valueFrom": "/p2pcv-server/dev/dotenv/GOOGLE_CLIENT_ID"
+        },
+        {
+          "name": "ACTIX_HOST",
+          "valueFrom": "/p2pcv-server/dev/dotenv/ACTIX_HOST"
+        },
+        {
+          "name": "ACTIX_PORT",
+          "valueFrom": "/p2pcv-server/dev/dotenv/ACTIX_PORT"
+        },
+        {
+          "name": "ACTIX_SERVER",
+          "valueFrom": "/p2pcv-server/dev/dotenv/ACTIX_SERVER"
+        },
+        {
+          "name": "ACTIX_WEB",
+          "valueFrom": "/p2pcv-server/dev/dotenv/ACTIX_WEB"
+        },
+        {
+          "name": "DATABASE_URL",
+          "valueFrom": "/p2pcv-server/dev/dotenv/DATABASE_URL"
+        },
+        {
+          "name": "PGDATABASE",
+          "valueFrom": "/p2pcv-server/dev/dotenv/PGDATABASE"
+        },
+        {
+          "name": "PGHOST",
+          "valueFrom": "/p2pcv-server/dev/dotenv/PGHOST"
+        },
+        {
+          "name": "PGPASSWORD",
+          "valueFrom": "/p2pcv-server/dev/dotenv/PGPASSWORD"
+        },
+        {
+          "name": "PGPORT",
+          "valueFrom": "/p2pcv-server/dev/dotenv/PGPORT"
+        },
+        {
+          "name": "PGUSER",
+          "valueFrom": "/p2pcv-server/dev/dotenv/PGUSER"
         }
       ],
       "dockerSecurityOptions": [],
@@ -62,9 +102,8 @@
     }
   ],
   "executionRoleArn": "arn:aws:iam::465088096375:role/ecsTaskExecutionRole",
-  "networkMode": "awsvpc",
   "requiresCompatibilities": [
-    "FARGATE"
+      "EC2"
   ],
   "cpu": "256",
   "memory": "1024",
