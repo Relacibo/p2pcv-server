@@ -3,7 +3,7 @@
   "containerDefinitions": [
     {
       "name": "p2pcv-server-dev",
-      "image": "ghcr.io/Relacibo/p2pcv-server-dev:latest",
+      "image": "ghcr.io/relacibo/p2pcv-server-dev:latest",
       "cpu": 0,
       "links": [],
       "portMappings": [
