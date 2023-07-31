@@ -1,4 +1,4 @@
-FROM rust:slim-bookworm
+FROM rust:bookworm
 RUN apt update && DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends postgresql-client git
 RUN cargo install diesel_cli@^2.1 --no-default-features --features postgres
 
