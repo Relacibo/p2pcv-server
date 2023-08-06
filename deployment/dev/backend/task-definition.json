@@ -5,7 +5,6 @@
       "name": "p2pcv-server-dev",
       "image": "ghcr.io/relacibo/p2pcv-server-dev:latest",
       "cpu": 0,
-      "links": [],
       "portMappings": [
         {
           "name": "p2pcv-server-dev-8000-tcp",
@@ -101,14 +100,22 @@
       "systemControls": []
     }
   ],
+  "taskRoleArn": "arn:aws:iam::465088096375:role/ecsTaskExecutionRole",
   "executionRoleArn": "arn:aws:iam::465088096375:role/ecsTaskExecutionRole",
+  "networkMode": "awsvpc",
   "requiresCompatibilities": [
       "FARGATE"
   ],
   "cpu": "256",
-  "memory": "1024",
+  "memory": "512",
   "runtimePlatform": {
-    "cpuArchitecture": "X86_64",
-    "operatingSystemFamily": "LINUX"
-  }
+      "cpuArchitecture": "X86_64",
+      "operatingSystemFamily": "LINUX"
+  },
+  "tags": [
+      {
+          "key": "ecs:taskDefinition:createdFrom",
+          "value": "ecs-console-v2"
+      }
+  ]
 }

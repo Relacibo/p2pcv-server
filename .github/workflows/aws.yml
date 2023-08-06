@@ -33,8 +33,8 @@ env:
   AWS_REGION: ${{ vars.AWS_REGION }}                   # set this to your preferred AWS region, e.g. us-west-1
   REGISTRY: ghcr.io
   # IMAGE: ${{ github.repository }}-dev
-  FULL_IMAGE: ghcr.io/${{ github.repository }}-dev
-  FULL_IMAGE_CACHE: ghcr.io/${{ github.repository }}-cache-dev
+  FULL_IMAGE_UPPER: ghcr.io/${{ github.repository }}-dev
+  FULL_IMAGE_CACHE_UPPER: ghcr.io/${{ github.repository }}-cache-dev
   ECS_SERVICE: ${{ vars.AWS_ECS_SERVICE }}                 # set this to your Amazon ECS service name
   ECS_CLUSTER:  ${{ vars.AWS_ECS_CLUSTER }}                  # set this to your Amazon ECS cluster name
   ECS_TASK_DEFINITION: deployment/dev/backend/task-definition.json # set this to the path to your Amazon ECS task definition
@@ -63,11 +63,11 @@ jobs:
 
     - name: downcase image name
       run: |
-        echo "FULL_IMAGE=${FULL_IMAGE}" >>${GITHUB_ENV}
+        echo "FULL_IMAGE=${FULL_IMAGE_UPPER}" >>${GITHUB_ENV}
 
     - name: downcase cache image name
       run: |
-        echo "FULL_IMAGE_CACHE=${FULL_IMAGE_CACHE}" >>${GITHUB_ENV}
+        echo "FULL_IMAGE_CACHE=${FULL_IMAGE_CACHE_UPPER}" >>${GITHUB_ENV}
 
     - name: Log in to the Container registry
       uses: docker/login-action@v2
