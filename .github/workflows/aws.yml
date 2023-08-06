@@ -32,8 +32,9 @@ on:
 env:
   AWS_REGION: ${{ vars.AWS_REGION }}                   # set this to your preferred AWS region, e.g. us-west-1
   REGISTRY: ghcr.io
-  IMAGE: ${{ github.repository }}-dev
+  # IMAGE: ${{ github.repository }}-dev
   FULL_IMAGE: ghcr.io/${{ github.repository }}-dev
+  FULL_IMAGE_CACHE: ghcr.io/${{ github.repository }}-cache-dev
   ECS_SERVICE: ${{ vars.AWS_ECS_SERVICE }}                 # set this to your Amazon ECS service name
   ECS_CLUSTER:  ${{ vars.AWS_ECS_CLUSTER }}                  # set this to your Amazon ECS cluster name
   ECS_TASK_DEFINITION: deployment/dev/backend/task-definition.json # set this to the path to your Amazon ECS task definition
@@ -60,6 +61,14 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
 
+    - name: downcase image name
+      run: |
+        echo "FULL_IMAGE=${FULL_IMAGE}" >>${GITHUB_ENV}
+
+    - name: downcase cache image name
+      run: |
+        echo "FULL_IMAGE_CACHE=${FULL_IMAGE_CACHE}" >>${GITHUB_ENV}
+
     - name: Log in to the Container registry
       uses: docker/login-action@v2
       with:
@@ -73,7 +82,7 @@ jobs:
       id: meta-plannercache
       uses: docker/metadata-action@v4
       with:
-        images: ${{ env.FULL_IMAGE }}
+        images: ${{ env.FULL_IMAGE_CACHE }}
         tags: |
           plannercache
 
@@ -83,7 +92,7 @@ jobs:
         context: .
         push: true
         tags: ${{ steps.meta-plannercache.outputs.tags }}
-        cache-from: ${{ steps.meta-plannercache.outputs.tags }}
+        cache-from: ${{ env.FULL_IMAGE_CACHE }}:plannercache
         target: planner
 
     # Builder
@@ -91,7 +100,7 @@ jobs:
       id: meta-buildcache
       uses: docker/metadata-action@v4
       with:
-        images: ${{ env.FULL_IMAGE }}
+        images: ${{ env.FULL_IMAGE_CACHE }}
         tags: |
           buildcache
 
@@ -102,8 +111,8 @@ jobs:
         push: true
         tags: ${{ steps.meta-buildcache.outputs.tags }}
         cache-from: |
-          ${{ steps.meta-plannercache.outputs.tags }}
-          ${{ steps.meta-buildcache.outputs.tags }}
+          ${{ env.FULL_IMAGE_CACHE }}:plannercache
+          ${{ env.FULL_IMAGE_CACHE }}:buildcache
         target: builder
     
     - name: Extract metadata (tags, labels) for Docker
@@ -123,9 +132,9 @@ jobs:
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
         cache-from: |
-          ${{ steps.meta-plannercache.outputs.tags }}
-          ${{ steps.meta-buildcache.outputs.tags }}
-          ${{ steps.meta.outputs.tags }}
+          ${{ env.FULL_IMAGE_CACHE }}:plannercache
+          ${{ env.FULL_IMAGE_CACHE }}:buildcache
+          ${{ env.FULL_IMAGE }}:latest
 
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v2
