@@ -43,7 +43,7 @@
   "taskRoleArn": "arn:aws:iam::465088096375:role/ecsTaskExecutionRole",
   "executionRoleArn": "arn:aws:iam::465088096375:role/ecsTaskExecutionRole",
   "requiresCompatibilities": [
-      "EC2"
+      "FARGATE"
   ],
   "cpu": "256",
   "memory": "512",
