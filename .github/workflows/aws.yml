@@ -63,11 +63,11 @@ jobs:
 
     - name: downcase image name
       run: |
-        echo "FULL_IMAGE=${FULL_IMAGE_UPPER}" >>${GITHUB_ENV}
+        echo "FULL_IMAGE=${FULL_IMAGE_UPPER,,}" >>${GITHUB_ENV}
 
     - name: downcase cache image name
       run: |
-        echo "FULL_IMAGE_CACHE=${FULL_IMAGE_CACHE_UPPER}" >>${GITHUB_ENV}
+        echo "FULL_IMAGE_CACHE=${FULL_IMAGE_CACHE_UPPER,,}" >>${GITHUB_ENV}
 
     - name: Log in to the Container registry
       uses: docker/login-action@v2

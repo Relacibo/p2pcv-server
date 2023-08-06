@@ -51,7 +51,7 @@ jobs:
 
     - name: downcase image name
       run: |
-        echo "FULL_IMAGE=${FULL_IMAGE}" >>${GITHUB_ENV}
+        echo "FULL_IMAGE=${FULL_IMAGE,,}" >>${GITHUB_ENV}
 
     - name: Build and push Docker image
       uses: docker/build-push-action@v4
