@@ -121,7 +121,7 @@ jobs:
       with:
         images: ${{ env.FULL_IMAGE }}
         tags: |
-          type=sha
+          type=sha,prefix=,format=long
           latest
 
     - name: Build and push Docker image
@@ -149,7 +149,7 @@ jobs:
       with:
         task-definition: ${{ env.ECS_TASK_DEFINITION }}
         container-name: ${{ env.CONTAINER_NAME }}
-        image: ${{ steps.meta.outputs.tags }}
+        image: ${{ env.FULL_IMAGE }}:${{ env.GITHUB_SHA }}
 
     - name: Deploy Amazon ECS task definition
       uses: aws-actions/amazon-ecs-deploy-task-definition@v1
