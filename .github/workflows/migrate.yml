@@ -62,7 +62,7 @@ jobs:
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
         cache-from: |
-          ${{ FULL_IMAGE }}:latest
+          ${{ env.FULL_IMAGE }}:latest
 
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v2
