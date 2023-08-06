@@ -83,13 +83,6 @@ jobs:
       uses: aws-actions/amazon-ecs-deploy-task-definition@v1
       with:
         task-definition: ${{ steps.task-def.outputs.task-definition }}
-
-    - name: Run ECS Task
-      uses: researchsquare/run-ecs-task-action@v1
-      with:
-        task-definition: task-definition-arn
-        cluster: my-cluster
-        wait-for-service-stability: true
         
     - name: Run Task on Amazon ECS
       uses: muya/amazon-ecs-run-task@v1

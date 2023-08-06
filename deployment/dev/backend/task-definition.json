@@ -103,18 +103,12 @@
   ],
   "executionRoleArn": "arn:aws:iam::465088096375:role/ecsTaskExecutionRole",
   "requiresCompatibilities": [
-      "EC2"
+      "FARGATE"
   ],
   "cpu": "256",
   "memory": "1024",
   "runtimePlatform": {
     "cpuArchitecture": "X86_64",
     "operatingSystemFamily": "LINUX"
-  },
-  "tags": [
-    {
-      "key": "ecs:taskDefinition:createdFrom",
-      "value": "ecs-console-v2"
-    }
-  ]
+  }
 }
