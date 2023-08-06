@@ -49,6 +49,10 @@ jobs:
         tags: |
           latest
 
+    - name: downcase image name
+      run: |
+        echo "FULL_IMAGE=${FULL_IMAGE}" >>${GITHUB_ENV}
+
     - name: Build and push Docker image
       uses: docker/build-push-action@v4
       with:
@@ -58,7 +62,7 @@ jobs:
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
         cache-from: |
-          ${{ steps.meta.outputs.tags }}
+          ${{ FULL_IMAGE }}:latest
 
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v2
