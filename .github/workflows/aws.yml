@@ -77,39 +77,22 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
     
     # Planner
-
-    - name: Build tag for planner stage
-      id: meta-plannercache
-      uses: docker/metadata-action@v4
-      with:
-        images: ${{ env.FULL_IMAGE_CACHE }}
-        tags: |
-          plannercache
-
-    - name: Build and push planner stage
-      uses: docker/build-push-action@v4
-      with:
-        context: .
-        push: true
-        tags: ${{ steps.meta-plannercache.outputs.tags }}
-        cache-from: ${{ env.FULL_IMAGE_CACHE }}:plannercache
-        target: planner
+    # - name: Build and push planner stage
+    #   uses: docker/build-push-action@v4
+    #   with:
+    #     context: .
+    #     push: true
+    #     tags: ${{ env.FULL_IMAGE_CACHE }}:plannercache
+    #     cache-from: ${{ env.FULL_IMAGE_CACHE }}:plannercache
+    #     target: planner
 
     # Builder
-    - name: Build tag for builder stage
-      id: meta-buildcache
-      uses: docker/metadata-action@v4
-      with:
-        images: ${{ env.FULL_IMAGE_CACHE }}
-        tags: |
-          buildcache
-
     - name: Build and push builder stage
       uses: docker/build-push-action@v4
       with:
         context: .
         push: true
-        tags: ${{ steps.meta-buildcache.outputs.tags }}
+        tags: ${{ env.FULL_IMAGE_CACHE }}:plannercache
         cache-from: |
           ${{ env.FULL_IMAGE_CACHE }}:plannercache
           ${{ env.FULL_IMAGE_CACHE }}:buildcache
