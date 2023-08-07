@@ -3,6 +3,11 @@ name: Run migrations on RDS database
 on:
   push:
     branches: [ "main" ]
+    paths:
+      - migrations/**
+      - deployment/base/migrate/**
+      - deployment/dev/migrate/**
+      - .github/workflows/migrate.yml
     
 env:
   AWS_REGION: ${{ vars.AWS_REGION }}                   # set this to your preferred AWS region, e.g. us-west-1
