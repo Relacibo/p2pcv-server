@@ -43,7 +43,6 @@ env:
   REGISTRY: ghcr.io
   # IMAGE: ${{ github.repository }}-dev
   FULL_IMAGE_UPPER: ghcr.io/${{ github.repository }}-dev
-  FULL_IMAGE_CACHE_UPPER: ghcr.io/${{ github.repository }}-cache-dev
   ECS_SERVICE: ${{ vars.AWS_ECS_SERVICE }}                 # set this to your Amazon ECS service name
   ECS_CLUSTER:  ${{ vars.AWS_ECS_CLUSTER }}                  # set this to your Amazon ECS cluster name
   ECS_TASK_DEFINITION: deployment/dev/backend/task-definition.json # set this to the path to your Amazon ECS task definition
@@ -74,10 +73,6 @@ jobs:
       run: |
         echo "FULL_IMAGE=${FULL_IMAGE_UPPER,,}" >>${GITHUB_ENV}
 
-    - name: downcase cache image name
-      run: |
-        echo "FULL_IMAGE_CACHE=${FULL_IMAGE_CACHE_UPPER,,}" >>${GITHUB_ENV}
-
     - name: Log in to the Container registry
       uses: docker/login-action@v2
       with:
@@ -94,9 +89,9 @@ jobs:
       with:
         context: .
         push: true
-        tags: ${{ env.FULL_IMAGE_CACHE }}:chef
+        tags: ${{ env.FULL_IMAGE }}:chef
         cache-from: |
-          ${{ env.FULL_IMAGE_CACHE }}:chef
+          ${{ env.FULL_IMAGE }}:chef
         target: chef
 
     # Planner
@@ -105,10 +100,10 @@ jobs:
       with:
         context: .
         push: true
-        tags: ${{ env.FULL_IMAGE_CACHE }}:plannercache
+        tags: ${{ env.FULL_IMAGE }}:plannercache
         cache-from: |
-          ${{ env.FULL_IMAGE_CACHE }}:chef
-          ${{ env.FULL_IMAGE_CACHE }}:plannercache
+          ${{ env.FULL_IMAGE }}:chef
+          ${{ env.FULL_IMAGE }}:plannercache
         target: planner
 
     # Builder
@@ -117,11 +112,11 @@ jobs:
       with:
         context: .
         push: true
-        tags: ${{ env.FULL_IMAGE_CACHE }}:buildcache
+        tags: ${{ env.FULL_IMAGE }}:buildcache
         cache-from: |
-          ${{ env.FULL_IMAGE_CACHE }}:chef
-          ${{ env.FULL_IMAGE_CACHE }}:plannercache
-          ${{ env.FULL_IMAGE_CACHE }}:buildcache
+          ${{ env.FULL_IMAGE }}:chef
+          ${{ env.FULL_IMAGE }}:plannercache
+          ${{ env.FULL_IMAGE }}:buildcache
         target: builder
     
     - name: Extract metadata (tags, labels) for Docker
@@ -141,9 +136,9 @@ jobs:
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
         cache-from: |
-          ${{ env.FULL_IMAGE_CACHE }}:chef
-          ${{ env.FULL_IMAGE_CACHE }}:plannercache
-          ${{ env.FULL_IMAGE_CACHE }}:buildcache
+          ${{ env.FULL_IMAGE }}:chef
+          ${{ env.FULL_IMAGE }}:plannercache
+          ${{ env.FULL_IMAGE }}:buildcache
           ${{ env.FULL_IMAGE }}:latest
 
     - name: Configure AWS credentials
