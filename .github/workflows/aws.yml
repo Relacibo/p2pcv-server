@@ -29,6 +29,15 @@ name: Deploy to Amazon ECS
 on:
   push:
     branches: [ "main" ]
+    paths:
+      - src/**
+      - deployment/base/backend/**
+      - deployment/dev/backend/**
+      - .github/workflows/aws.yml
+      - Cargo.lock
+      - Cargo.toml
+      - Dockerfile
+      - rust-toolchain.toml
 env:
   AWS_REGION: ${{ vars.AWS_REGION }}                   # set this to your preferred AWS region, e.g. us-west-1
   REGISTRY: ghcr.io

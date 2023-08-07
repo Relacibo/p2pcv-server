@@ -22,67 +22,67 @@
       "secrets": [
         {
           "name": "GOOGLE_CERTS_URI",
-          "valueFrom": "/p2pcv-server/dev/dotenv/GOOGLE_CERTS_URI"
+          "valueFrom": "arn:aws:ssm:eu-central-1:465088096375:parameter/p2pcv-server/dev/dotenv/GOOGLE_CERTS_URI"
         },
         {
           "name": "JWT_ISSUER",
-          "valueFrom": "/p2pcv-server/dev/dotenv/JWT_ISSUER"
+          "valueFrom": "arn:aws:ssm:eu-central-1:465088096375:parameter/p2pcv-server/dev/dotenv/JWT_ISSUER"
         },
         {
           "name": "JWT_AUDIENCE",
-          "valueFrom": "/p2pcv-server/dev/dotenv/JWT_AUDIENCE"
+          "valueFrom": "arn:aws:ssm:eu-central-1:465088096375:parameter/p2pcv-server/dev/dotenv/JWT_AUDIENCE"
         },
         {
           "name": "GOOGLE_CLIENT_SECRET",
-          "valueFrom": "/p2pcv-server/dev/dotenv/GOOGLE_CLIENT_SECRET"
+          "valueFrom": "arn:aws:ssm:eu-central-1:465088096375:parameter/p2pcv-server/dev/dotenv/GOOGLE_CLIENT_SECRET"
         },
         {
           "name": "JWT_SECRET",
-          "valueFrom": "/p2pcv-server/dev/dotenv/JWT_SECRET"
+          "valueFrom": "arn:aws:ssm:eu-central-1:465088096375:parameter/p2pcv-server/dev/dotenv/JWT_SECRET"
         },
         {
           "name": "GOOGLE_CLIENT_ID",
-          "valueFrom": "/p2pcv-server/dev/dotenv/GOOGLE_CLIENT_ID"
+          "valueFrom": "arn:aws:ssm:eu-central-1:465088096375:parameter/p2pcv-server/dev/dotenv/GOOGLE_CLIENT_ID"
         },
         {
           "name": "ACTIX_HOST",
-          "valueFrom": "/p2pcv-server/dev/dotenv/ACTIX_HOST"
+          "valueFrom": "arn:aws:ssm:eu-central-1:465088096375:parameter/p2pcv-server/dev/dotenv/ACTIX_HOST"
         },
         {
           "name": "ACTIX_PORT",
-          "valueFrom": "/p2pcv-server/dev/dotenv/ACTIX_PORT"
+          "valueFrom": "arn:aws:ssm:eu-central-1:465088096375:parameter/p2pcv-server/dev/dotenv/ACTIX_PORT"
         },
         {
           "name": "ACTIX_SERVER",
-          "valueFrom": "/p2pcv-server/dev/dotenv/ACTIX_SERVER"
+          "valueFrom": "arn:aws:ssm:eu-central-1:465088096375:parameter/p2pcv-server/dev/dotenv/ACTIX_SERVER"
         },
         {
           "name": "ACTIX_WEB",
-          "valueFrom": "/p2pcv-server/dev/dotenv/ACTIX_WEB"
+          "valueFrom": "arn:aws:ssm:eu-central-1:465088096375:parameter/p2pcv-server/dev/dotenv/ACTIX_WEB"
         },
         {
           "name": "DATABASE_URL",
-          "valueFrom": "/p2pcv-server/dev/dotenv/DATABASE_URL"
+          "valueFrom": "arn:aws:ssm:eu-central-1:465088096375:parameter/p2pcv-server/dev/dotenv/DATABASE_URL"
         },
         {
           "name": "PGDATABASE",
-          "valueFrom": "/p2pcv-server/dev/dotenv/PGDATABASE"
+          "valueFrom": "arn:aws:ssm:eu-central-1:465088096375:parameter/p2pcv-server/dev/dotenv/PGDATABASE"
         },
         {
           "name": "PGHOST",
-          "valueFrom": "/p2pcv-server/dev/dotenv/PGHOST"
+          "valueFrom": "arn:aws:ssm:eu-central-1:465088096375:parameter/p2pcv-server/dev/dotenv/PGHOST"
         },
         {
           "name": "PGPASSWORD",
-          "valueFrom": "/p2pcv-server/dev/dotenv/PGPASSWORD"
+          "valueFrom": "arn:aws:ssm:eu-central-1:465088096375:parameter/p2pcv-server/dev/dotenv/PGPASSWORD"
         },
         {
           "name": "PGPORT",
-          "valueFrom": "/p2pcv-server/dev/dotenv/PGPORT"
+          "valueFrom": "arn:aws:ssm:eu-central-1:465088096375:parameter/p2pcv-server/dev/dotenv/PGPORT"
         },
         {
           "name": "PGUSER",
-          "valueFrom": "/p2pcv-server/dev/dotenv/PGUSER"
+          "valueFrom": "arn:aws:ssm:eu-central-1:465088096375:parameter/p2pcv-server/dev/dotenv/PGUSER"
         }
       ],
       "dockerSecurityOptions": [],

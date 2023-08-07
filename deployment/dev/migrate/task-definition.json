@@ -16,27 +16,27 @@
       "secrets": [
         {
           "name": "DATABASE_URL",
-          "valueFrom": "/p2pcv-server/dev/dotenv/DATABASE_URL"
+          "valueFrom": "arn:aws:ssm:eu-central-1:465088096375:parameter/p2pcv-server/dev/dotenv/DATABASE_URL"
         },
         {
           "name": "PGDATABASE",
-          "valueFrom": "/p2pcv-server/dev/dotenv/PGDATABASE"
+          "valueFrom": "arn:aws:ssm:eu-central-1:465088096375:parameter/p2pcv-server/dev/dotenv/PGDATABASE"
         },
         {
           "name": "PGHOST",
-          "valueFrom": "/p2pcv-server/dev/dotenv/PGHOST"
+          "valueFrom": "arn:aws:ssm:eu-central-1:465088096375:parameter/p2pcv-server/dev/dotenv/PGHOST"
         },
         {
           "name": "PGPASSWORD",
-          "valueFrom": "/p2pcv-server/dev/dotenv/PGPASSWORD"
+          "valueFrom": "arn:aws:ssm:eu-central-1:465088096375:parameter/p2pcv-server/dev/dotenv/PGPASSWORD"
         },
         {
           "name": "PGPORT",
-          "valueFrom": "/p2pcv-server/dev/dotenv/PGPORT"
+          "valueFrom": "arn:aws:ssm:eu-central-1:465088096375:parameter/p2pcv-server/dev/dotenv/PGPORT"
         },
         {
           "name": "PGUSER",
-          "valueFrom": "/p2pcv-server/dev/dotenv/PGUSER"
+          "valueFrom": "arn:aws:ssm:eu-central-1:465088096375:parameter/p2pcv-server/dev/dotenv/PGUSER"
         }
       ]
     }
