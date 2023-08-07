@@ -1,5 +1,5 @@
 FROM rust:1.71-slim-bookworm AS chef
-RUN cargo install cargo-chef@latest --locked
+RUN cargo install cargo-chef --locked
 RUN apt update && DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends libssl-dev pkg-config
 WORKDIR /app
 
