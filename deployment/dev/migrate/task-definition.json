@@ -5,9 +5,7 @@
       "name": "p2pcv-migrate-dev",
       "image": "ghcr.io/relacibo/p2pcv-migrate-dev",
       "cpu": 1,
-      "containerTimeouts": {
-        "stopTimeout": 180
-      },
+      "stopTimeout": 180,
       "portMappings": [],
       "essential": true,
       "environment": [],
