@@ -5,6 +5,9 @@
       "name": "p2pcv-migrate-dev",
       "image": "ghcr.io/relacibo/p2pcv-migrate-dev",
       "cpu": 1,
+      "containerTimeouts": {
+        "stopTimeout": 180
+      },
       "portMappings": [],
       "essential": true,
       "environment": [],
@@ -40,9 +43,6 @@
       ]
     }
   ],
-  "containerTimeouts": {
-    "stopTimeout": 180
-  },
   "taskRoleArn": "arn:aws:iam::465088096375:role/ecsTaskExecutionRole",
   "executionRoleArn": "arn:aws:iam::465088096375:role/ecsTaskExecutionRole",
   "networkMode": "awsvpc",
