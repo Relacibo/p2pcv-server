@@ -75,16 +75,6 @@ jobs:
         registry: ${{ env.REGISTRY }}
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
-    
-    # Planner
-    # - name: Build and push planner stage
-    #   uses: docker/build-push-action@v4
-    #   with:
-    #     context: .
-    #     push: true
-    #     tags: ${{ env.FULL_IMAGE_CACHE }}:plannercache
-    #     cache-from: ${{ env.FULL_IMAGE_CACHE }}:plannercache
-    #     target: planner
 
     # Builder
     - name: Build and push builder stage
@@ -92,9 +82,9 @@ jobs:
       with:
         context: .
         push: true
-        tags: ${{ env.FULL_IMAGE_CACHE }}:plannercache
+        tags: ${{ env.FULL_IMAGE_CACHE }}:buildcache
         cache-from: |
-          ${{ env.FULL_IMAGE_CACHE }}:plannercache
+          ${{ env.FULL_IMAGE_CACHE }}:chef
           ${{ env.FULL_IMAGE_CACHE }}:buildcache
         target: builder
     
