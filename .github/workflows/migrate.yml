@@ -86,6 +86,7 @@ jobs:
         count: 1
         started-by: github-actions-${{ github.actor }}
         wait-for-finish: true
+        launch-type: FARGATE
         subnets: ${{ vars.AWS_MIGRATE_SUBNETS }}
         security-groups: ${{ vars.AWS_MIGRATE_SECURITY_GROUPS }}
         assign-public-ip: DISABLED
