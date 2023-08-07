@@ -48,14 +48,6 @@ jobs:
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
-    
-    - name: Extract metadata (tags, labels) for Docker
-      id: meta
-      uses: docker/metadata-action@v4
-      with:
-        images: ${{ env.FULL_IMAGE }}
-        tags: |
-          latest
 
     - name: Build and push Docker image
       uses: docker/build-push-action@v4
@@ -63,8 +55,7 @@ jobs:
         context: .
         file: ./deployment/base/migrate/Dockerfile
         push: true
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
+        tags: ${{ env.FULL_IMAGE }}:latest
         cache-from: |
           ${{ env.FULL_IMAGE }}:latest
 
