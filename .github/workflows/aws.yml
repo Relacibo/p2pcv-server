@@ -84,7 +84,6 @@ jobs:
         push: true
         tags: ${{ env.FULL_IMAGE_CACHE }}:buildcache
         cache-from: |
-          ${{ env.FULL_IMAGE_CACHE }}:chef
           ${{ env.FULL_IMAGE_CACHE }}:buildcache
         target: builder
     
@@ -105,7 +104,6 @@ jobs:
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
         cache-from: |
-          ${{ env.FULL_IMAGE_CACHE }}:plannercache
           ${{ env.FULL_IMAGE_CACHE }}:buildcache
           ${{ env.FULL_IMAGE }}:latest
 
