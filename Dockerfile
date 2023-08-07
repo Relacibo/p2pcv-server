@@ -1,4 +1,6 @@
-FROM lukemathwalker/cargo-chef:latest-rust-1.71-bookworm AS chef
+FROM rust:1.71-slim-bookworm AS chef
+RUN cargo install cargo-chef@latest --locked
+RUN apt update && DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends libssl-dev pkg-config
 WORKDIR /app
 
 FROM chef AS planner
