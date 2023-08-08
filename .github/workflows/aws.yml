@@ -31,7 +31,7 @@ on:
     branches: [ "main" ]
     paths:
       - src/**
-      - deployment/base/backend/**
+      - deployment/general/backend/**
       - deployment/dev/backend/**
       - .github/workflows/aws.yml
       - Cargo.lock
@@ -41,7 +41,6 @@ on:
 env:
   AWS_REGION: ${{ vars.AWS_REGION }}                   # set this to your preferred AWS region, e.g. us-west-1
   REGISTRY: ghcr.io
-  # IMAGE: ${{ github.repository }}-dev
   FULL_IMAGE_UPPER: ghcr.io/${{ github.repository }}-dev
   ECS_SERVICE: ${{ vars.AWS_ECS_SERVICE }}                 # set this to your Amazon ECS service name
   ECS_CLUSTER:  ${{ vars.AWS_ECS_CLUSTER }}                  # set this to your Amazon ECS cluster name
@@ -82,42 +81,6 @@ jobs:
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
-
-    # Cargo chef
-    - name: Build and push cargo chef image
-      uses: docker/build-push-action@v4
-      with:
-        context: .
-        push: true
-        tags: ${{ env.FULL_IMAGE }}:chef
-        cache-from: |
-          ${{ env.FULL_IMAGE }}:chef
-        target: chef
-
-    # Planner
-    - name: Build and push planner stage
-      uses: docker/build-push-action@v4
-      with:
-        context: .
-        push: true
-        tags: ${{ env.FULL_IMAGE }}:plannercache
-        cache-from: |
-          ${{ env.FULL_IMAGE }}:chef
-          ${{ env.FULL_IMAGE }}:plannercache
-        target: planner
-
-    # Builder
-    - name: Build and push builder stage
-      uses: docker/build-push-action@v4
-      with:
-        context: .
-        push: true
-        tags: ${{ env.FULL_IMAGE }}:buildcache
-        cache-from: |
-          ${{ env.FULL_IMAGE }}:chef
-          ${{ env.FULL_IMAGE }}:plannercache
-          ${{ env.FULL_IMAGE }}:buildcache
-        target: builder
     
     - name: Extract metadata (tags, labels) for Docker
       id: meta
@@ -135,11 +98,8 @@ jobs:
         push: true
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
-        cache-from: |
-          ${{ env.FULL_IMAGE }}:chef
-          ${{ env.FULL_IMAGE }}:plannercache
-          ${{ env.FULL_IMAGE }}:buildcache
-          ${{ env.FULL_IMAGE }}:latest
+        cache-to: gha,mode=max,scope=p2pcv-server-${{github.ref_name}}
+        cache-from: gha,scope=p2pcv-server-${{github.ref_name}}
 
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v2

@@ -4,7 +4,7 @@
     {
       "name": "p2pcv-server-dev",
       "image": "ghcr.io/relacibo/p2pcv-server-dev:latest",
-      "cpu": 0,
+      "cpu": 1,
       "portMappings": [
         {
           "name": "p2pcv-server-dev-8000-tcp",
