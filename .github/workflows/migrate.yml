@@ -32,6 +32,10 @@ jobs:
   build:
     name: Build migrate image (Only build if files changed)
     runs-on: ubuntu-latest
+    environment: dev
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Checkout
         uses: actions/checkout@v3
