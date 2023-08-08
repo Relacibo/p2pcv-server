@@ -37,6 +37,10 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(move || {
         App::new()
+            .service(
+                // Health check
+                web::resource("/").route(web::get().to(HttpResponse::Ok)),
+            )
             .configure(api::auth::jwt::config)
             .configure(api::users::config)
             .configure(api::auth::config)
