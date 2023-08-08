@@ -1,7 +1,6 @@
 use db::db_conn::DbPool;
 use diesel_async::{pooled_connection::AsyncDieselConnectionManager, AsyncPgConnection};
 use dotenvy::dotenv;
-#[macro_use]
 extern crate diesel;
 extern crate bb8;
 #[macro_use]
@@ -9,7 +8,7 @@ extern crate actix_web;
 #[macro_use]
 extern crate serde_with;
 extern crate env_logger;
-use actix_web::{middleware::Logger, web::Data, App, HttpServer};
+use actix_web::{middleware::Logger, web::{Data, self}, App, HttpServer, HttpResponse};
 use env_logger::Env;
 #[macro_use]
 extern crate serde_derive;
