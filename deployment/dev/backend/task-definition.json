@@ -15,14 +15,14 @@
         }
       ],
       "healthCheck": {
-          "retries": 3,
-          "command": [
-              "CMD-SHELL",
-              "curl -f http://localhost:8000/ || exit 1"
-          ],
-          "timeout": 5,
-          "interval": 30,
-          "startPeriod": null
+        "retries": 3,
+        "command": [
+          "CMD-SHELL",
+          "curl -f http://localhost:8000/ || exit 1"
+        ],
+        "timeout": 5,
+        "interval": 30,
+        "startPeriod": null
       },
       "essential": true,
       "environment": [],
@@ -30,6 +30,10 @@
       "mountPoints": [],
       "volumesFrom": [],
       "secrets": [
+        {
+          "name": "RUST_LOG",
+          "valueFrom": "arn:aws:ssm:eu-central-1:465088096375:parameter/p2pcv-server/dev/dotenv/RUST_LOG"
+        },
         {
           "name": "GOOGLE_CERTS_URI",
           "valueFrom": "arn:aws:ssm:eu-central-1:465088096375:parameter/p2pcv-server/dev/dotenv/GOOGLE_CERTS_URI"
@@ -114,18 +118,18 @@
   "executionRoleArn": "arn:aws:iam::465088096375:role/ecsTaskExecutionRole",
   "networkMode": "awsvpc",
   "requiresCompatibilities": [
-      "FARGATE"
+    "FARGATE"
   ],
   "cpu": "256",
   "memory": "512",
   "runtimePlatform": {
-      "cpuArchitecture": "X86_64",
-      "operatingSystemFamily": "LINUX"
+    "cpuArchitecture": "X86_64",
+    "operatingSystemFamily": "LINUX"
   },
   "tags": [
-      {
-          "key": "ecs:taskDefinition:createdFrom",
-          "value": "ecs-console-v2"
-      }
+    {
+      "key": "ecs:taskDefinition:createdFrom",
+      "value": "ecs-console-v2"
+    }
   ]
 }
