@@ -24,26 +24,37 @@ mod db;
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     dotenv().ok();
-    env_logger::init_from_env(Env::default().default_filter_or("debug"));
-    let database_url = env::var("DATABASE_URL").unwrap();
+    // env_logger::init_from_env(Env::default().default_filter_or("debug"));
+    // let database_url = env::var("DATABASE_URL").unwrap();
     let actix_host = env::var("ACTIX_HOST").unwrap();
     let actix_port = env::var("ACTIX_PORT").unwrap();
-    let manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new(database_url);
-    let pool: DbPool = bb8::Pool::builder()
-        .build(manager)
-        .await
-        .expect("Failed to create pool.");
+    // let manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new(database_url);
+    // let pool: DbPool = bb8::Pool::builder()
+    //     .build(manager)
+    //     .await
+    //     .expect("Failed to create pool.");
 
+    // HttpServer::new(move || {
+    //     App::new()
+    //         .service(
+    //             // Health check
+    //             web::resource("/").route(web::get().to(HttpResponse::Ok)),
+    //         )
+    //         .configure(api::auth::jwt::config)
+    //         .configure(api::users::config)
+    //         .configure(api::auth::config)
+    //         .app_data(Data::new(pool.clone()))
+    //         .wrap(Logger::default())
+    // })
+    // .bind(format!("{actix_host}:{actix_port}"))?
+    // .run()
+    // .await
     HttpServer::new(move || {
         App::new()
             .service(
                 // Health check
                 web::resource("/").route(web::get().to(HttpResponse::Ok)),
             )
-            .configure(api::auth::jwt::config)
-            .configure(api::users::config)
-            .configure(api::auth::config)
-            .app_data(Data::new(pool.clone()))
             .wrap(Logger::default())
     })
     .bind(format!("{actix_host}:{actix_port}"))?
