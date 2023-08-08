@@ -47,7 +47,6 @@ impl KeyStore {
             cache_control.to_str().unwrap_or("").to_string()
         };
         let body = res.text().await?;
-        println!("{body}");
         let deserialized = serde_json::from_str::<KeyResponse>(&body).unwrap();
         let key_map = deserialized
             .keys

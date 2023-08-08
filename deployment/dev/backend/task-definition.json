@@ -1,5 +1,5 @@
 {
-  "family": "p2pchessvariants-backend-dev",
+  "family": "p2pcv-server-dev",
   "containerDefinitions": [
     {
       "name": "p2pcv-server-dev",
@@ -115,11 +115,5 @@
   "runtimePlatform": {
     "cpuArchitecture": "X86_64",
     "operatingSystemFamily": "LINUX"
-  },
-  "tags": [
-    {
-      "key": "ecs:taskDefinition:createdFrom",
-      "value": "ecs-console-v2"
-    }
-  ]
+  }
 }
