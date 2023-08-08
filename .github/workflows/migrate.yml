@@ -7,6 +7,7 @@ on:
       - migrations/**
       - deployment/general/migrate/**
       - deployment/dev/migrate/**
+      - deployment/prod/migrate/**
       - .github/workflows/migrate.yml
     
 env:
@@ -28,6 +29,40 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  build:
+    name: Build migrate image (Only build if files changed)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            migrate:
+              - 'deployment/general/migrate/**'
+              - 'deployment/dev/migrate/**'
+              - 'deployment/prod/migrate/**'
+        
+      - name: Log in to the Container registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./deployment/general/migrate/Dockerfile
+          push: true
+          tags: ${{ env.FULL_IMAGE }}:latest
+
   migrate:
     name: Migrate
     runs-on: ubuntu-latest
@@ -35,60 +70,39 @@ jobs:
     permissions:
       contents: read
       packages: write
+    needs: build
     steps:
-    - name: Checkout
-      uses: actions/checkout@v3
-      
-    - name: Log in to the Container registry
-      uses: docker/login-action@v2
-      with:
-        registry: ${{ env.REGISTRY }}
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Checkout
+        uses: actions/checkout@v3
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ vars.AWS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
 
-    # TODO: cache-to cache mode=max
-
-    - name: Build and push Docker image
-      uses: docker/build-push-action@v4
-      with:
-        context: .
-        file: ./deployment/general/migrate/Dockerfile
-        push: true
-        tags: ${{ env.FULL_IMAGE }}:latest
-        cache-to: type=gha,mode=max,scope=p2pcv-migrate-${{github.ref_name}}
-        cache-from: type=gha,scope=p2pcv-migrate-${{github.ref_name}}
-
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v2
-      with:
-        aws-access-key-id: ${{ vars.AWS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
-        aws-region: ${{ env.AWS_REGION }}
-
-    - name: Fill in the new image ID in the Amazon ECS task definition
-      id: task-def
-      uses: aws-actions/amazon-ecs-render-task-definition@v1
-      with:
-        task-definition: ${{ env.ECS_TASK_DEFINITION }}
-        container-name: ${{ env.CONTAINER_NAME }}
-        image: ${{ steps.meta.outputs.tags }}
-        environment-variables: |
-          GIT_REPOSITORY=${{github.server_url}}/${{github.repository}}
-          GIT_COMMIT=${{github.sha}}
-        
-    - name: Run Task on Amazon ECS
-      uses: muya/amazon-ecs-run-task@v1
-      with:
-        task-definition: ${{ steps.task-def.outputs.task-definition }}
-        cluster: ${{ env.ECS_CLUSTER }}
-        count: 1
-        started-by: github-actions-${{ github.actor }}
-        wait-for-finish: true
-        launch-type: FARGATE
-        subnets: ${{ vars.AWS_MIGRATE_SUBNETS }}
-        security-groups: ${{ vars.AWS_MIGRATE_SECURITY_GROUPS }}
-        assign-public-ip: DISABLED
+      - name: Fill in the new image ID in the Amazon ECS task definition
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: ${{ env.ECS_TASK_DEFINITION }}
+          container-name: ${{ env.CONTAINER_NAME }}
+          image: ${{ env.FULL_IMAGE }}:latest
+          environment-variables: |
+            GIT_REPOSITORY=${{github.server_url}}/${{github.repository}}
+            GIT_COMMIT=${{github.sha}}
+          
+      - name: Run Task on Amazon ECS
+        uses: muya/amazon-ecs-run-task@v1
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          count: 1
+          started-by: github-actions-${{ github.actor }}
+          wait-for-finish: true
+          launch-type: FARGATE
+          subnets: ${{ vars.AWS_MIGRATE_SUBNETS }}
+          security-groups: ${{ vars.AWS_MIGRATE_SECURITY_GROUPS }}
+          assign-public-ip: DISABLED
 
