@@ -24,7 +24,7 @@ mod db;
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     dotenv().ok();
-    // env_logger::init_from_env(Env::default().default_filter_or("debug"));
+    env_logger::init_from_env(Env::default().default_filter_or("debug"));
     // let database_url = env::var("DATABASE_URL").unwrap();
     let actix_host = env::var("ACTIX_HOST").unwrap();
     let actix_port = env::var("ACTIX_PORT").unwrap();
