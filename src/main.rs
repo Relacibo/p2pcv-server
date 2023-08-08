@@ -26,8 +26,8 @@ async fn main() -> std::io::Result<()> {
     dotenv().ok();
     env_logger::init_from_env(Env::default().default_filter_or("debug"));
     // let database_url = env::var("DATABASE_URL").unwrap();
-    let actix_host = env::var("ACTIX_HOST").unwrap();
-    let actix_port = env::var("ACTIX_PORT").unwrap();
+    let actix_host = env::var("ACTIX_HOST").expect("ACTIX_HOST not set!");
+    let actix_port = env::var("ACTIX_PORT").expect("ACTIX_PORT not set!");
     // let manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new(database_url);
     // let pool: DbPool = bb8::Pool::builder()
     //     .build(manager)
