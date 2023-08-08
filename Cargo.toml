@@ -33,6 +33,7 @@ actix-web-httpauth = "^0.8"
 thiserror = "1.0"
 serde_with = { version = "3.1.0", features = ["chrono", "base64"] }
 derive_builder = "0.12"
+log = "0.4.19"
 
 [build-dependencies]
 static-files = "^0.2"
