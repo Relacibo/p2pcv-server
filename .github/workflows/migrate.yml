@@ -58,8 +58,8 @@ jobs:
         file: ./deployment/general/migrate/Dockerfile
         push: true
         tags: ${{ env.FULL_IMAGE }}:latest
-        cache-to: gha,mode=max,scope=p2pcv-migrate-${{github.ref_name}}
-        cache-from: gha,scope=p2pcv-migrate-${{github.ref_name}}
+        cache-to: type=gha,mode=max,scope=p2pcv-migrate-${{github.ref_name}}
+        cache-from: type=gha,scope=p2pcv-migrate-${{github.ref_name}}
 
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v2
