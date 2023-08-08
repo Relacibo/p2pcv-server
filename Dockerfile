@@ -17,3 +17,5 @@ FROM debian:bookworm-slim
 WORKDIR /app
 COPY --from=builder /app/target/release/app /usr/local/bin
 ENTRYPOINT ["/usr/local/bin/app"]
+
+EXPOSE 8000
