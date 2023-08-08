@@ -87,12 +87,13 @@ jobs:
 
   migrate:
     name: Migrate
+    needs: build
+    if: always()
     runs-on: ubuntu-latest
     environment: dev
     permissions:
       contents: read
       packages: write
-    needs: build
     steps:
       - name: Checkout
         uses: actions/checkout@v3
