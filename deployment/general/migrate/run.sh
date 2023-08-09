@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 cd /app
 git clone --no-checkout $GIT_REPOSITORY app
