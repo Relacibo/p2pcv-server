@@ -4,6 +4,5 @@ RUN apt update && DEBIAN_FRONTEND=noninteractive apt install -y --no-install-rec
 RUN cargo install diesel_cli@^2.1 --locked --no-default-features --features postgres
 
 COPY /deployment/general/migrate/run.sh /usr/local/bin
-RUN chmod ug+x /usr/local/bin/run.sh
 
-CMD [ "/usr/local/bin/run.sh" ]
+CMD [ "/bin/bash", "/usr/local/bin/run.sh" ]
