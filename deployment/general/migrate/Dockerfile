@@ -1,9 +1,9 @@
 FROM rust:bookworm
+WORKDIR /app
 RUN apt update && DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends postgresql-client git
 RUN cargo install diesel_cli@^2.1 --locked --no-default-features --features postgres
 
 COPY /deployment/general/migrate/run.sh /usr/local/bin
-
-WORKDIR /app
+RUN chmod ug+x /usr/local/bin/run.sh
 
 CMD [ "/usr/local/bin/run.sh" ]
