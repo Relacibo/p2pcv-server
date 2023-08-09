@@ -15,6 +15,8 @@ RUN cargo build --release --bin app
 
 FROM debian:bookworm-slim
 WORKDIR /app
+RUN apt update && DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends libssl-dev
+RUN rm -rf /var/lib/apt/lists/*
 COPY --from=builder /app/target/release/app /usr/local/bin
 ENTRYPOINT ["/usr/local/bin/app"]
 
