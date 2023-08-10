@@ -2,6 +2,7 @@ name: Run migrations on RDS database
 
 on:
   push:
+    if: ${{ false }}
     branches: [ "main" ]
     paths:
       - migrations/**
