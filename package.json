@@ -5,8 +5,9 @@
   "license": "AGPL-3.0-or-later",
   "private": false,
   "scripts": {
-    "dump": "pg_dump > test_db/test_data.sql",
-    "reset": "dropdb --force $PGDATABASE && yarn run create",
-    "create": "createdb $PGDATABASE && psql < test_db/test_data.sql"
+    "save_db": "pg_dump > test_db/test_dump.sql",
+    "reset_db": "(dropdb --force $PGDATABASE || true) && yarn load_db",
+    "load_db": "createdb $PGDATABASE && psql < test_db/test_dump.sql",
+    "reset_db_diesel": "(dropdb --force $PGDATABASE || true) && diesel setup && psql < test_db/test_data.sql"
   }
 }

@@ -5,12 +5,11 @@ use actix_web::{
 use uuid::Uuid;
 
 use crate::{
-    api::auth::jwt::Auth,
     app_result::{EndpointResult, EndpointResultHttpResponse},
     db::{
         db_conn::DbPool,
         friends::{Friends, FriendEntry},
-    },
+    }, api::auth::session::auth::Auth,
 };
 
 pub fn config(cfg: &mut ServiceConfig) {

@@ -1,4 +1,4 @@
-use actix_web::{web::Json, HttpResponse, Responder};
+use actix_web::{web::Json, HttpResponse};
 
 use crate::app_error::AppError;
 

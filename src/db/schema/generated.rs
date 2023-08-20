@@ -39,15 +39,10 @@ diesel::table! {
     users (id) {
         id -> Uuid,
         user_name -> Varchar,
-        name -> Varchar,
-        nick_name -> Nullable<Varchar>,
-        given_name -> Nullable<Varchar>,
-        middle_name -> Nullable<Varchar>,
-        family_name -> Nullable<Varchar>,
+        display_name -> Varchar,
         email -> Varchar,
         locale -> Varchar,
         verified_email -> Bool,
-        picture -> Nullable<Varchar>,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
     }

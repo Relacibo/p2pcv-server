@@ -5,6 +5,7 @@ use super::schema::generated::users as db_users;
 use chrono::{DateTime, Utc};
 
 use diesel::prelude::*;
+use diesel::sql_query;
 use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
 use uuid::Uuid;
 
@@ -14,20 +15,10 @@ use uuid::Uuid;
 pub struct User {
     pub id: Uuid,
     pub user_name: String,
-    pub name: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub nick_name: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub given_name: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub middle_name: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub family_name: Option<String>,
+    pub display_name: String,
     pub email: String,
     pub locale: String,
     pub verified_email: bool,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub picture: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -35,16 +26,11 @@ pub struct User {
 #[derive(Insertable, Clone, Debug)]
 #[diesel(table_name = db_users)]
 pub struct NewUser {
-    pub name: String,
     pub user_name: String,
-    pub nick_name: Option<String>,
-    pub given_name: Option<String>,
-    pub middle_name: Option<String>,
-    pub family_name: Option<String>,
+    pub display_name: String,
     pub email: String,
-    pub locale: String,
+    pub locale: Option<String>,
     pub verified_email: bool,
-    pub picture: Option<String>,
 }
 
 #[derive(Insertable, Clone, Debug)]
@@ -52,29 +38,18 @@ pub struct NewUser {
 pub struct NewUserWithId {
     pub id: Uuid,
     pub user_name: String,
-    pub name: String,
-    pub nick_name: Option<String>,
-    pub given_name: Option<String>,
-    pub middle_name: Option<String>,
-    pub family_name: Option<String>,
+    pub display_name: String,
     pub email: String,
-    pub locale: String,
+    pub locale: Option<String>,
     pub verified_email: bool,
-    pub picture: Option<String>,
 }
 
 #[derive(AsChangeset, Clone, Debug)]
 #[diesel(table_name = db_users)]
 pub struct UpdateUserGoogle {
-    pub name: Option<String>,
-    pub nick_name: Option<Option<String>>,
-    pub given_name: Option<Option<String>>,
-    pub middle_name: Option<Option<String>>,
-    pub family_name: Option<Option<String>>,
     pub email: Option<String>,
     pub locale: Option<String>,
     pub verified_email: Option<bool>,
-    pub picture: Option<Option<String>>,
 }
 
 #[derive(Serialize, Queryable, QueryableByName, PartialEq, Debug, Clone, Selectable)]
@@ -83,8 +58,6 @@ pub struct UpdateUserGoogle {
 pub struct PublicUser {
     pub id: Uuid,
     pub user_name: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub picture: Option<String>,
     pub created_at: DateTime<Utc>,
 }
 
@@ -195,28 +168,18 @@ impl NewUser {
     pub fn with_id(self, id: Uuid) -> NewUserWithId {
         let Self {
             user_name,
-            name,
-            nick_name,
-            given_name,
-            middle_name,
-            family_name,
+            display_name,
             email,
             locale,
             verified_email,
-            picture,
         } = self;
         NewUserWithId {
             id,
             user_name,
-            name,
-            nick_name,
-            given_name,
-            middle_name,
-            family_name,
+            display_name,
             email,
             locale,
             verified_email,
-            picture,
         }
     }
 }

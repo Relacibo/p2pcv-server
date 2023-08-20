@@ -98,8 +98,6 @@ impl Friends {
             id: Uuid,
             #[sql_type = "diesel::sql_types::VarChar"]
             user_name: String,
-            #[sql_type = "diesel::sql_types::Nullable<diesel::sql_types::VarChar>"]
-            picture: Option<String>,
             #[sql_type = "diesel::sql_types::Timestamptz"]
             created_at: DateTime<Utc>,
             #[sql_type = "diesel::sql_types::Timestamptz"]
@@ -110,7 +108,6 @@ impl Friends {
             SELECT \
                 users.id, \
                 user_name, \
-                picture, \
                 created_at, \
                 tmp.created_at_ret AS friends_created_at \
             FROM users \
@@ -129,7 +126,6 @@ impl Friends {
                 |Resp {
                      id,
                      user_name,
-                     picture,
                      created_at,
                      friends_created_at,
                  }| FriendEntry {
@@ -137,7 +133,6 @@ impl Friends {
                     friend: PublicUser {
                         id,
                         user_name,
-                        picture,
                         created_at,
                     },
                 },

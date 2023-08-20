@@ -1,5 +1,5 @@
 use crate::{
-    api::auth::jwt::Auth,
+    api::auth::session::auth::Auth,
     app_error::AppError,
     app_result::{EndpointResult, EndpointResultHttpResponse},
     db::{
@@ -21,7 +21,8 @@ pub fn config(cfg: &mut ServiceConfig) {
             .service(list)
             .service(delete)
             .service(get)
-            .configure(friend_requests::config).configure(friends::config),
+            .configure(friend_requests::config)
+            .configure(friends::config),
     );
 }
 

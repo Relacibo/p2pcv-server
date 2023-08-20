@@ -1,10 +1,11 @@
 use std::{collections::HashMap, time::Duration};
 
 use reqwest::header::CACHE_CONTROL;
-use serde::{Deserialize, Deserializer};
+use serde::Deserialize;
 use serde_with::base64::Base64;
 use serde_with::base64::UrlSafe;
-use tokio::{sync::Mutex, time::Instant};
+use tokio::sync::RwLock;
+use tokio::time::Instant;
 
 use crate::app_error::AppError;
 
@@ -15,14 +16,14 @@ pub struct CachedKeys {
 
 pub struct KeyStore {
     pub certs_uri: String,
-    pub public_keys: Mutex<CachedKeys>,
+    pub public_keys: RwLock<CachedKeys>,
 }
 
 impl KeyStore {
     pub fn new(certs_uri: String) -> Self {
         Self {
             certs_uri,
-            public_keys: Mutex::new(CachedKeys {
+            public_keys: RwLock::new(CachedKeys {
                 stale_time: None,
                 keys: HashMap::new(),
             }),
@@ -31,11 +32,20 @@ impl KeyStore {
 
     pub async fn get_key(&self, key_id: &String) -> Result<PublicKey, AppError> {
         let now = Instant::now();
-        let mut cache = self.public_keys.lock().await;
+        let mut cache = self.public_keys.read().await;
         let should_refetch = cache.stale_time.is_none() || cache.stale_time.unwrap() > now;
         if should_refetch {
-            let new_cached_keys = self.fetch_public_keys(now).await?;
-            *cache = new_cached_keys;
+            drop(cache);
+            let mut write_cache = self.public_keys.write().await;
+            let should_refetch =
+                write_cache.stale_time.is_none() || write_cache.stale_time.unwrap() > now;
+            // Check a second time, if it not already has been refetched.
+            if should_refetch {
+                let new_cached_keys = self.fetch_public_keys(now).await?;
+                *write_cache = new_cached_keys;
+            }
+            drop(write_cache);
+            cache = self.public_keys.read().await;
         }
         cache.keys.get(key_id).cloned().ok_or(AppError::Unexpected)
     }

@@ -47,7 +47,7 @@ async fn main() -> std::io::Result<()> {
                 // Health check
                 web::resource("/").route(web::get().to(HttpResponse::Ok)),
             )
-            .configure(api::auth::jwt::config)
+            .configure(api::auth::session::config)
             .configure(api::users::config)
             .configure(api::auth::config)
             .app_data(Data::new(pool.clone()))

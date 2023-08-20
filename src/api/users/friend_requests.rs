@@ -7,7 +7,6 @@ use diesel_async::AsyncConnection;
 use uuid::Uuid;
 
 use crate::{
-    api::auth::jwt::Auth,
     app_error::AppError,
     app_result::{EndpointResult, EndpointResultHttpResponse},
     db::{
@@ -15,7 +14,7 @@ use crate::{
         friend_requests::{FriendRequest, NewFriendRequest},
         friends::Friends,
         users::PublicUser,
-    },
+    }, api::auth::session::auth::Auth,
 };
 
 pub fn config(cfg: &mut ServiceConfig) {
