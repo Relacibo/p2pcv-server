@@ -6,7 +6,7 @@ pub enum AppError {
     #[error("unknown")]
     ActixBlocking(#[from] actix_web::error::BlockingError),
     #[error("database")]
-    Diesel(#[from] diesel::result::Error),
+    Diesel(diesel::result::Error),
     #[error("unknown")]
     Bb8,
     #[error("authentication-failed")]
@@ -27,11 +27,39 @@ pub enum AppError {
     FriendRequestDoesntExist,
     #[error("friend-request-exists-in-other-direction")]
     FriendRequestExistsInOtherDirection,
+    #[error("username-already-exists")]
+    UsernameAlreadyExists,
 }
 
 impl<E> From<bb8::RunError<E>> for AppError {
     fn from(_value: bb8::RunError<E>) -> Self {
         AppError::Bb8
+    }
+}
+
+impl From<diesel::result::Error> for AppError {
+    fn from(value: diesel::result::Error) -> Self {
+        use diesel::result::DatabaseErrorKind;
+        use diesel::result::Error::*;
+
+        let (kind, table_name, column_name) = if let DatabaseError(ref kind, ref err) = value {
+            let column_name = err.column_name().map(|s| s.to_string());
+            let table_name = err.table_name().map(|s| s.to_string());
+            (Some(kind), table_name, column_name)
+        } else {
+            (None, None, None)
+        };
+        #[allow(clippy::single_match)]
+        match kind {
+            Some(DatabaseErrorKind::UniqueViolation) => {
+                match (table_name.as_deref(), column_name.as_deref()) {
+                    (Some("users"), Some("user_name")) => return AppError::UsernameAlreadyExists,
+                    _ => (),
+                }
+            }
+            _ => (),
+        }
+        AppError::Diesel(value)
     }
 }
 
@@ -48,9 +76,10 @@ impl actix_web::ResponseError for AppError {
             },
             ActixBlocking(_) | Bb8 | Reqwest(_) | Unexpected => StatusCode::INTERNAL_SERVER_ERROR,
             JwtParse(_) | Jwt(_) | OpenId | Unauthorized => StatusCode::UNAUTHORIZED,
-            AlreadyFriends | FriendRequestDoesntExist | FriendRequestExistsInOtherDirection => {
-                StatusCode::BAD_REQUEST
-            }
+            AlreadyFriends
+            | FriendRequestDoesntExist
+            | FriendRequestExistsInOtherDirection
+            | UsernameAlreadyExists => StatusCode::BAD_REQUEST,
         }
     }
     fn error_response(&self) -> actix_web::HttpResponse<actix_web::body::BoxBody> {

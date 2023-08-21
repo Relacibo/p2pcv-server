@@ -181,6 +181,20 @@ CREATE TABLE public.google_users (
 ALTER TABLE public.google_users OWNER TO postgres;
 
 --
+-- Name: lichess_users; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.lichess_users (
+    id character varying NOT NULL,
+    username character varying NOT NULL,
+    user_id uuid NOT NULL,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+ALTER TABLE public.lichess_users OWNER TO postgres;
+
+--
 -- Name: peers; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -230,11 +244,12 @@ ALTER TABLE ONLY public.friends ALTER COLUMN id SET DEFAULT nextval('public.frie
 --
 
 COPY public.__diesel_schema_migrations (version, run_on) FROM stdin;
-00000000000000	2023-08-20 13:51:17.726061
-20220206103033	2023-08-20 13:51:17.733141
-20220616095715	2023-08-20 13:51:17.786204
-20230314101254	2023-08-20 13:51:17.812122
-20230425173432	2023-08-20 13:51:17.838596
+00000000000000	2023-08-21 21:12:52.04655
+20220206103033	2023-08-21 21:12:52.056141
+20220616095715	2023-08-21 21:12:52.114688
+20230314101254	2023-08-21 21:12:52.141022
+20230425173432	2023-08-21 21:12:52.167041
+20230821205206	2023-08-21 21:12:52.173523
 \.
 
 
@@ -261,6 +276,14 @@ COPY public.friends (id, user1_id, user2_id, created_at) FROM stdin;
 
 COPY public.google_users (id, user_id, created_at) FROM stdin;
 108332985460156157078	ca45a857-dec2-436c-868a-50986f53394e	2023-04-25 12:28:27.86294
+\.
+
+
+--
+-- Data for Name: lichess_users; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.lichess_users (id, username, user_id, created_at) FROM stdin;
 \.
 
 
@@ -353,6 +376,22 @@ ALTER TABLE ONLY public.google_users
 
 
 --
+-- Name: lichess_users lichess_users_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.lichess_users
+    ADD CONSTRAINT lichess_users_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: lichess_users lichess_users_user_id_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.lichess_users
+    ADD CONSTRAINT lichess_users_user_id_key UNIQUE (user_id);
+
+
+--
 -- Name: peers peers_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -429,6 +468,14 @@ ALTER TABLE ONLY public.friends
 
 ALTER TABLE ONLY public.google_users
     ADD CONSTRAINT google_users_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id);
+
+
+--
+-- Name: lichess_users lichess_users_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.lichess_users
+    ADD CONSTRAINT lichess_users_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id);
 
 
 --

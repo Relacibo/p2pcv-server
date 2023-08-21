@@ -5,25 +5,26 @@ use actix_web::{
 
 use crate::{
     api::auth::{
-        login::{
-            payloads::{LoginResponse, SigninPayload, SignupPayload},
-            provider::{Provider, ProviderError, ProviderFactory},
-        },
+        login::payloads::{LoginResponse, SigninPayload, SignupPayload},
+        providers::{Provider, ProviderError, ProviderFactory},
         session,
         util::{generate_login_token, suggest_username},
     },
     app_error::AppError,
     app_result::EndpointResult,
-    db::{db_conn::DbPool, users::User},
+    db::db_conn::DbPool,
 };
 use diesel::result::DatabaseErrorKind;
 use diesel::result::Error::DatabaseError;
 
+use super::providers::{google, lichess};
+
 pub mod payloads;
-pub mod provider;
 
 pub fn config(cfg: &mut ServiceConfig) {
-    cfg.service(scope("/auth"));
+    cfg.service(scope("/auth"))
+        .configure(google::config)
+        .configure(lichess::config);
 }
 
 /* https://developers.google.com/identity/gsi/web/guides/verify-google-id-token?hl=en */
@@ -38,14 +39,14 @@ async fn signin(
 
     let SigninPayload { oauth_data } = payload;
 
-    let provider = ProviderFactory::from_oauth_data(&req, oauth_data);
+    let provider = ProviderFactory::from_oauth_data(&req, oauth_data).await?;
 
     let user_result = provider.try_get_user(&mut db).await;
 
     let user = match user_result {
         Ok(user) => user,
-        Err(ProviderError::UserNotFound { name }) => {
-            let username_suggestion = suggest_username(&db, &name).await?;
+        Err(ProviderError::UserNotFound { user_name }) => {
+            let username_suggestion = suggest_username(&db, &user_name).await?;
             return Ok(Json(LoginResponse::NotRegistered {
                 username_suggestion,
             }));
@@ -70,11 +71,11 @@ async fn signup(
         oauth_data,
     } = payload;
 
-    let provider = ProviderFactory::from_oauth_data(&req, oauth_data);
+    let provider = ProviderFactory::from_oauth_data(&req, oauth_data).await?;
     let insert_result = provider.try_insert_user(&mut db).await;
 
     let user = match insert_result {
-        Err(ProviderError::AppError(AppError::Diesel(DatabaseError(
+        Err(ProviderError::App(AppError::Diesel(DatabaseError(
             DatabaseErrorKind::UniqueViolation,
             a,
         )))) if a.table_name() == Some("users") => {

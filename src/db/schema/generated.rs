@@ -28,6 +28,15 @@ diesel::table! {
 }
 
 diesel::table! {
+    lichess_users (id) {
+        id -> Varchar,
+        username -> Varchar,
+        user_id -> Uuid,
+        created_at -> Timestamp,
+    }
+}
+
+diesel::table! {
     peers (peer_id) {
         peer_id -> Uuid,
         user_id -> Uuid,
@@ -49,12 +58,14 @@ diesel::table! {
 }
 
 diesel::joinable!(google_users -> users (user_id));
+diesel::joinable!(lichess_users -> users (user_id));
 diesel::joinable!(peers -> users (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     friend_requests,
     friends,
     google_users,
+    lichess_users,
     peers,
     users,
 );
