@@ -28,6 +28,15 @@ diesel::table! {
 }
 
 diesel::table! {
+    lichess_access_tokens (id) {
+        id -> Varchar,
+        access_token -> Varchar,
+        expires -> Int8,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     lichess_users (id) {
         id -> Varchar,
         username -> Varchar,
@@ -66,6 +75,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     friend_requests,
     friends,
     google_users,
+    lichess_access_tokens,
     lichess_users,
     peers,
     users,

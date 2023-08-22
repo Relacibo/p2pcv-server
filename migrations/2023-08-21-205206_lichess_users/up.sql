@@ -9,3 +9,10 @@ CREATE TABLE lichess_users (
 
 SELECT
   diesel_manage_updated_at('lichess_users');
+
+CREATE TABLE lichess_access_tokens (
+  id VARCHAR NOT NULL PRIMARY KEY,
+  access_token VARCHAR NOT NULL,
+  expires bigint NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

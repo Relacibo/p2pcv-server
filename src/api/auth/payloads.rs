@@ -26,7 +26,7 @@ pub struct LoginResponseSuccess {
 #[serde(rename_all = "kebab-case", tag = "type")]
 pub enum OauthData {
     #[serde(rename_all = "camelCase")]
-    Google { credentials: String },
+    Google { credential: String },
     #[serde(rename_all = "camelCase")]
     Lichess { code: String, code_verifier: String },
 }

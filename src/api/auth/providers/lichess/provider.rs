@@ -8,7 +8,11 @@ use crate::{
     api::auth::providers::provider::{Provider, ProviderError},
     app_error::AppError,
     app_result::AppResult,
-    db::users::{UpdateLichessUser, User},
+    db::{
+        db_conn::DbPool,
+        lichess::{LichessAccessToken, NewLichessAccessToken},
+        users::{UpdateLichessUser, User},
+    },
 };
 
 use super::{claims::LichessClaims, config::Config};
@@ -47,13 +51,15 @@ struct LichessAccountResponse {
 impl LichessProvider {
     pub async fn new(req: &HttpRequest, code: String, code_verifier: String) -> AppResult<Self> {
         let config = req.app_data::<Data<Config>>().unwrap().clone().into_inner();
+        let pool = req.app_data::<Data<DbPool>>().unwrap().clone().into_inner();
         let reqwest = req
             .app_data::<Data<reqwest::Client>>()
             .unwrap()
             .clone()
             .into_inner();
+        let mut db = pool.get().await?;
 
-        let claims = request_lichess_claims(&reqwest, &config, code, code_verifier).await?;
+        let claims = request_lichess_claims(&reqwest, &config, code, code_verifier, &mut db).await?;
 
         Ok(Self { claims })
     }
@@ -64,6 +70,7 @@ async fn request_lichess_claims(
     config: &Config,
     code: String,
     code_verifier: String,
+    conn: &mut AsyncPgConnection,
 ) -> AppResult<LichessClaims> {
     let Config {
         api_uri,
@@ -74,32 +81,42 @@ async fn request_lichess_claims(
         account_endpoint_path,
         ..
     } = config;
-    let token_endpoint = format!("{api_uri}{token_endpoint_path}");
 
-    let token_request = LichessTokenRequest {
-        grant_type: "authorization_code".to_string(),
-        code,
-        code_verifier: code_verifier.clone(),
-        redirect_uri: redirect_uri.clone(),
-        client_id: client_id.clone(),
+    let access_token = LichessAccessToken::get(conn, code_verifier.clone()).await?;
+
+    let access_token = if let Some(LichessAccessToken { access_token, .. }) = access_token {
+        access_token
+    } else {
+        let token_endpoint = format!("{api_uri}{token_endpoint_path}");
+
+        let token_request = LichessTokenRequest {
+            grant_type: "authorization_code".to_string(),
+            code,
+            code_verifier: code_verifier.clone(),
+            redirect_uri: redirect_uri.clone(),
+            client_id: client_id.clone(),
+        };
+
+        let LichessTokenResponse {
+            access_token,
+            expires_in,
+            ..
+        } = reqwest
+            .post(token_endpoint)
+            .form(&token_request)
+            .send()
+            .await?
+            .json()
+            .await?;
+
+        let t = NewLichessAccessToken {
+            id: code_verifier.clone(),
+            access_token: access_token.clone(),
+            expires: expires_in as i64,
+        };
+        LichessAccessToken::insert(conn, t).await?;
+        access_token
     };
-    println!("{}", code_verifier);
-    let res = reqwest
-        .post(token_endpoint.clone())
-        .form(&token_request)
-        .send()
-        .await?;
-    let t = res.text().await.unwrap();
-    println!("{}", t.clone());
-    // let LichessTokenResponse { access_token, .. } = reqwest
-    //     .post(token_endpoint)
-    //     .form(&token_request)
-    //     .send()
-    //     .await?
-    //     .json()
-    //     .await?;
-
-    let LichessTokenResponse { access_token, .. } = serde_json::from_str(&t)?;
 
     let endpoint_path = format!("{api_uri}{account_endpoint_path}");
     let LichessAccountResponse { id, username } = reqwest
@@ -113,7 +130,7 @@ async fn request_lichess_claims(
     let email_endpoint = format!("{api_uri}{email_endpoint_path}");
     let LichessEmailResponse { email } = reqwest
         .get(email_endpoint)
-        .bearer_auth(access_token)
+        .bearer_auth(access_token.clone())
         .send()
         .await?
         .json()

@@ -27,8 +27,8 @@ impl ProviderFactory {
         oauth_data: OauthData,
     ) -> AppResult<Box<dyn Provider>> {
         let provider: Box<dyn Provider> = match oauth_data {
-            OauthData::Google { credentials } => {
-                Box::new(GoogleProvider::new(req, credentials).await?)
+            OauthData::Google { credential } => {
+                Box::new(GoogleProvider::new(req, credential).await?)
             }
 
             OauthData::Lichess {
