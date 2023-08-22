@@ -6,12 +6,15 @@ use diesel_async::AsyncPgConnection;
 
 use crate::{
     api::auth::{
-        providers::{map_to_provider_error, Provider, ProviderError},
+        providers::provider::{Provider, ProviderError},
         public_key_storage::KeyStore,
     },
     app_error::AppError,
     app_result::AppResult,
-    db::users::{NewUser, User},
+    db::{
+        schema::generated::google_users::user_id,
+        users::{NewUser, User},
+    },
 };
 
 use super::{
@@ -40,36 +43,34 @@ impl GoogleProvider {
 
 #[async_trait]
 impl Provider for GoogleProvider {
-    async fn try_get_user(&self, mut conn: &mut AsyncPgConnection) -> Result<User, ProviderError> {
-        let Self { claims } = self;
-
-        let GoogleClaims { sub, name, .. } = claims;
-        let user_result = User::get_with_google_id(&mut conn, &sub)
-            .await
-            .map_err(map_to_provider_error)?;
-        let user_result = if let Some(user) = user_result {
-            User::update_google_user(&mut conn, user.id, claims.clone().into())
-                .await
-                .map_err(map_to_provider_error)?
-        } else {
-            user_result
-        };
-        user_result.ok_or_else(|| ProviderError::UserNotFound {
-            user_name: name.clone(),
-        })
-    }
-    async fn try_insert_user(
+    async fn get_updated_user(
         &self,
         mut conn: &mut AsyncPgConnection,
     ) -> Result<User, ProviderError> {
         let Self { claims } = self;
         let GoogleClaims { sub, name, .. } = claims;
-        let new_user: NewUser = GoogleClaims::to_database_entry(claims.clone(), name.clone());
+        let user = User::get_with_google_id(&mut conn, sub)
+            .await?
+            .ok_or_else(|| ProviderError::UserNotFound {
+                user_name: name.to_string(),
+            })?;
+        // Don't update, as we don't store any google specific data
+        Ok(user)
+    }
+
+    async fn insert_user(
+        &self,
+        mut conn: &mut AsyncPgConnection,
+        username: &str,
+    ) -> Result<User, ProviderError> {
+        let Self { claims } = self;
+        let GoogleClaims { sub, name, .. } = claims;
+        let new_user: NewUser = claims.clone().to_db_user(username.to_string());
         let insert_result = User::insert_with_google_id(&mut conn, new_user, &sub).await;
         let user = match insert_result {
             Ok(user) => user,
             Err(AppError::UsernameAlreadyExists) => Err(ProviderError::UserAlreadyExists {
-                user_name: name.clone(),
+                user_name: username.to_string(),
             })?,
             res => res?,
         };

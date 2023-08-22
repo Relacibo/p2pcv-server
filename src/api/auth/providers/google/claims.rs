@@ -1,6 +1,6 @@
 use jsonwebtoken::{decode_header, DecodingKey, Validation, Algorithm, decode};
 
-use crate::{db::users::{NewUser, UpdateUserGoogle}, api::auth::public_key_storage::{KeyStore, PublicKey}, app_error::AppError};
+use crate::{db::users::{NewUser}, api::auth::public_key_storage::{KeyStore, PublicKey}, app_error::AppError};
 
 use super::config::Config;
 
@@ -25,7 +25,7 @@ pub struct GoogleClaims {
 }
 
 impl GoogleClaims {
-    pub fn to_database_entry(self, user_name: String) -> NewUser {
+    pub fn to_db_user(self, user_name: String) -> NewUser {
         let Self {
             email,
             locale,
@@ -38,22 +38,6 @@ impl GoogleClaims {
             email,
             locale,
             verified_email,
-        }
-    }
-}
-
-impl From<GoogleClaims> for UpdateUserGoogle {
-    fn from(val: GoogleClaims) -> Self {
-        let GoogleClaims {
-            email,
-            locale,
-            verified_email,
-            ..
-        } = val;
-        UpdateUserGoogle {
-            email: Some(email),
-            locale,
-            verified_email: Some(verified_email),
         }
     }
 }

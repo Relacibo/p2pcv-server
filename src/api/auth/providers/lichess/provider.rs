@@ -5,13 +5,10 @@ use async_trait::async_trait;
 use diesel_async::AsyncPgConnection;
 
 use crate::{
-    api::auth::{
-        providers::{map_to_provider_error, Provider, ProviderError},
-        public_key_storage::KeyStore,
-    },
+    api::auth::providers::provider::{Provider, ProviderError},
     app_error::AppError,
     app_result::AppResult,
-    db::users::{NewUser, User},
+    db::users::{UpdateLichessUser, User},
 };
 
 use super::{claims::LichessClaims, config::Config};
@@ -55,101 +52,106 @@ impl LichessProvider {
             .unwrap()
             .clone()
             .into_inner();
-        let Config {
-            api_uri,
-            client_id,
-            redirect_uri,
-            token_endpoint_path,
-            email_endpoint_path,
-            account_endpoint_path,
-            ..
-        } = config.as_ref();
-        let token_endpoint = format!("{api_uri}{token_endpoint_path}");
 
-        let token_request = LichessTokenRequest {
-            grant_type: "authorization_code".to_string(),
-            code,
-            code_verifier,
-            redirect_uri: redirect_uri.clone(),
-            client_id: client_id.clone(),
-        };
-        let LichessTokenResponse { access_token, .. } = reqwest
-            .post(token_endpoint)
-            .form(&token_request)
-            .send()
-            .await?
-            .json()
-            .await?;
-
-        let endpoint_path = format!("{api_uri}{account_endpoint_path}");
-        let LichessAccountResponse { id, username } = reqwest
-            .get(endpoint_path)
-            .bearer_auth(access_token.clone())
-            .send()
-            .await?
-            .json()
-            .await?;
-
-        let email_endpoint = format!("{api_uri}{email_endpoint_path}");
-        let LichessEmailResponse { email } = reqwest
-            .get(email_endpoint)
-            .bearer_auth(access_token)
-            .send()
-            .await?
-            .json()
-            .await?;
-        let claims = LichessClaims {
-            id,
-            username,
-            email,
-        };
+        let claims = request_lichess_claims(&reqwest, &config, code, code_verifier).await?;
 
         Ok(Self { claims })
     }
 }
 
+async fn request_lichess_claims(
+    reqwest: &reqwest::Client,
+    config: &Config,
+    code: String,
+    code_verifier: String,
+) -> AppResult<LichessClaims> {
+    let Config {
+        api_uri,
+        client_id,
+        redirect_uri,
+        token_endpoint_path,
+        email_endpoint_path,
+        account_endpoint_path,
+        ..
+    } = config;
+    let token_endpoint = format!("{api_uri}{token_endpoint_path}");
+
+    let token_request = LichessTokenRequest {
+        grant_type: "authorization_code".to_string(),
+        code,
+        code_verifier: code_verifier.clone(),
+        redirect_uri: redirect_uri.clone(),
+        client_id: client_id.clone(),
+    };
+    println!("{}", code_verifier);
+    let res = reqwest
+        .post(token_endpoint.clone())
+        .form(&token_request)
+        .send()
+        .await?;
+    let t = res.text().await.unwrap();
+    println!("{}", t.clone());
+    // let LichessTokenResponse { access_token, .. } = reqwest
+    //     .post(token_endpoint)
+    //     .form(&token_request)
+    //     .send()
+    //     .await?
+    //     .json()
+    //     .await?;
+
+    let LichessTokenResponse { access_token, .. } = serde_json::from_str(&t)?;
+
+    let endpoint_path = format!("{api_uri}{account_endpoint_path}");
+    let LichessAccountResponse { id, username } = reqwest
+        .get(endpoint_path)
+        .bearer_auth(access_token.clone())
+        .send()
+        .await?
+        .json()
+        .await?;
+
+    let email_endpoint = format!("{api_uri}{email_endpoint_path}");
+    let LichessEmailResponse { email } = reqwest
+        .get(email_endpoint)
+        .bearer_auth(access_token)
+        .send()
+        .await?
+        .json()
+        .await?;
+    Ok(LichessClaims {
+        id,
+        username,
+        email,
+    })
+}
+
 #[async_trait]
 impl Provider for LichessProvider {
-    async fn try_get_user(&self, mut conn: &mut AsyncPgConnection) -> Result<User, ProviderError> {
+    async fn get_updated_user(&self, conn: &mut AsyncPgConnection) -> Result<User, ProviderError> {
         let Self { claims } = self;
-        let LichessClaims {
-            id,
-            username,
-            email,
-        } = claims;
+        let LichessClaims { id, username, .. } = claims;
+        let update_lichess_user: UpdateLichessUser = claims.clone().into();
+        let user = User::get_with_lichess_id(conn, id).await?.ok_or_else(|| {
+            ProviderError::UserNotFound {
+                user_name: username.clone(),
+            }
+        })?;
 
-        let user_result = User::get_with_google_id(&mut conn, &sub)
-            .await
-            .map_err(map_to_provider_error)?;
-        let user_result = if let Some(user) = user_result {
-            User::update_google_user(&mut conn, user.id, claims.clone().into())
-                .await
-                .map_err(map_to_provider_error)?
-        } else {
-            user_result
-        };
-        user_result.ok_or_else(|| ProviderError::UserNotFound {
-            user_name: name.clone(),
-        })
+        User::update_lichess_user(conn, id, update_lichess_user).await?;
+        Ok(user)
     }
-    async fn try_insert_user(
+    async fn insert_user(
         &self,
-        mut conn: &mut AsyncPgConnection,
+        conn: &mut AsyncPgConnection,
+        username: &str,
     ) -> Result<User, ProviderError> {
-        let Self {
-            credential,
-            keystore,
-            config,
-        } = self;
-        let ref claims @ GoogleClaims {
-            ref sub, ref name, ..
-        } = extract_google_claims(&config, &keystore, credential).await?;
-        let new_user: NewUser = GoogleClaims::to_database_entry(claims.clone(), name.clone());
-        let insert_result = User::insert_with_google_id(&mut conn, new_user, &sub).await;
-        let user = match insert_result {
+        let Self { claims } = self;
+        let (new_lichess_user, new_user) = claims.clone().to_db_users(username.to_string());
+        let insert_result = User::insert_lichess_user(conn, new_user, new_lichess_user).await;
+        let (_, user) = match insert_result {
             Ok(user) => user,
             Err(AppError::UsernameAlreadyExists) => Err(ProviderError::UserAlreadyExists {
-                user_name: name.clone(),
+                user_name: username.to_string(),
             })?,
             res => res?,
         };

@@ -18,6 +18,8 @@ pub enum AppError {
     #[error("unknown")]
     Reqwest(#[from] reqwest::Error),
     #[error("unknown")]
+    SerdeJson(#[from] serde_json::error::Error),
+    #[error("unknown")]
     Unexpected,
     #[error("unauthorized")]
     Unauthorized,
@@ -74,7 +76,9 @@ impl actix_web::ResponseError for AppError {
                 DatabaseError(UniqueViolation | ForeignKeyViolation, _) => StatusCode::BAD_REQUEST,
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             },
-            ActixBlocking(_) | Bb8 | Reqwest(_) | Unexpected => StatusCode::INTERNAL_SERVER_ERROR,
+            ActixBlocking(_) | Bb8 | Reqwest(_) | Unexpected | SerdeJson(_) => {
+                StatusCode::INTERNAL_SERVER_ERROR
+            }
             JwtParse(_) | Jwt(_) | OpenId | Unauthorized => StatusCode::UNAUTHORIZED,
             AlreadyFriends
             | FriendRequestDoesntExist

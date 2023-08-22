@@ -23,7 +23,7 @@ diesel::table! {
     google_users (id) {
         id -> Varchar,
         user_id -> Uuid,
-        created_at -> Timestamp,
+        created_at -> Timestamptz,
     }
 }
 
@@ -32,7 +32,8 @@ diesel::table! {
         id -> Varchar,
         username -> Varchar,
         user_id -> Uuid,
-        created_at -> Timestamp,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
     }
 }
 

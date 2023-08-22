@@ -32,11 +32,13 @@ pub enum OauthData {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SigninPayload {
     pub oauth_data: OauthData,
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SignupPayload {
     pub username: String,
     pub oauth_data: OauthData,

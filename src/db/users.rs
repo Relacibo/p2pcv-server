@@ -25,6 +25,17 @@ pub struct User {
     pub updated_at: DateTime<Utc>,
 }
 
+#[derive(Serialize, Queryable, Clone, Debug, Selectable)]
+#[serde(rename_all = "camelCase")]
+#[diesel(table_name = db_lichess_users)]
+pub struct LichessUser {
+    pub id: String,
+    pub username: String,
+    pub user_id: Uuid,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
 #[derive(Insertable, Clone, Debug)]
 #[diesel(table_name = db_users)]
 pub struct NewUser {
@@ -47,23 +58,17 @@ pub struct NewUserWithId {
 }
 
 #[derive(AsChangeset, Clone, Debug)]
-#[diesel(table_name = db_users)]
-pub struct UpdateUserGoogle {
-    pub email: Option<String>,
-    pub locale: Option<String>,
-    pub verified_email: Option<bool>,
-}
-
-#[derive(AsChangeset, Clone, Debug)]
 #[diesel(table_name = db_lichess_users)]
-pub struct UpdateLichessUserLichess {
+pub struct UpdateLichessUser {
     pub username: Option<String>,
 }
 
-#[derive(AsChangeset, Clone, Debug)]
-#[diesel(table_name = db_users)]
-pub struct UpdateUserLichess {
-    pub email: Option<String>,
+#[derive(Insertable, Clone, Debug)]
+#[diesel(table_name = db_lichess_users)]
+pub struct NewLichessUser {
+    pub id: String,
+    pub username: String,
+    pub user_id: Uuid,
 }
 
 #[derive(Serialize, Queryable, QueryableByName, PartialEq, Debug, Clone, Selectable)]
@@ -140,6 +145,33 @@ impl User {
         Ok(user)
     }
 
+    pub async fn insert_lichess_user(
+        conn: &mut AsyncPgConnection,
+        user: NewUserWithId,
+        lichess_user: NewLichessUser,
+    ) -> AppResult<(LichessUser, User)> {
+        use db_lichess_users::dsl::lichess_users;
+        use db_users::dsl::users;
+        let user = conn
+            .transaction::<_, AppError, _>(|conn| {
+                Box::pin(async move {
+                    let user: User = diesel::insert_into(users)
+                        .values(user)
+                        .returning(User::as_returning())
+                        .get_result(conn)
+                        .await?;
+                    let lichess_user: LichessUser = diesel::insert_into(lichess_users)
+                        .values(lichess_user)
+                        .returning(LichessUser::as_returning())
+                        .get_result(conn)
+                        .await?;
+                    Ok((lichess_user, user))
+                })
+            })
+            .await?;
+        Ok(user)
+    }
+
     pub async fn get_with_google_id(
         conn: &mut AsyncPgConnection,
         google_id: &str,
@@ -170,15 +202,16 @@ impl User {
         Ok(uid)
     }
 
-    pub async fn update_google_user(
+    pub async fn get_with_lichess_id(
         conn: &mut AsyncPgConnection,
-        user_id: Uuid,
-        user: UpdateUserGoogle,
+        lichess_id: &str,
     ) -> AppResult<Option<User>> {
-        use db_users::dsl::id;
-        let user = diesel::update(db_users::table)
-            .filter(id.eq(user_id))
-            .set(&user)
+        use db_lichess_users::dsl::lichess_users;
+        use db_users::dsl::users;
+        let user = lichess_users
+            .find(lichess_id)
+            .inner_join(users)
+            .select(users::all_columns())
             .get_result(conn)
             .await
             .optional()?;
@@ -187,29 +220,15 @@ impl User {
 
     pub async fn update_lichess_user(
         conn: &mut AsyncPgConnection,
-        user_id: Uuid,
-        lichess_id: Uuid,
-        lichess_user: UpdateLichessUserLichess,
-        user: UpdateUserLichess,
-    ) -> AppResult<Option<User>> {
-        use db_users::dsl::id;
-
-        let user = conn
-            .transaction::<_, AppError, _>(|conn| {
-                let user = diesel::update(db_lichess_users::table)
-                    .filter(id.eq(user_id))
-                    .set(&user)
-                    .get_result(conn)
-                    .await
-                    .optional()?;
-
-                let user = diesel::update(db_users::table)
-                    .filter(id.eq(user_id))
-                    .set(&user)
-                    .get_result(conn)
-                    .await
-                    .optional()?;
-            })
+        lichess_uid: &str,
+        lichess_user: UpdateLichessUser,
+    ) -> AppResult<LichessUser> {
+        use db_lichess_users::dsl::id;
+        let user: LichessUser = diesel::update(db_lichess_users::table)
+            .filter(id.eq(lichess_uid))
+            .set(&lichess_user)
+            .returning(LichessUser::as_returning())
+            .get_result(conn)
             .await?;
         Ok(user)
     }
