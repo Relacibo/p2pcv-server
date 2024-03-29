@@ -20,10 +20,3 @@ CREATE TABLE friends (
   UNIQUE (user1_id, user2_id),
   CHECK (user2_id > user1_id)
 );
-
-CREATE TABLE peers (
-  peer_id UUID PRIMARY KEY,
-  user_id UUID NOT NULL REFERENCES users(id),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-

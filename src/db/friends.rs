@@ -13,7 +13,7 @@ use uuid::Uuid;
 
 use crate::db::users::{PublicUser, User};
 
-use super::schema::generated::{friends as db_friends, users as db_users};
+use super::model::{friends as db_friends, users as db_users};
 
 #[derive(Serialize, Queryable, Clone, Debug, Selectable)]
 #[diesel(table_name = db_friends)]

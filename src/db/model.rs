@@ -47,9 +47,10 @@ diesel::table! {
 }
 
 diesel::table! {
-    peers (peer_id) {
-        peer_id -> Uuid,
+    peer_connections (id) {
+        id -> Uuid,
         user_id -> Uuid,
+        last_ping_at -> Timestamptz,
         created_at -> Timestamptz,
     }
 }
@@ -69,7 +70,7 @@ diesel::table! {
 
 diesel::joinable!(google_users -> users (user_id));
 diesel::joinable!(lichess_users -> users (user_id));
-diesel::joinable!(peers -> users (user_id));
+diesel::joinable!(peer_connections -> users (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     friend_requests,
@@ -77,6 +78,6 @@ diesel::allow_tables_to_appear_in_same_query!(
     google_users,
     lichess_access_tokens,
     lichess_users,
-    peers,
+    peer_connections,
     users,
 );

@@ -11,10 +11,7 @@ use crate::{
     },
     app_error::AppError,
     app_result::AppResult,
-    db::{
-        schema::generated::google_users::user_id,
-        users::{NewUser, User},
-    },
+    db::users::{NewUser, User},
 };
 
 use super::{

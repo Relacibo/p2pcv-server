@@ -1,7 +1,7 @@
 use crate::api::users::friend_requests;
 use crate::db::users::User;
 
-use super::schema::generated::{friend_requests as db_friend_requests, users as db_users};
+use super::model::{friend_requests as db_friend_requests, users as db_users};
 use super::users::PublicUser;
 use chrono::{DateTime, Utc};
 use diesel::{delete, QueryDsl};
