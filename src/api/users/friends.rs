@@ -5,11 +5,13 @@ use actix_web::{
 use uuid::Uuid;
 
 use crate::{
+    api::auth::session::auth::Auth,
     app_result::{EndpointResult, EndpointResultHttpResponse},
     db::{
         db_conn::DbPool,
-        friends::{Friends, FriendEntry},
-    }, api::auth::session::auth::Auth,
+        friends::{FriendEntry, Friends},
+        users::User,
+    },
 };
 
 pub fn config(cfg: &mut ServiceConfig) {
@@ -40,7 +42,7 @@ async fn list(
     let user_id = path.into_inner();
     auth.should_be_user(user_id)?;
     let mut db = pool.get().await?;
-    let friends = Friends::list_by_user(&mut db, user_id).await?;
+    let friends = User::list_friends_by_user_id(&mut db, user_id).await?;
     let res = ListResponseBody { friends };
     Ok(Json(res))
 }

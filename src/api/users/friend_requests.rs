@@ -7,14 +7,12 @@ use diesel_async::AsyncConnection;
 use uuid::Uuid;
 
 use crate::{
-    app_error::AppError,
-    app_result::{EndpointResult, EndpointResultHttpResponse},
-    db::{
+    api::auth::session::auth::Auth, app_error::AppError, app_result::{EndpointResult, EndpointResultHttpResponse}, db::{
         db_conn::DbPool,
         friend_requests::{FriendRequest, NewFriendRequest},
         friends::Friends,
-        users::PublicUser,
-    }, api::auth::session::auth::Auth,
+        users::{PublicUser, User},
+    }
 };
 
 pub fn config(cfg: &mut ServiceConfig) {
@@ -73,7 +71,7 @@ async fn send(
     auth.should_be_user(user_id)?;
     let mut db = pool.get().await?;
 
-    if Friends::exists(&mut db, user_id, receiver_id).await? {
+    if User::is_friends_with(&mut db, user_id, receiver_id).await? {
         return Err(AppError::AlreadyFriends);
     }
 

@@ -27,6 +27,7 @@ mod api;
 mod app_error;
 mod app_result;
 mod db;
+mod app_json;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {

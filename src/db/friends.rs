@@ -41,14 +41,14 @@ pub struct NewFriends {
 impl Friends {
     pub async fn insert(
         conn: &mut AsyncPgConnection,
-        user1_u_id: Uuid,
-        user2_u_id: Uuid,
+        query_user_id: Uuid,
+        query_other_user_id: Uuid,
     ) -> QueryResult<()> {
         use db_friends::dsl::*;
-        let (user1_u_id, user2_u_id) = normalize_tuple((user1_u_id, user2_u_id));
+        let (query_user1_id, query_user2_id) = sort_tuple((query_user_id, query_other_user_id));
         let new_friends = NewFriends {
-            user1_id: user1_u_id,
-            user2_id: user2_u_id,
+            user1_id: query_user1_id,
+            user2_id: query_user2_id,
         };
         insert_into(friends)
             .values(&new_friends)
@@ -57,40 +57,49 @@ impl Friends {
         Ok(())
     }
 
-    pub async fn exists(
+    pub async fn delete(
         conn: &mut AsyncPgConnection,
-        user1_u_id: Uuid,
-        user2_u_id: Uuid,
+        query_user_id: Uuid,
+        query_other_user_id: Uuid,
+    ) -> QueryResult<()> {
+        use db_friends::dsl::*;
+        let (query_user1_id, query_user2_id) = sort_tuple((query_user_id, query_other_user_id));
+        delete(friends)
+            .filter(user1_id.eq(query_user1_id))
+            .filter(user2_id.eq(query_user2_id))
+            .execute(conn)
+            .await?;
+        Ok(())
+    }
+}
+
+impl User {
+    pub async fn list_friends(
+        &self,
+        conn: &mut AsyncPgConnection,
+    ) -> QueryResult<Vec<FriendEntry>> {
+        User::list_friends_by_user_id(conn, self.id).await
+    }
+
+    pub async fn is_friends_with(
+        conn: &mut AsyncPgConnection,
+        query_user_id: Uuid,
+        query_other_user_id: Uuid,
     ) -> QueryResult<bool> {
         use db_friends::dsl::*;
-        let (user1_u_id, user2_u_id) = normalize_tuple((user1_u_id, user2_u_id));
+        let (query_user1_id, query_user2_id) = sort_tuple((query_user_id, query_other_user_id));
         let count: i64 = friends
-            .filter(user1_id.eq(user1_u_id))
-            .filter(user2_id.eq(user2_u_id))
+            .filter(user1_id.eq(query_user1_id))
+            .filter(user2_id.eq(query_user2_id))
             .count()
             .get_result(conn)
             .await?;
         Ok(count > 0)
     }
 
-    pub async fn delete(
+    pub async fn list_friends_by_user_id(
         conn: &mut AsyncPgConnection,
-        user1_u_id: Uuid,
-        user2_u_id: Uuid,
-    ) -> QueryResult<()> {
-        use db_friends::dsl::*;
-        let (user1_u_id, user2_u_id) = normalize_tuple((user1_u_id, user2_u_id));
-        delete(friends)
-            .filter(user1_id.eq(user1_u_id))
-            .filter(user2_id.eq(user2_u_id))
-            .execute(conn)
-            .await?;
-        Ok(())
-    }
-
-    pub async fn list_by_user(
-        conn: &mut AsyncPgConnection,
-        user_u_id: Uuid,
+        query_user_id: Uuid,
     ) -> QueryResult<Vec<FriendEntry>> {
         #[derive(Debug, QueryableByName)]
         struct Resp {
@@ -117,7 +126,7 @@ impl Friends {
             ORDER BY user_name;\
         ",
         )
-        .bind::<diesel::sql_types::Uuid, _>(user_u_id)
+        .bind::<diesel::sql_types::Uuid, _>(query_user_id)
         .load(conn)
         .await?;
         let res = qr
@@ -142,7 +151,7 @@ impl Friends {
     }
 }
 
-fn normalize_tuple<T>(t: (T, T)) -> (T, T)
+fn sort_tuple<T>(t: (T, T)) -> (T, T)
 where
     T: Ord,
 {
