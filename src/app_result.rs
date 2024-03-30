@@ -1,6 +1,6 @@
 use actix_web::{web::Json, HttpResponse, Responder};
 
-use crate::app_error::AppError;
+use crate::error::AppError;
 
 pub type EndpointResult<T> = Result<Json<T>, AppError>;
 

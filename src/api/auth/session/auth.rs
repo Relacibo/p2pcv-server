@@ -4,7 +4,7 @@ use diesel_async::AsyncPgConnection;
 use futures::future::LocalBoxFuture;
 use uuid::Uuid;
 
-use crate::{api::auth, app_error::AppError, db::users::User};
+use crate::{api::auth, error::AppError, db::users::User};
 
 use super::{claims::Claims, config::Config};
 

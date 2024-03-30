@@ -6,7 +6,7 @@ use diesel_async::AsyncPgConnection;
 
 use crate::{
     api::auth::providers::provider::{Provider, ProviderError},
-    app_error::AppError,
+    error::AppError,
     app_result::AppResult,
     db::{
         db_conn::DbPool,

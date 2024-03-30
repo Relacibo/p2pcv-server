@@ -4,7 +4,7 @@ use diesel_async::AsyncPgConnection;
 use thiserror::Error;
 
 use crate::{
-    api::auth::payloads::OauthData, app_error::AppError, app_result::AppResult, db::users::User,
+    api::auth::payloads::OauthData, error::AppError, app_result::AppResult, db::users::User,
 };
 
 use super::{

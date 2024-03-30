@@ -23,11 +23,13 @@ extern crate serde_json;
 
 use std::env;
 
+use crate::app_json::JsonConfig;
+
 mod api;
-mod app_error;
+mod app_json;
 mod app_result;
 mod db;
-mod app_json;
+mod error;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -43,6 +45,10 @@ async fn main() -> std::io::Result<()> {
         .build(manager)
         .await
         .expect("Failed to create pool.");
+    let pool_data = Data::new(pool);
+
+    let json_config = JsonConfig::default();
+    let json_config_data = Data::new(json_config);
 
     HttpServer::new(move || {
         let app = App::new()
@@ -53,8 +59,9 @@ async fn main() -> std::io::Result<()> {
             .configure(api::auth::config)
             .configure(api::auth::session::config)
             .configure(api::users::config)
-            .app_data(Data::new(pool.clone()))
+            .app_data(pool_data)
             .app_data(Data::new(reqwest::Client::new()))
+            .app_data(json_config_data)
             .wrap(Logger::default());
 
         #[cfg(debug_assertions)]

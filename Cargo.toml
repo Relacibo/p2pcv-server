@@ -38,3 +38,5 @@ async-trait = "0.1.73"
 actix-cors = "0.7.0"
 validator = { version = "0.17.0", features = ["derive"] }
 actix-web-validator = "5.0.1"
+sanitizer = "0.1.6"
+mime = "0.3.17"

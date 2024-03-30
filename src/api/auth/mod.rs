@@ -9,7 +9,7 @@ use crate::{
         providers::{provider::ProviderError, ProviderFactory},
         util::{generate_login_token, suggest_username},
     },
-    app_error::AppError,
+    error::AppError,
     app_result::EndpointResult,
     db::db_conn::DbPool,
 };

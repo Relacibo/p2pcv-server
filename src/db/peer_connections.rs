@@ -1,4 +1,6 @@
-use diesel::{QueryDsl, QueryResult, Queryable, QueryableByName, Selectable, SelectableHelper};
+use std::ops::Sub;
+
+use diesel::{dsl::now, QueryDsl, QueryResult, Queryable, QueryableByName, Selectable, SelectableHelper};
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use uuid::Uuid;
 
@@ -23,6 +25,15 @@ impl User {
         query_user_id: Uuid,
     ) -> QueryResult<Vec<Uuid>> {
         use db_peer_connections::dsl::*;
-        peer_connections.find(query_user_id).select(id).get_results(conn).await
+        peer_connections.find(query_user_id).filter(now.sub(db_peer_connections::last_ping_at)).select(id).get_results(conn).await
+    }
+
+    pub async fn update_peer_connections_by_user_id(
+        conn: &mut AsyncPgConnection,
+        query_user_id: Uuid,
+        query_peer_connection_ids: Vec<Uuid>
+    ) {
+        use db_peer_connections::dsl::*;
+        
     }
 }

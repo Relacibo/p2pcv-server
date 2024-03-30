@@ -1,7 +1,7 @@
 use chrono::{DateTime, Duration, Utc};
 use uuid::Uuid;
 
-use crate::app_error::AppError;
+use crate::error::AppError;
 
 use super::{auth::Auth, config::Config};
 use serde_with::{formats::Flexible, TimestampMilliSeconds};

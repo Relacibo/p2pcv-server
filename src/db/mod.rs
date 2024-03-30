@@ -5,3 +5,4 @@ pub mod friends;
 pub mod lichess;
 mod model;
 pub mod peer_connections;
+mod extensions;

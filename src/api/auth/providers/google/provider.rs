@@ -9,7 +9,7 @@ use crate::{
         providers::provider::{Provider, ProviderError},
         public_key_storage::KeyStore,
     },
-    app_error::AppError,
+    error::AppError,
     app_result::AppResult,
     db::users::{NewUser, User},
 };

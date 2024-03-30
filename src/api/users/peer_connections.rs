@@ -1,4 +1,6 @@
 use actix_web::{web::{Data, Json, Path, ServiceConfig}, HttpResponse};
+use sanitizer::prelude::Sanitize;
+use serde::Deserializer;
 use uuid::Uuid;
 use validator::Validate;
 
@@ -34,14 +36,13 @@ async fn update(
     pool: Data<DbPool>,
     auth: Auth,
     path: Path<Uuid>,
-    res: actix_web_validator::Json<UpdateRequestBody>
+    AppJson(body): AppJson<UpdateRequestBody>
 ) -> EndpointResultHttpResponse {
     let user_id = path.into_inner();
     let mut conn = pool.get().await?;
 
     auth.should_be_user(user_id)?;
 
-    todo!("update peer_connections of user");
     Ok(HttpResponse::Ok().finish())
 }
 
@@ -51,9 +52,9 @@ pub struct ListResponseBody {
     peer_connections: Vec<Uuid>,
 }
 
-#[derive(Clone, Debug, Deserialize, Validate)]
+#[derive(Clone, Debug, Deserialize, Validate, Sanitize)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateRequestBody {
     #[validate(length(max = 50))]
-    peer_connections: Vec<Uuid>,
+    pub peer_connections: Vec<Uuid>,
 }

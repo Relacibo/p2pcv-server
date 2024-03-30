@@ -7,7 +7,7 @@ use serde_with::base64::UrlSafe;
 use tokio::sync::RwLock;
 use tokio::time::Instant;
 
-use crate::app_error::AppError;
+use crate::error::AppError;
 
 pub struct CachedKeys {
     pub stale_time: Option<Instant>,

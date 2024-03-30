@@ -1,6 +1,6 @@
 use crate::{
     api::auth::session::auth::Auth,
-    app_error::AppError,
+    error::AppError,
     app_result::{EndpointResult, EndpointResultHttpResponse},
     db::{
         db_conn::DbPool,

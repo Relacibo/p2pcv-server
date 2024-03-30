@@ -1,6 +1,6 @@
 use uuid::Uuid;
 
-use crate::{app_error::AppError, db::db_conn::DbConnection};
+use crate::{error::AppError, db::db_conn::DbConnection};
 
 use super::session::{self, claims::Claims};
 

@@ -1,4 +1,4 @@
-use crate::app_error::AppError;
+use crate::error::AppError;
 use crate::app_result::AppResult;
 
 use super::model::google_users as db_google_users;
