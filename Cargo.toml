@@ -38,3 +38,4 @@ async-trait = "0.1.73"
 actix-cors = "0.7.0"
 validator = { version = "0.17.0", features = ["derive"] }
 actix-web-validator = "5.0.1"
+redis = { version = "0.25.2", features = ["tokio-comp", "uuid"] }

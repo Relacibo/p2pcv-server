@@ -31,6 +31,8 @@ pub enum AppError {
     FriendRequestExistsInOtherDirection,
     #[error("username-already-exists")]
     UsernameAlreadyExists,
+    #[error("redis")]
+    Redis(#[from] redis::RedisError),
 }
 
 impl<E> From<bb8::RunError<E>> for AppError {
@@ -76,7 +78,7 @@ impl actix_web::ResponseError for AppError {
                 DatabaseError(UniqueViolation | ForeignKeyViolation, _) => StatusCode::BAD_REQUEST,
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             },
-            ActixBlocking(_) | Bb8 | Reqwest(_) | Unexpected | SerdeJson(_) => {
+            ActixBlocking(_) | Bb8 | Reqwest(_) | Unexpected | SerdeJson(_) | Redis(_) => {
                 StatusCode::INTERNAL_SERVER_ERROR
             }
             JwtParse(_) | Jwt(_) | OpenId | Unauthorized => StatusCode::UNAUTHORIZED,
