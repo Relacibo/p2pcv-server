@@ -1,7 +1,7 @@
 pub mod users;
-pub mod schema;
 pub mod db_conn;
-pub mod util;
 pub mod friend_requests;
 pub mod friends;
 pub mod lichess;
+mod model;
+pub mod peer_connections;

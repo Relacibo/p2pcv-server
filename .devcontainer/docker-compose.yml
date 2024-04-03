@@ -1,7 +1,7 @@
 version: '3.8'
 
 volumes:
-  postgres-data:
+  postgres16-data:
 
 services:
   app:
@@ -38,13 +38,12 @@ services:
     # (Adding the "ports" property to this file will not forward from a Codespace.)
 
   db:
-    image: postgres:15
+    image: postgres:16
     restart: unless-stopped
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - postgres16-data:/var/lib/postgresql/data
     env_file:
-        # Ensure that the variables in .env match the same variables in devcontainer.json
-        - .env
+      .env
 
     # Add "forwardPorts": ["5432"] to **devcontainer.json** to forward PostgreSQL locally.
     # (Adding the "ports" property to this file will not forward from a Codespace.)

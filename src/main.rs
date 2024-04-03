@@ -8,6 +8,8 @@ extern crate actix_web;
 #[macro_use]
 extern crate serde_with;
 extern crate env_logger;
+#[cfg(debug_assertions)]
+use actix_cors::Cors;
 use actix_web::{
     middleware::Logger,
     web::{self, Data},
@@ -25,6 +27,7 @@ mod api;
 mod app_error;
 mod app_result;
 mod db;
+mod app_json;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -42,7 +45,7 @@ async fn main() -> std::io::Result<()> {
         .expect("Failed to create pool.");
 
     HttpServer::new(move || {
-        App::new()
+        let app = App::new()
             .service(
                 // Health check
                 web::resource("/").route(web::get().to(HttpResponse::Ok)),
@@ -52,7 +55,10 @@ async fn main() -> std::io::Result<()> {
             .configure(api::users::config)
             .app_data(Data::new(pool.clone()))
             .app_data(Data::new(reqwest::Client::new()))
-            .wrap(Logger::default())
+            .wrap(Logger::default());
+
+        #[cfg(debug_assertions)]
+        app.wrap(Cors::permissive())
     })
     .bind(format!("{actix_host}:{actix_port}"))?
     .run()

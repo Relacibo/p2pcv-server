@@ -14,6 +14,7 @@ use actix_web::{
 use uuid::Uuid;
 pub mod friend_requests;
 pub mod friends;
+pub mod peer_connections;
 
 pub fn config(cfg: &mut ServiceConfig) {
     cfg.service(
@@ -22,7 +23,8 @@ pub fn config(cfg: &mut ServiceConfig) {
             .service(delete)
             .service(get)
             .configure(friend_requests::config)
-            .configure(friends::config),
+            .configure(friends::config)
+            .configure(peer_connections::config),
     );
 }
 
