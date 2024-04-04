@@ -36,6 +36,7 @@ impl PeerConnection {
             .arg(user_id)
             .query_async(conn)
             .await?;
+        // https://github.com/redis-rs/redis-rs/issues/760
         let uuids = result
             .as_sequence()
             .ok_or(AppError::Unexpected)?
