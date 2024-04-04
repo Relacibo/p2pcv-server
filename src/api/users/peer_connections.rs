@@ -5,7 +5,7 @@ use uuid::Uuid;
 use validator::Validate;
 
 use crate::{
-    api::auth::session::auth::Auth, app_json::AppJson, app_result::{EndpointResult, EndpointResultHttpResponse}, db::{db_conn::DbPool, users::User}
+    api::auth::session::auth::Auth, app_json::AppJson, app_result::{EndpointResult, EndpointResultHttpResponse}, db::{db_conn::DbPool, users::User}, redis::extractor::RedisClient, redis_db::extractor::RedisClient
 };
 
 pub fn config(cfg: &mut ServiceConfig) {
@@ -14,6 +14,7 @@ pub fn config(cfg: &mut ServiceConfig) {
 
 #[get("/{user_id}/peer-connections")]
 async fn list(
+    RedisClient(redis): RedisClient,
     pool: Data<DbPool>,
     auth: Auth,
     path: Path<Uuid>,
@@ -31,20 +32,18 @@ async fn list(
     Ok(Json(res))
 }
 
-#[post("/{user_id}/peer-connections/update")]
-async fn update(
-    pool: Data<DbPool>,
-    auth: Auth,
-    path: Path<Uuid>,
-    AppJson(body): AppJson<UpdateRequestBody>
-) -> EndpointResultHttpResponse {
-    let user_id = path.into_inner();
-    let mut conn = pool.get().await?;
+// #[post("/{user_id}/peer-connections/update")]
+// async fn update(
+//     RedisClient(redis): RedisClient,
+//     auth: Auth,
+//     path: Path<Uuid>,
+//     AppJson(body): AppJson<UpdateRequestBody>
+// ) -> EndpointResultHttpResponse {
+//     let user_id = path.into_inner();
+//     let mut conn = pool.get().await?;
 
-    auth.should_be_user(user_id)?;
-
-    Ok(HttpResponse::Ok().finish())
-}
+    // Ok(HttpResponse::Ok().finish())
+// }
 
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]

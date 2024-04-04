@@ -35,6 +35,8 @@ pub enum AppError {
     Validate(#[from] validator::ValidationErrors),
     #[error("actix-json-payload")]
     ActixJsonPayload(#[from] actix_web::error::JsonPayloadError),
+    #[error("redis")]
+    Redis(#[from] redis::RedisError),
 }
 
 impl<E> From<bb8::RunError<E>> for AppError {
@@ -81,7 +83,7 @@ impl actix_web::ResponseError for AppError {
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             },
             ActixBlocking(_) | Bb8 | Reqwest(_) | Unexpected | SerdeJson(_)
-            | ActixJsonPayload(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            | ActixJsonPayload(_) | Redis(_) => StatusCode::INTERNAL_SERVER_ERROR,
             JwtParse(_) | Jwt(_) | OpenId | Unauthorized => StatusCode::UNAUTHORIZED,
             AlreadyFriends
             | FriendRequestDoesntExist
