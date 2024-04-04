@@ -30,7 +30,6 @@ mod app_json;
 mod app_result;
 mod db;
 mod error;
-mod app_json;
 mod redis_db;
 
 #[actix_web::main]

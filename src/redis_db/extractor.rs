@@ -4,7 +4,7 @@ use actix_web::{web::Data, FromRequest};
 use futures::future::LocalBoxFuture;
 use redis::aio::MultiplexedConnection;
 
-use crate::app_error::AppError;
+use crate::error::AppError;
 
 #[derive(Debug, Clone)]
 pub struct RedisClient(pub MultiplexedConnection);
