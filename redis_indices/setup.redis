@@ -1,3 +1,0 @@
-FT.CREATE peer_connection:idx 
-  ON HASH PREFIX 1 "peer_connection:"
-  SCHEMA user_id NUMERIC;

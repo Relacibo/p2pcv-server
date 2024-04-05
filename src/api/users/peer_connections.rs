@@ -5,7 +5,7 @@ use uuid::Uuid;
 use validator::Validate;
 
 use crate::{
-    api::auth::session::auth::Auth, app_json::AppJson, app_result::{EndpointResult, EndpointResultHttpResponse}, db::{db_conn::DbPool, users::User}, redis::extractor::RedisClient, redis_db::extractor::RedisClient
+    api::auth::session::auth::Auth, app_json::AppJson, app_result::{EndpointResult, EndpointResultHttpResponse}, db::{db_conn::DbPool, extractor::DbConn, users::User}, redis::extractor::RedisClient, redis_db::extractor::RedisClient
 };
 
 pub fn config(cfg: &mut ServiceConfig) {
@@ -15,19 +15,18 @@ pub fn config(cfg: &mut ServiceConfig) {
 #[get("/{user_id}/peer-connections")]
 async fn list(
     RedisClient(redis): RedisClient,
-    pool: Data<DbPool>,
+    DbConn(mut db): DbConn,
     auth: Auth,
     path: Path<Uuid>,
 ) -> EndpointResult<ListResponseBody> {
     let user_id = path.into_inner();
-    let mut conn = pool.get().await?;
 
     // Should either be user or friend of user
     if auth.should_be_user(user_id).is_err() {
-        auth.should_be_friends_with(&mut conn, user_id).await?;
+        auth.should_be_friends_with(&mut db, user_id).await?;
     }
 
-    let peer_connections = User::list_peer_ids_by_user_id(&mut conn, user_id).await?;
+    let peer_connections = User::list_peer_ids_by_user_id(&mut db, user_id).await?;
     let res = ListResponseBody { peer_connections };
     Ok(Json(res))
 }

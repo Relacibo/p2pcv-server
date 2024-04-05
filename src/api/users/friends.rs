@@ -9,6 +9,7 @@ use crate::{
     app_result::{EndpointResult, EndpointResultHttpResponse},
     db::{
         db_conn::DbPool,
+        extractor::DbConn,
         friends::{FriendEntry, Friends},
         users::User,
     },
@@ -20,13 +21,12 @@ pub fn config(cfg: &mut ServiceConfig) {
 
 #[delete("/{user_id}/friends/{friend_user_id}")]
 pub async fn delete(
-    pool: Data<DbPool>,
+    DbConn(mut db): DbConn,
     auth: Auth,
     path: Path<(Uuid, Uuid)>,
 ) -> EndpointResultHttpResponse {
     let (user_id, friend_user_id) = path.into_inner();
     auth.should_be_user(user_id)?;
-    let mut db = pool.get().await?;
 
     Friends::delete(&mut db, user_id, friend_user_id).await?;
 
@@ -35,13 +35,12 @@ pub async fn delete(
 
 #[get("/{user_id}/friends")]
 async fn list(
-    pool: Data<DbPool>,
+    DbConn(mut db): DbConn,
     auth: Auth,
     path: Path<Uuid>,
 ) -> EndpointResult<ListResponseBody> {
     let user_id = path.into_inner();
     auth.should_be_user(user_id)?;
-    let mut db = pool.get().await?;
     let friends = User::list_friends_by_user_id(&mut db, user_id).await?;
     let res = ListResponseBody { friends };
     Ok(Json(res))
