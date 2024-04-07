@@ -1,6 +1,7 @@
 use actix::{Actor, StreamHandler};
 use actix_web::{web, App, Error, HttpRequest, HttpResponse, HttpServer};
 use actix_web_actors::ws;
+pub mod websocket_server;
 
 use crate::error::AppError;
 
