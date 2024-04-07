@@ -8,7 +8,7 @@ use uuid::Uuid;
 
 use crate::{
     api::auth::session::auth::Auth, app_result::{EndpointResult, EndpointResultHttpResponse}, db::{
-        db_conn::DbPool, extractor::DbConn, friend_requests::{FriendRequest, NewFriendRequest}, friends::Friends, users::{PublicUser, User}
+        db_conn::DbPool, friend_requests::{FriendRequest, NewFriendRequest}, friends::Friends, users::{PublicUser, User}
     }, error::AppError
 };
 
@@ -23,12 +23,13 @@ pub fn config(cfg: &mut ServiceConfig) {
 
 #[get("/{user_id}/friend-requests/incoming")]
 async fn list_to(
-    DbConn(mut db): DbConn,
+    pool: Data<DbPool>,
     auth: Auth,
     path: Path<Uuid>,
 ) -> EndpointResult<ListToResponseBody> {
     let user_id = path.into_inner();
     auth.should_be_user(user_id)?;
+    let mut db = pool.get().await?;
     let query_result = FriendRequest::list_by_receiver(&mut db, user_id).await?;
     let friend_requests = query_result.into_iter().map(|t| t.into()).collect();
     let res = ListToResponseBody {
@@ -40,12 +41,13 @@ async fn list_to(
 
 #[get("/{user_id}/friend-requests/outgoing")]
 async fn list_from(
-    DbConn(mut db): DbConn,
+    pool: Data<DbPool>,
     auth: Auth,
     path: Path<Uuid>,
 ) -> EndpointResult<ListFromResponseBody> {
     let user_id = path.into_inner();
     auth.should_be_user(user_id)?;
+    let mut db = pool.get().await?;
     let query_result = FriendRequest::list_by_sender(&mut db, user_id).await?;
     let friend_requests = query_result.into_iter().map(|t| t.into()).collect();
     let res = ListFromResponseBody {
@@ -57,13 +59,14 @@ async fn list_from(
 
 #[post("/{user_id}/friend-requests/send-to/{receiver_id}")]
 async fn send(
-    DbConn(mut db): DbConn,
+    pool: Data<DbPool>,
     auth: Auth,
     path: Path<(Uuid, Uuid)>,
     Json(json): Json<SendRequestBody>,
 ) -> EndpointResultHttpResponse {
     let (user_id, receiver_id) = path.into_inner();
     auth.should_be_user(user_id)?;
+    let mut db = pool.get().await?;
 
     if User::is_friends_with(&mut db, user_id, receiver_id).await? {
         return Err(AppError::AlreadyFriends);
@@ -87,12 +90,13 @@ async fn send(
 
 #[delete("/{user_id}/friend-requests/by-sender/{sender_id}")]
 async fn delete_by_sender(
-    DbConn(mut db): DbConn,
+    pool: Data<DbPool>,
     auth: Auth,
     path: Path<(Uuid, Uuid)>,
 ) -> EndpointResultHttpResponse {
     let (user_id, sender_id) = path.into_inner();
     auth.should_be_user(user_id)?;
+    let mut db = pool.get().await?;
 
     FriendRequest::delete_by_user_ids(&mut db, sender_id, user_id).await?;
 
@@ -101,12 +105,13 @@ async fn delete_by_sender(
 
 #[delete("/{user_id}/friend-requests/by-receiver/{receiver_id}")]
 async fn delete_by_receiver(
-    DbConn(mut db): DbConn,
+    pool: Data<DbPool>,
     auth: Auth,
     path: Path<(Uuid, Uuid)>,
 ) -> EndpointResultHttpResponse {
     let (user_id, receiver_id) = path.into_inner();
     auth.should_be_user(user_id)?;
+    let mut db = pool.get().await?;
 
     FriendRequest::delete_by_user_ids(&mut db, user_id, receiver_id).await?;
 
@@ -115,12 +120,13 @@ async fn delete_by_receiver(
 
 #[post("{user_id}/friend-requests/by-sender/{sender_id}/accept")]
 async fn accept(
-    DbConn(mut db): DbConn,
+    pool: Data<DbPool>,
     auth: Auth,
     path: Path<(Uuid, Uuid)>,
 ) -> EndpointResultHttpResponse {
     let (user_id, sender_id) = path.into_inner();
     auth.should_be_user(user_id)?;
+    let mut db = pool.get().await?;
     db.transaction::<_, AppError, _>(move |txn| {
         Box::pin(async move {
             let deleted = FriendRequest::delete_by_user_ids(txn, sender_id, user_id).await?;

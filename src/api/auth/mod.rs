@@ -9,9 +9,9 @@ use crate::{
         providers::{provider::ProviderError, ProviderFactory},
         util::{generate_login_token, suggest_username},
     },
-    error::AppError,
     app_result::EndpointResult,
     db::db_conn::DbPool,
+    error::AppError,
 };
 use diesel::result::DatabaseErrorKind;
 use diesel::result::Error::DatabaseError;
@@ -24,7 +24,7 @@ pub mod session;
 pub mod util;
 
 pub fn config(cfg: &mut ServiceConfig) {
-    cfg.service(
+    cfg.configure(session::config).service(
         scope("/auth")
             .service(signin)
             .service(signup)

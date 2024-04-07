@@ -23,8 +23,8 @@ pub fn config(cfg: &mut ServiceConfig) {
             .service(delete)
             .service(get)
             .configure(friend_requests::config)
-            .configure(friends::config)
-            .configure(peer_connections::config),
+            .configure(friends::config),
+            // .configure(peer_connections::config),
     );
 }
 

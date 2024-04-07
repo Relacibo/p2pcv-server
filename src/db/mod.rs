@@ -5,4 +5,3 @@ pub mod friends;
 pub mod lichess;
 mod model;
 mod extensions;
-pub mod extractor;

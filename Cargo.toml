@@ -42,3 +42,6 @@ sanitizer = "0.1.6"
 mime = "0.3.17"
 redis = { version = "0.25.3", features = ["tokio-comp", "uuid"] }
 redis-derive = "0.1.7"
+rand = "0.8.5"
+actix-web-actors = "4.3.0"
+actix = "0.13.3"

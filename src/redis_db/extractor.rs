@@ -14,14 +14,11 @@ impl FromRequest for RedisClient {
 
     type Future = LocalBoxFuture<'static, Result<Self, Self::Error>>;
 
-    fn from_request(
-        req: &actix_web::HttpRequest,
-        payload: &mut actix_web::dev::Payload,
-    ) -> Self::Future {
+    fn from_request(req: &actix_web::HttpRequest, _: &mut actix_web::dev::Payload) -> Self::Future {
         let redis_data = req
             .app_data::<Data<redis::Client>>()
             .expect("Redis-Client not in data!");
-        let redis_arc = redis_data.into_inner().clone();
+        let redis_arc = (redis_data.deref()).clone();
         Box::pin(async move {
             let conn = redis_arc.get_multiplexed_async_connection().await?;
             Ok(RedisClient(conn))

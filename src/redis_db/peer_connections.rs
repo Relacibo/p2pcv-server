@@ -1,9 +1,12 @@
-use chrono::Utc;
-use redis::{AsyncCommands, FromRedisValue, RedisError, RedisWrite, ToRedisArgs, Value};
+use chrono::{Duration, TimeZone, Utc};
+use rand::{thread_rng, Rng};
+use redis::AsyncCommands;
 use redis_derive::{FromRedisValue, ToRedisArgs};
 use uuid::Uuid;
 
 use crate::error::AppError;
+
+static CLEANUP_PROBABILITY: f64 = 0.002;
 
 #[derive(Debug, Clone)]
 pub struct PeerConnection {
@@ -22,29 +25,25 @@ impl PeerConnection {
         conn: &mut redis::aio::MultiplexedConnection,
     ) -> Result<(), AppError> {
         let PeerConnection { id, user_id } = self;
-        let key = format!("peer_connection:{id}");
-        let _: u64 = conn.hset(&key, "user_id", user_id).await?;
-        conn.expire(key, 60).await?;
+        let now = Utc::now();
+        let score = now.timestamp();
+        let key = format!("users:peer_connections:{user_id}");
+        let _: u64 = conn.zadd(&key, id, score).await?;
+        // Only remove stale entries approx. every 500th time
+        if thread_rng().gen_bool(CLEANUP_PROBABILITY) {
+            let dropoff_score = (now - Duration::minutes(1)).timestamp();
+            let _: u64 = conn.zrembyscore(key, -1, dropoff_score - 1).await?;
+        }
         Ok(())
     }
     pub async fn list_for_user(
         conn: &mut redis::aio::MultiplexedConnection,
         user_id: Uuid,
     ) -> Result<Vec<Uuid>, AppError> {
-        let result: Value = redis::cmd("FT.SEARCH")
-            .arg("peer_connection:idx:user_id")
-            .arg(user_id)
-            .query_async(conn)
-            .await?;
+        let key = format!("users:peer_connections:{user_id}");
+        let dropoff_score = (Utc::now() - Duration::minutes(1)).timestamp() as isize;
+        let result: Vec<String> = conn.zrange(key, dropoff_score, -1).await?;
         println!("{result:?}");
-        // https://github.com/redis-rs/redis-rs/issues/760
-        let uuids = result
-            .as_sequence()
-            .ok_or(AppError::Unexpected)?
-            .iter()
-            .skip(1)
-            .map(|v| PeerConnectionHash::from_redis_value(v).map(|v| v.user_id))
-            .collect::<Result<Vec<_>, _>>()?;
-        Ok(uuids)
+        todo!();
     }
 }

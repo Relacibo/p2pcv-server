@@ -62,12 +62,12 @@ async fn main() -> std::io::Result<()> {
                 web::resource("/").route(web::get().to(HttpResponse::Ok)),
             )
             .configure(api::auth::config)
-            .configure(api::auth::session::config)
             .configure(api::users::config)
-            .app_data(pool_data)
-            .app_data(redis_data)
+            .configure(api::games::config)
+            .app_data(pool_data.clone())
+            .app_data(redis_data.clone())
             .app_data(Data::new(reqwest::Client::new()))
-            .app_data(json_config_data)
+            .app_data(json_config_data.clone())
             .wrap(Logger::default());
 
         #[cfg(debug_assertions)]

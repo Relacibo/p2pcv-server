@@ -4,7 +4,9 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum AppError {
     #[error("unknown")]
-    ActixBlocking(#[from] actix_web::error::BlockingError),
+    ActixWeb,
+    #[error("unknown")]
+    ActixWebBlocking(#[from] actix_web::error::BlockingError),
     #[error("database")]
     Diesel(diesel::result::Error),
     #[error("unknown")]
@@ -35,13 +37,19 @@ pub enum AppError {
     Validate(#[from] validator::ValidationErrors),
     #[error("actix-json-payload")]
     ActixJsonPayload(#[from] actix_web::error::JsonPayloadError),
-    #[error("redis")]
+    #[error("unknown")]
     Redis(#[from] redis::RedisError),
 }
 
 impl<E> From<bb8::RunError<E>> for AppError {
-    fn from(_value: bb8::RunError<E>) -> Self {
+    fn from(_: bb8::RunError<E>) -> Self {
         AppError::Bb8
+    }
+}
+
+impl From<actix_web::error::Error> for AppError {
+    fn from(_: actix_web::error::Error) -> Self {
+        AppError::ActixWeb
     }
 }
 
@@ -82,7 +90,7 @@ impl actix_web::ResponseError for AppError {
                 DatabaseError(UniqueViolation | ForeignKeyViolation, _) => StatusCode::BAD_REQUEST,
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             },
-            ActixBlocking(_) | Bb8 | Reqwest(_) | Unexpected | SerdeJson(_)
+            ActixWeb | ActixWebBlocking(_) | Bb8 | Reqwest(_) | Unexpected | SerdeJson(_)
             | ActixJsonPayload(_) | Redis(_) => StatusCode::INTERNAL_SERVER_ERROR,
             JwtParse(_) | Jwt(_) | OpenId | Unauthorized => StatusCode::UNAUTHORIZED,
             AlreadyFriends
