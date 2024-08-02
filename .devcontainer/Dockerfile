@@ -14,6 +14,7 @@ RUN npm install --global yarn
 RUN npm install --global dotenv-vault
 
 USER vscode
-RUN cargo install diesel_cli@^2.1 --no-default-features --features postgres
+RUN cargo install diesel_cli@^2.2 --no-default-features --features postgres
+# RUN cargo install diesel_cli_ext@^0.3
 
 USER root

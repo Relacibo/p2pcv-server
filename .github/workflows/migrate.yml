@@ -2,7 +2,7 @@ name: Run migrations on RDS database
 
 on:
   push:
-    if: ${{ false }}
+    if: ${{ false }} # Disable for now
     branches: [ "main" ]
     paths:
       - migrations/**
@@ -40,7 +40,7 @@ jobs:
       migrate: ${{ steps.filter.outputs.migrate }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Check if something changed in migrate folders
         uses: dorny/paths-filter@v2
@@ -63,7 +63,7 @@ jobs:
       packages: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         
       - name: Log in to the Container registry
         uses: docker/login-action@v2
@@ -94,7 +94,7 @@ jobs:
       packages: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
@@ -115,15 +115,14 @@ jobs:
             GIT_COMMIT=${{github.sha}}
           
       - name: Run Task on Amazon ECS
-        uses: muya/amazon-ecs-run-task@v1
+        uses: aws-actions/amazon-ecs-deploy-task-definition@abe77ebded86b685c231c58bd5936280c6fcc011 # Use commit, that has run-task support, until next release
         with:
           task-definition: ${{ steps.task-def.outputs.task-definition }}
           cluster: ${{ env.ECS_CLUSTER }}
-          count: 1
-          started-by: github-actions-${{ github.actor }}
-          wait-for-finish: true
-          launch-type: FARGATE
-          subnets: ${{ vars.AWS_MIGRATE_SUBNETS }}
-          security-groups: ${{ vars.AWS_MIGRATE_SECURITY_GROUPS }}
-          assign-public-ip: ENABLED
+          run-task: true
+          run-task-subnets: ${{ vars.AWS_MIGRATE_SUBNETS }}
+          run-task-assign-public-IP: ENABLED
+          run-task-security-groups: ${{ vars.AWS_MIGRATE_SECURITY_GROUPS }}
+          run-task-launch-type: FARGATE
+          wait-for-task-stopped: true
 

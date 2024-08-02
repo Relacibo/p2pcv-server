@@ -1,9 +1,9 @@
 use crate::error::AppError;
 use crate::app_result::AppResult;
 
-use super::model::google_users as db_google_users;
-use super::model::lichess_users as db_lichess_users;
-use super::model::users as db_users;
+use super::schema::google_users as db_google_users;
+use super::schema::lichess_users as db_lichess_users;
+use super::schema::users as db_users;
 use chrono::{DateTime, Utc};
 
 use diesel::prelude::*;

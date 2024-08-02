@@ -28,7 +28,7 @@ name: Deploy to Amazon ECS
 
 on:
   push:
-    if: ${{ false }}
+    if: ${{ false }} # Disable for now
     branches: [ "main" ]
     paths:
       - src/**
@@ -67,7 +67,7 @@ jobs:
       packages: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: downcase image name
         run: |

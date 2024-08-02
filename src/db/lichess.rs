@@ -5,7 +5,7 @@ use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
 
 use crate::app_result::AppResult;
 
-use super::model::lichess_access_tokens as db_lichess_access_tokens;
+use super::schema::lichess_access_tokens as db_lichess_access_tokens;
 
 #[derive(Insertable, Clone, Debug)]
 #[diesel(table_name = db_lichess_access_tokens)]
