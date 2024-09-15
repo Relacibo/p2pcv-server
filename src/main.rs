@@ -1,3 +1,4 @@
+use api::websocket;
 use db::db_conn::DbPool;
 use diesel_async::{pooled_connection::AsyncDieselConnectionManager, AsyncPgConnection};
 use dotenvy::dotenv;
@@ -30,7 +31,6 @@ mod app_json;
 mod app_result;
 mod db;
 mod error;
-mod redis_db;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -42,8 +42,6 @@ async fn main() -> std::io::Result<()> {
     debug!("actix web host: {actix_host}");
     let actix_port = env::var("ACTIX_PORT").expect("ACTIX_PORT not set!");
     debug!("actix web port: {actix_port}");
-
-    let redis_data = Data::new(initialize_redis_client_from_env());
 
     let manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new(database_url);
     let pool: DbPool = bb8::Pool::builder()
@@ -64,8 +62,8 @@ async fn main() -> std::io::Result<()> {
             .configure(api::auth::config)
             .configure(api::users::config)
             .configure(api::games::config)
+            .configure(api::websocket::config)
             .app_data(pool_data.clone())
-            .app_data(redis_data.clone())
             .app_data(Data::new(reqwest::Client::new()))
             .app_data(json_config_data.clone())
             .wrap(Logger::default());
@@ -76,12 +74,4 @@ async fn main() -> std::io::Result<()> {
     .bind(format!("{actix_host}:{actix_port}"))?
     .run()
     .await
-}
-
-async fn initialize_redis_client_from_env() -> redis::Client {
-    let host = env::var("REDIS_HOST").expect("REDIS_HOST not set!");
-    let port = env::var("REDIS_PORT").expect("REDIS_PORT not set!");
-    let redis_address = format!("redis://{host}:{port}/");
-    let client = redis::Client::open(redis_address).expect("Could not initialize redis client!");
-    client
 }

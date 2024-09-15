@@ -6,17 +6,18 @@ use diesel_async::AsyncPgConnection;
 
 use crate::{
     api::auth::providers::provider::{Provider, ProviderError},
-    error::AppError,
     app_result::AppResult,
     db::{
         db_conn::DbPool,
         lichess::{LichessAccessToken, NewLichessAccessToken},
         users::{UpdateLichessUser, User},
     },
+    error::AppError,
 };
 
 use super::{claims::LichessClaims, config::Config};
 
+#[derive(Clone, Debug)]
 pub struct LichessProvider {
     pub claims: LichessClaims,
 }
@@ -59,7 +60,9 @@ impl LichessProvider {
             .into_inner();
         let mut db = pool.get().await?;
 
-        let claims = request_lichess_claims(&reqwest, &config, code, code_verifier, &mut db).await?;
+        let claims =
+            request_lichess_claims(&reqwest, &config, code, code_verifier, &mut db).await?;
+        ;
 
         Ok(Self { claims })
     }
@@ -163,7 +166,8 @@ impl Provider for LichessProvider {
         username: &str,
     ) -> Result<User, ProviderError> {
         let Self { claims } = self;
-        let (new_lichess_user, new_user) = claims.clone().to_db_users(username.to_string());
+        let (new_lichess_user, new_user) =
+            claims.clone().to_db_users(username.to_string());
         let insert_result = User::insert_lichess_user(conn, new_user, new_lichess_user).await;
         let (_, user) = match insert_result {
             Ok(user) => user,

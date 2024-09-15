@@ -32,7 +32,6 @@
             "password": "postgres"
           }
         ],
-        "thunder-client.httpVersion": "HTTP/2",
         "[sql]": {
           "editor.defaultFormatter": null,
           "editor.formatOnType": false
@@ -52,7 +51,9 @@
         "mtxr.sqltools-driver-pg",
         "rangav.vscode-thunder-client",
         "EditorConfig.EditorConfig",
-        "eamodio.gitlens"
+        "eamodio.gitlens",
+        "fill-labs.dependi",
+        "zxh404.vscode-proto3"
       ]
     }
   },

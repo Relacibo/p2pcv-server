@@ -1,6 +1,8 @@
 use actix_web::{error::ParseError, http::StatusCode, HttpResponseBuilder};
 use thiserror::Error;
 
+use crate::api::websocket::WebsocketError;
+
 #[derive(Error, Debug)]
 pub enum AppError {
     #[error("unknown")]
@@ -37,8 +39,8 @@ pub enum AppError {
     Validate(#[from] validator::ValidationErrors),
     #[error("actix-json-payload")]
     ActixJsonPayload(#[from] actix_web::error::JsonPayloadError),
-    #[error("unknown")]
-    Redis(#[from] redis::RedisError),
+    #[error("websocket-{}", .0)]
+    Websocket(#[from] WebsocketError),
 }
 
 impl<E> From<bb8::RunError<E>> for AppError {
@@ -91,13 +93,14 @@ impl actix_web::ResponseError for AppError {
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             },
             ActixWeb | ActixWebBlocking(_) | Bb8 | Reqwest(_) | Unexpected | SerdeJson(_)
-            | ActixJsonPayload(_) | Redis(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            | ActixJsonPayload(_) => StatusCode::INTERNAL_SERVER_ERROR,
             JwtParse(_) | Jwt(_) | OpenId | Unauthorized => StatusCode::UNAUTHORIZED,
             AlreadyFriends
             | FriendRequestDoesntExist
             | FriendRequestExistsInOtherDirection
             | UsernameAlreadyExists
-            | Validate(_) => StatusCode::BAD_REQUEST,
+            | Validate(_)
+            | Websocket(_) => StatusCode::BAD_REQUEST,
         }
     }
     fn error_response(&self) -> actix_web::HttpResponse<actix_web::body::BoxBody> {

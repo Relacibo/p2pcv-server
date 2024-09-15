@@ -1,11 +1,11 @@
 use crate::{
     api::auth::session::auth::Auth,
-    error::AppError,
     app_result::{EndpointResult, EndpointResultHttpResponse},
     db::{
         db_conn::DbPool,
         users::{PublicUser, User},
     },
+    error::AppError,
 };
 use actix_web::{
     web::{self, Data, Json, Path, ServiceConfig},
@@ -14,7 +14,6 @@ use actix_web::{
 use uuid::Uuid;
 pub mod friend_requests;
 pub mod friends;
-pub mod peer_connections;
 
 pub fn config(cfg: &mut ServiceConfig) {
     cfg.service(
@@ -24,7 +23,7 @@ pub fn config(cfg: &mut ServiceConfig) {
             .service(get)
             .configure(friend_requests::config)
             .configure(friends::config),
-            // .configure(peer_connections::config),
+        // .configure(peer_connections::config),
     );
 }
 

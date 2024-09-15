@@ -13,6 +13,14 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
 RUN npm install --global yarn
 RUN npm install --global dotenv-vault
 
+# http://google.github.io/proto-lens/installing-protoc.html
+ENV PROTOC_VERSION 3.14.0
+ENV PROTOC_ZIP protoc-${PROTOC_VERSION}-linux-x86_64.zip
+RUN curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/${PROTOC_ZIP}
+RUN unzip -o $PROTOC_ZIP -d /usr/local bin/protoc && chmod +x /usr/local/bin/protoc
+RUN unzip -o $PROTOC_ZIP -d /usr/local 'include/*' && chmod -R +r /usr/local/include/google
+RUN rm -f $PROTOC_ZIP
+
 USER vscode
 RUN cargo install diesel_cli@^2.2 --no-default-features --features postgres
 # RUN cargo install diesel_cli_ext@^0.3

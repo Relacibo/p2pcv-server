@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package org.ggchess.proto.server_to_client;
+
+message Msg {
+  int32 id = 1;
+  oneof s2c {
+    NewGameEvent new_game_event = 2;
+    NewGameResponse new_game_response = 3;
+  }
+}
+
+message NewGameEvent {
+  bytes sender_user_id = 1;
+  string sender_user_name = 2;
+  bytes variant_id = 3;
+  string variant_version = 4;
+  int32 timeout_secs = 5;
+}
+
+message NewGameResponse {
+  enum Error {
+    TIMEOUT = 0;
+  }
+  enum Answer {
+    ACCEPTED = 0;
+    DECLINED = 1;
+  }
+  optional Answer answer = 1;
+  optional bytes peer_id = 2;
+  optional Error error = 3;
+}

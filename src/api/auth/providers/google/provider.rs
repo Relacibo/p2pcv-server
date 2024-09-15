@@ -9,9 +9,9 @@ use crate::{
         providers::provider::{Provider, ProviderError},
         public_key_storage::KeyStore,
     },
-    error::AppError,
     app_result::AppResult,
     db::users::{NewUser, User},
+    error::AppError,
 };
 
 use super::{
@@ -19,6 +19,7 @@ use super::{
     config::Config,
 };
 
+#[derive(Clone, Debug)]
 pub struct GoogleProvider {
     pub claims: GoogleClaims,
 }
@@ -61,7 +62,7 @@ impl Provider for GoogleProvider {
         username: &str,
     ) -> Result<User, ProviderError> {
         let Self { claims } = self;
-        let GoogleClaims { sub, name, .. } = claims;
+        let GoogleClaims { sub, .. } = claims;
         let new_user: NewUser = claims.clone().to_db_user(username.to_string());
         let insert_result = User::insert_with_google_id(&mut conn, new_user, &sub).await;
         let user = match insert_result {
