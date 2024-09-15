@@ -79,8 +79,6 @@ async fn main() -> anyhow::Result<()> {
 
     send_c2s(write, request).await?;
 
-    ping_server(write).await?;
-
     handle.await?;
 
     // pin_mut!(stdin_to_ws, handle);
@@ -96,10 +94,11 @@ async fn send_to_server(
     Ok(())
 }
 
-async fn ping_server(
+async fn send_pong(
     write: &Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, tungstenite::Message>>,
+    msg: Vec<u8>,
 ) -> anyhow::Result<()> {
-    send_to_server(write, tungstenite::Message::Ping(b"Hi".to_vec())).await?;
+    send_to_server(write, tungstenite::Message::Pong(msg)).await?;
     Ok(())
 }
 
@@ -125,8 +124,9 @@ async fn handle_server_message(
             };
             handle_s2c(write, s2c).await?;
         }
-        tungstenite::Message::Pong(pong) => {
-            log::debug!("{}", String::from_utf8_lossy(&pong));
+        tungstenite::Message::Ping(ping) => {
+            log::debug!("{}", String::from_utf8_lossy(&ping));
+            send_pong(write, ping).await?;
         }
         tungstenite::Message::Close(close_frame) => {
             log::info!("Session closed by server");
