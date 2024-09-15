@@ -23,6 +23,7 @@ pub async fn init() -> Result<(), P2pError> {
     let host = env::var("P2P_HOST").expect("P2P_HOST needed!");
     let port = env::var("P2P_PORT").expect("P2P_PORT needed!");
     let peer_id = env::var("P2P_PEER_ID").expect("P2P_PEER_ID needed!");
+    // https://github.com/libp2p/rust-libp2p/blob/a2a281609a0a64b211f7917aa856924983b63200/examples/browser-webrtc/src/main.rs#L25
     let mut swarm = SwarmBuilder::with_new_identity()
         .with_tokio()
         .with_other_transport(|id_keys| {
