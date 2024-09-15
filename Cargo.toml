@@ -49,9 +49,13 @@ futures = "0.3.30"
 dashmap = "6.1.0"
 prost-types = "0.13.2"
 p2pcv-protobuf = { path = "libs/pvpcv_protobuf" }
-libp2p = { version = "0.54.1", features = [
+libp2p = { git = "https://github.com/libp2p/rust-libp2p.git", features = [
+  "ed25519",
   "gossipsub",
   "macros",
-  "quic",
   "tokio",
-] }
+], rev = "a2a281609a0a64b211f7917aa856924983b63200" }
+libp2p-webrtc = { git = "https://github.com/libp2p/rust-libp2p.git", features = [
+  "tokio",
+], rev = "a2a281609a0a64b211f7917aa856924983b63200" }
+libp2p-core = { git = "https://github.com/libp2p/rust-libp2p.git", rev = "a2a281609a0a64b211f7917aa856924983b63200" }

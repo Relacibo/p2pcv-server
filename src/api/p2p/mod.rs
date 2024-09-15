@@ -2,13 +2,18 @@ use std::{
     env,
     hash::{DefaultHasher, Hash, Hasher},
     io,
+    net::Ipv4Addr,
     time::Duration,
 };
 
-use libp2p::{gossipsub, identity::Keypair, swarm::NetworkBehaviour, SwarmBuilder};
-use thiserror::Error;
-
 use crate::error::AppError;
+use libp2p::{
+    core::muxing::StreamMuxerBox, gossipsub, identity::Keypair, multiaddr::Protocol,
+    swarm::NetworkBehaviour, Multiaddr, SwarmBuilder, TransportError,
+};
+use libp2p_core::transport::{map, Transport};
+use rand::thread_rng;
+use thiserror::Error;
 
 pub async fn init() -> Result<(), P2pError> {
     let timeout_secs = env::var("P2P_TIMEOUT_SECS")
@@ -20,18 +25,29 @@ pub async fn init() -> Result<(), P2pError> {
     let peer_id = env::var("P2P_PEER_ID").expect("P2P_PEER_ID needed!");
     let mut swarm = SwarmBuilder::with_new_identity()
         .with_tokio()
-        .with_quic()
+        .with_other_transport(|id_keys| {
+            let transport = libp2p_webrtc::tokio::Transport::new(
+                id_keys.clone(),
+                libp2p_webrtc::tokio::Certificate::generate(&mut thread_rng())
+                    .expect("Could not generate certificate"),
+            );
+
+            let res = transport.map(|(peer_id, conn), _| (peer_id, StreamMuxerBox::new(conn)));
+            Ok(res)
+        })
+        .expect("Could not add WebRTC transport")
         .with_behaviour(Behaviour::create)
         .map_err(|_| P2pError::InitP2p)?
         .with_swarm_config(|cfg| {
             cfg.with_idle_connection_timeout(Duration::from_secs(timeout_secs))
         })
         .build();
-    swarm.listen_on(
-        format!("/ip4/{host}:{port}/udp/0/quic-v1")
-            .parse()
-            .expect("Could not parse p2p address!"),
-    )?;
+    let address_webrtc = Multiaddr::from(Ipv4Addr::UNSPECIFIED)
+        .with(Protocol::Udp(0))
+        .with(Protocol::WebRTCDirect);
+
+    swarm.listen_on(address_webrtc.clone())?;
+
     Ok(())
 }
 
@@ -75,4 +91,6 @@ impl Behaviour {
 pub enum P2pError {
     #[error("init-p2p")]
     InitP2p,
+    #[error("transport")]
+    Transport(#[from] TransportError<io::Error>),
 }
