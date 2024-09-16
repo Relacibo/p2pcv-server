@@ -1,4 +1,4 @@
-use api::websocket;
+use api::p2p;
 use db::db_conn::DbPool;
 use diesel_async::{pooled_connection::AsyncDieselConnectionManager, AsyncPgConnection};
 use dotenvy::dotenv;
@@ -53,6 +53,13 @@ async fn main() -> std::io::Result<()> {
     let json_config = JsonConfig::default();
     let json_config_data = Data::new(json_config);
 
+    actix_web::rt::spawn(async {
+        match p2p::init().await {
+            Ok(()) => log::info!("P2p server closed gracefully!"),
+            Err(err) => log::error!("Error from p2p server: {err}"),
+        }
+    });
+
     HttpServer::new(move || {
         let app = App::new()
             .service(
@@ -62,7 +69,6 @@ async fn main() -> std::io::Result<()> {
             .configure(api::auth::config)
             .configure(api::users::config)
             .configure(api::games::config)
-            .configure(api::websocket::config)
             .app_data(pool_data.clone())
             .app_data(Data::new(reqwest::Client::new()))
             .app_data(json_config_data.clone())

@@ -7,6 +7,7 @@ use std::{
 };
 
 use crate::error::AppError;
+use futures::StreamExt;
 use libp2p::{
     core::muxing::StreamMuxerBox, gossipsub, identity::Keypair, multiaddr::Protocol,
     swarm::NetworkBehaviour, Multiaddr, SwarmBuilder, TransportError,
@@ -47,7 +48,18 @@ pub async fn init() -> Result<(), P2pError> {
         .with(Protocol::Udp(0))
         .with(Protocol::WebRTCDirect);
 
-    swarm.listen_on(address_webrtc.clone())?;
+    swarm.listen_on(address_webrtc)?;
+
+    loop {
+        tokio::select! {
+            swarm_event = swarm.next() => {
+                log::debug!("{:?}",swarm_event)
+            },
+            _ = tokio::signal::ctrl_c() => {
+                break;
+            }
+        }
+    }
 
     Ok(())
 }

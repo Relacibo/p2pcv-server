@@ -1,7 +1,7 @@
 use actix_web::{error::ParseError, http::StatusCode, HttpResponseBuilder};
 use thiserror::Error;
 
-use crate::api::websocket::WebsocketError;
+use crate::api::p2p::P2pError;
 
 #[derive(Error, Debug)]
 pub enum AppError {
@@ -39,8 +39,8 @@ pub enum AppError {
     Validate(#[from] validator::ValidationErrors),
     #[error("actix-json-payload")]
     ActixJsonPayload(#[from] actix_web::error::JsonPayloadError),
-    #[error("websocket-{}", .0)]
-    Websocket(#[from] WebsocketError),
+    #[error("p2p-{}", .0)]
+    P2p(#[from] P2pError),
 }
 
 impl<E> From<bb8::RunError<E>> for AppError {
@@ -93,14 +93,13 @@ impl actix_web::ResponseError for AppError {
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             },
             ActixWeb | ActixWebBlocking(_) | Bb8 | Reqwest(_) | Unexpected | SerdeJson(_)
-            | ActixJsonPayload(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            | ActixJsonPayload(_) | P2p(_) => StatusCode::INTERNAL_SERVER_ERROR,
             JwtParse(_) | Jwt(_) | OpenId | Unauthorized => StatusCode::UNAUTHORIZED,
             AlreadyFriends
             | FriendRequestDoesntExist
             | FriendRequestExistsInOtherDirection
             | UsernameAlreadyExists
-            | Validate(_)
-            | Websocket(_) => StatusCode::BAD_REQUEST,
+            | Validate(_) => StatusCode::BAD_REQUEST,
         }
     }
     fn error_response(&self) -> actix_web::HttpResponse<actix_web::body::BoxBody> {
