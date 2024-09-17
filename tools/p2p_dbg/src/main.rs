@@ -44,27 +44,8 @@ async fn main() -> anyhow::Result<()> {
         .and_then(|s| s.parse::<u64>().ok())
         .unwrap_or(60);
 
-    let host = env::var("P2P_HOST").expect("P2P_HOST needed!");
-    let address = Ipv4Addr::from_str(&host).expect("Invalid P2P_HOST address");
-    let port: u16 = env::var("P2P_PORT")
-        .expect("P2P_PORT needed!")
-        .parse()
-        .expect("P2P_PORT not a number");
-    let p2p_peer_id = env::var("DEBUG_P2P_PEER_ID").expect("DEBUG_P2P_PEER_ID missing!");
-    let peer_id = p2p_peer_id.parse().expect("Peer Id not valid");
-    let user_auth_token = env::var("DEBUG_USER_TOKEN").expect("DEBUG_USER_TOKEN missing!");
-    // let cert_hash = env::var("DEBUG_P2P_CERT_HASH").expect("DEBUG_P2P_CERT_HASH missing!");
-    // let mut cert_hash = cert_hash.as_bytes().to_vec();
-    // let len = len + (len % 4);
-    // cert_hash.extend(std::iter::repeat("=").take(len));
-    // let mut cert_hash = base64::prelude::BASE64_STANDARD
-    //     .decode(cert_hash)
-    //     .expect("Certhash not base64!");
-    // cert_hash.resize(64, 0);
-    // dbg!(cert_hash.len());
-    // let multihash = Multihash::<64>::from_bytes(&cert_hash).expect("Invalid certhash!");
-    // let multihash = Multihash::<64>::from_bytes(b"uEiB7uarPosbUW3fr9hETJMVmEDrSXoUfApyN1OrYwsWuZg")
-    //     .expect("Invalid certhash!");
+    let server_listen_address =
+        env::var("P2P_SERVER_LISTEN_ADDRESS").expect("P2P_SERVER_LISTEN_ADDRESS missing!");
 
     let receiver_user_id = uuid::uuid!("12345678-dead-beef-b116-b0000000b135");
     let variant_id = uuid::uuid!("fa21a473-dead-beef-b116-b0000000b135");
@@ -85,8 +66,9 @@ async fn main() -> anyhow::Result<()> {
         .with_swarm_config(|c| c.with_idle_connection_timeout(Duration::from_secs(timeout_secs)))
         .build();
 
-    let addr = "/ip4/127.0.0.1/udp/8500/webrtc-direct/certhash/uEiBZaYKj6PEoocWjvL8AZ39B55Q-0rgO7NT5iGTGwo7wQw".parse::<Multiaddr>().expect("Could not parse server multiaddress!")
-        .with(Protocol::P2p(peer_id));
+    let addr = server_listen_address
+        .parse::<Multiaddr>()
+        .expect("Could not parse server multiaddress!");
     swarm.dial(addr)?;
 
     loop {
