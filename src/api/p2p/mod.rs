@@ -139,7 +139,9 @@ async fn handle_request(swarm: &Swarm<Behaviour>, event: ProtoEvent) -> Result<(
         request_reponse, ..
     } = swarm.behaviour();
     match event {
-        Event::Message { peer, message } => {}
+        Event::Messages { peer, message } => {
+            
+        }
         _ => (),
     }
     Ok(())
