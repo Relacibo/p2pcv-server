@@ -14,6 +14,7 @@ use libp2p::{
     gossipsub,
     identity::Keypair,
     multiaddr::Protocol,
+    ping,
     swarm::{behaviour, NetworkBehaviour, SwarmEvent},
     Multiaddr, PeerId, Swarm, SwarmBuilder, TransportError,
 };
@@ -115,7 +116,7 @@ async fn handle_gossipsub_event(
     swarm: &Swarm<Behaviour>,
     event: gossipsub::Event,
 ) -> Result<(), P2pError> {
-    let Behaviour { gossipsub } = swarm.behaviour();
+    let Behaviour { gossipsub, .. } = swarm.behaviour();
     Ok(())
 }
 
@@ -123,6 +124,7 @@ async fn handle_gossipsub_event(
 #[derive(NetworkBehaviour)]
 struct Behaviour {
     gossipsub: gossipsub::Behaviour,
+    ping: ping::Behaviour,
 }
 
 impl Behaviour {
@@ -152,7 +154,10 @@ impl Behaviour {
             gossipsub_config,
         )
         .expect("Could not build gossipsub config");
-        Behaviour { gossipsub }
+        Behaviour {
+            gossipsub,
+            ping: Default::default(),
+        }
     }
 }
 

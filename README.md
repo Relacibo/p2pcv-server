@@ -18,3 +18,6 @@ let a = webrtc::peer_connection::certificate::RTCCertificate::from_params(params
     .expect("default params to work");
 println!(a.serialize_pem().replace("\r\n", "$"));
 ```
+```bash
+openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -sha256 -days 365
+```

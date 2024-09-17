@@ -21,6 +21,7 @@ use libp2p::{
     identity::Keypair,
     multiaddr::Protocol,
     multihash::Multihash,
+    ping,
     swarm::{NetworkBehaviour, SwarmEvent},
 };
 use libp2p::{Multiaddr, Transport};
@@ -66,16 +67,30 @@ async fn main() -> anyhow::Result<()> {
         .with_swarm_config(|c| c.with_idle_connection_timeout(Duration::from_secs(timeout_secs)))
         .build();
 
-    let addr = server_listen_address
+    let address_webrtc = Multiaddr::from(Ipv4Addr::UNSPECIFIED)
+        .with(Protocol::Udp(0))
+        .with(Protocol::WebRTCDirect);
+
+    swarm.listen_on(address_webrtc)?;
+
+    let server_address = server_listen_address
         .parse::<Multiaddr>()
         .expect("Could not parse server multiaddress!");
-    swarm.dial(addr)?;
+    swarm.dial(server_address)?;
 
     loop {
         tokio::select! {
             swarm_event = swarm.next() => {
                 if let Some(swarm_event) = swarm_event {
-                    log::debug!("{swarm_event:?}");
+                    match swarm_event {
+                        SwarmEvent::ConnectionEstablished { peer_id, connection_id, endpoint, num_established, concurrent_dial_errors, established_in } => {
+                            log::info!("Connected to {peer_id}!")
+                        },
+                        SwarmEvent::ConnectionClosed { peer_id, connection_id, endpoint, num_established, cause } => {
+                            log::info!("Connection to {peer_id} closed!")
+                        },
+                        _ => ()
+                    }
                 }
             },
             _ = tokio::signal::ctrl_c() => {
@@ -100,6 +115,7 @@ async fn main() -> anyhow::Result<()> {
 #[derive(NetworkBehaviour)]
 struct Behaviour {
     gossipsub: gossipsub::Behaviour,
+    ping: ping::Behaviour,
 }
 
 impl Behaviour {
@@ -129,7 +145,10 @@ impl Behaviour {
             gossipsub_config,
         )
         .expect("Could not build gossipsub config");
-        Behaviour { gossipsub }
+        Behaviour {
+            gossipsub,
+            ping: ping::Behaviour::new(ping::Config::new()),
+        }
     }
 }
 

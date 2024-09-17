@@ -8,7 +8,7 @@ RUN wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo 
 # RUSTFLAGS="-C link-arg=-fuse-ld=lld" or with Cargo's configuration file (i.e see .cargo/config.toml).
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
    && apt-get -y libssl-dev install clang lld postgresql-client-16 npm cmake \ 
-   && apt-get autoremove -y
+   && apt-get autoremove -y && apt-get clean -y
 
 RUN npm install --global yarn
 RUN npm install --global dotenv-vault
