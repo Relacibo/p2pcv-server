@@ -1,4 +1,4 @@
-use api::websocket;
+use api::p2p;
 use db::db_conn::DbPool;
 use diesel_async::{pooled_connection::AsyncDieselConnectionManager, AsyncPgConnection};
 use dotenvy::dotenv;
@@ -18,11 +18,12 @@ use actix_web::{
 };
 use env_logger::Env;
 use log::debug;
+use tokio::task::JoinHandle;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_json;
 
-use std::env;
+use std::{env, io};
 
 use crate::app_json::JsonConfig;
 
@@ -53,25 +54,33 @@ async fn main() -> std::io::Result<()> {
     let json_config = JsonConfig::default();
     let json_config_data = Data::new(json_config);
 
-    HttpServer::new(move || {
-        let app = App::new()
-            .service(
-                // Health check
-                web::resource("/").route(web::get().to(HttpResponse::Ok)),
-            )
-            .configure(api::auth::config)
-            .configure(api::users::config)
-            .configure(api::games::config)
-            .configure(api::websocket::config)
-            .app_data(pool_data.clone())
-            .app_data(Data::new(reqwest::Client::new()))
-            .app_data(json_config_data.clone())
-            .wrap(Logger::default());
+    let p2p = actix_web::rt::spawn(async { p2p::init().await });
 
-        #[cfg(debug_assertions)]
-        app.wrap(Cors::permissive())
-    })
-    .bind(format!("{actix_host}:{actix_port}"))?
-    .run()
-    .await
+    let actix: JoinHandle<Result<_, io::Error>> = actix_web::rt::spawn(async move {
+        HttpServer::new(move || {
+            let app = App::new()
+                .service(
+                    // Health check
+                    web::resource("/").route(web::get().to(HttpResponse::Ok)),
+                )
+                .configure(api::auth::config)
+                .configure(api::users::config)
+                .configure(api::games::config)
+                .app_data(pool_data.clone())
+                .app_data(Data::new(reqwest::Client::new()))
+                .app_data(json_config_data.clone())
+                .wrap(Logger::default());
+
+            #[cfg(debug_assertions)]
+            app.wrap(Cors::permissive())
+        })
+        .bind(format!("{actix_host}:{actix_port}"))?
+        .run()
+        .await?;
+        Ok(())
+    });
+    let (actix_res, p2p_res) = futures::try_join!(actix, p2p)?;
+    actix_res?;
+    p2p_res?;
+    Ok(())
 }

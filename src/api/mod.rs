@@ -1,4 +1,4 @@
 pub mod auth;
-pub mod users;
-pub mod websocket;
 pub mod games;
+pub mod p2p;
+pub mod users;

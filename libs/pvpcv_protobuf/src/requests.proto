@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package org.ggchess.proto.requests;
+
+message Requ {
+  int32 id = 1;
+  oneof requ {
+    GetFriendPeerId get_friend_peer_id = 2;
+    NewGame new_game = 3;
+    NewGameEvent new_game_event = 4;
+  }
+}
+
+message GetFriendPeerId {
+  bytes friend_user_id = 1;
+  bytes auth_token = 2;
+}
+
+message NewGame {
+  bytes receiver_user_id = 1;
+  bytes variant_id = 2;
+  string variant_version = 3;
+}
+
+message NewGameEvent {
+  bytes sender_user_id = 1;
+  string sender_user_name = 2;
+  bytes variant_id = 3;
+  string variant_version = 4;
+  int32 timeout_secs = 5;
+}

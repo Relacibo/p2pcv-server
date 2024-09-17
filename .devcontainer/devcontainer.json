@@ -59,7 +59,8 @@
   },
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
   "forwardPorts": [
-    8000
+    8000,
+    8500
   ],
   // Use 'postCreateCommand' to run commands after the container is created.
   //"postCreateCommand": "cargo update",
