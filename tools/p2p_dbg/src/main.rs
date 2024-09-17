@@ -84,10 +84,10 @@ async fn main() -> anyhow::Result<()> {
                 if let Some(swarm_event) = swarm_event {
                     match swarm_event {
                         SwarmEvent::ConnectionEstablished { peer_id, connection_id, endpoint, num_established, concurrent_dial_errors, established_in } => {
-                            log::info!("Connected to {peer_id}!")
+                            log::info!("Connected to {peer_id}!");
                         },
                         SwarmEvent::ConnectionClosed { peer_id, connection_id, endpoint, num_established, cause } => {
-                            log::info!("Connection to {peer_id} closed!")
+                            log::info!("Connection to {peer_id} closed!");
                         },
                         _ => ()
                     }
@@ -157,14 +157,6 @@ impl Behaviour {
 //     msg: tungstenite::Message,
 // ) -> anyhow::Result<()> {
 //     write.lock().await.send(msg).await?;
-//     Ok(())
-// }
-
-// async fn send_pong(
-//     write: &Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, tungstenite::Message>>,
-//     msg: Vec<u8>,
-// ) -> anyhow::Result<()> {
-//     send_to_server(write, tungstenite::Message::Pong(msg)).await?;
 //     Ok(())
 // }
 

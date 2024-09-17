@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package org.ggchess.proto.responses;
+
+message Resp {
+  int32 id = 1;
+  oneof resp {
+    GetFriendPeerId get_friend_peer_id = 2;
+    NewGame new_game = 3;
+    NewGameEvent new_game_event = 4;
+  }
+}
+
+message GetFriendPeerId {
+  enum Error {
+    UNAUTHORIZED = 0;
+  }
+  optional string peer_id = 1;
+  optional Error error = 2;
+}
+
+message NewGame {
+  enum Answer {
+    ACCEPTED = 0;
+    DECLINED = 1;
+  }
+  optional Answer answer = 1;
+  optional bytes peer_id = 2;
+}
+
+
+message NewGameEvent {
+  enum Answer {
+    ACCEPT = 0;
+    DECLINE = 1;
+  }
+  Answer answer = 1;
+  optional bytes peer_id = 2;
+}

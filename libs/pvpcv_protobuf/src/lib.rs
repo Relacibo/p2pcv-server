@@ -1,13 +1,7 @@
-pub mod client_to_server {
-    include!(concat!(
-        env!("OUT_DIR"),
-        "/org.ggchess.proto.client_to_server.rs"
-    ));
+pub mod requests {
+    include!(concat!(env!("OUT_DIR"), "/org.ggchess.proto.requests.rs"));
 }
 
-pub mod server_to_client {
-    include!(concat!(
-        env!("OUT_DIR"),
-        "/org.ggchess.proto.server_to_client.rs"
-    ));
+pub mod responses {
+    include!(concat!(env!("OUT_DIR"), "/org.ggchess.proto.responses.rs"));
 }

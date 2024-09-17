@@ -1495,6 +1495,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "futures-bounded"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "91f328e7fb845fc832912fb6a34f40cf6d1888c92f974d1893a54e97b5ff542e"
+dependencies = [
+ "futures-timer",
+ "futures-util",
+]
+
+[[package]]
 name = "futures-channel"
 version = "0.3.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2279,6 +2289,7 @@ dependencies = [
  "libp2p-metrics",
  "libp2p-ping",
  "libp2p-quic",
+ "libp2p-request-response",
  "libp2p-swarm",
  "libp2p-tcp",
  "libp2p-upnp",
@@ -2499,6 +2510,25 @@ dependencies = [
  "thiserror",
  "tokio",
  "tracing",
+]
+
+[[package]]
+name = "libp2p-request-response"
+version = "0.27.0"
+source = "git+https://github.com/libp2p/rust-libp2p.git?rev=a2a281609a0a64b211f7917aa856924983b63200#a2a281609a0a64b211f7917aa856924983b63200"
+dependencies = [
+ "async-trait",
+ "futures",
+ "futures-bounded",
+ "futures-timer",
+ "libp2p-core",
+ "libp2p-identity",
+ "libp2p-swarm",
+ "rand",
+ "smallvec",
+ "tracing",
+ "void",
+ "web-time",
 ]
 
 [[package]]

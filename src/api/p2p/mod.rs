@@ -7,19 +7,23 @@ use std::{
     time::Duration,
 };
 
+use async_trait::async_trait;
 use base64::{prelude::BASE64_STANDARD, Engine};
-use futures::StreamExt;
+use futures::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, StreamExt};
 use libp2p::{
     core::muxing::StreamMuxerBox,
     gossipsub,
     identity::Keypair,
     multiaddr::Protocol,
     ping,
+    request_response::{self, Codec, Event},
     swarm::{behaviour, NetworkBehaviour, SwarmEvent},
     Multiaddr, PeerId, Swarm, SwarmBuilder, TransportError,
 };
 use libp2p_core::transport::Transport;
 use libp2p_webrtc::tokio::Certificate;
+use p2pcv_protobuf::{requests, responses};
+use prost::Message;
 use thiserror::Error;
 
 pub async fn init() -> Result<(), P2pError> {
@@ -117,7 +121,122 @@ async fn handle_gossipsub_event(
     event: gossipsub::Event,
 ) -> Result<(), P2pError> {
     let Behaviour { gossipsub, .. } = swarm.behaviour();
+    match event {
+        gossipsub::Event::Message {
+            propagation_source,
+            message_id,
+            message,
+        } => {}
+        gossipsub::Event::Subscribed { peer_id, topic } => (),
+        gossipsub::Event::Unsubscribed { peer_id, topic } => (),
+        gossipsub::Event::GossipsubNotSupported { peer_id } => (),
+    }
     Ok(())
+}
+
+async fn handle_request(swarm: &Swarm<Behaviour>, event: ProtoEvent) -> Result<(), P2pError> {
+    let Behaviour {
+        request_reponse, ..
+    } = swarm.behaviour();
+    match event {
+        Event::Message { peer, message } => {}
+        _ => (),
+    }
+    Ok(())
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum ProtoVersions {
+    Version1,
+}
+
+impl AsRef<str> for ProtoVersions {
+    fn as_ref(&self) -> &str {
+        "version1"
+    }
+}
+
+type ProtoEvent = request_response::Event<requests::Requ, responses::Resp>;
+
+#[derive(Debug, Clone, Copy)]
+struct ProtoCodec;
+
+#[async_trait]
+impl Codec for ProtoCodec {
+    // The type of protocol(s) or protocol versions being negotiated.
+    type Protocol = ProtoVersions;
+
+    // The type of inbound and outbound requests.
+    type Request = requests::Requ;
+
+    // The type of inbound and outbound responses.
+    type Response = responses::Resp;
+
+    /// Reads a response from the given I/O stream according to the
+    /// negotiated protocol.
+    async fn read_request<T>(
+        &mut self,
+        protocol: &Self::Protocol,
+        io: &mut T,
+    ) -> io::Result<Self::Request>
+    where
+        T: AsyncRead + Unpin + Send,
+    {
+        let mut buf = Vec::new();
+        io.read(&mut buf).await;
+        requests::Requ::decode(&*buf)
+            .map_err(|err| io::Error::new(io::ErrorKind::InvalidInput, err))
+    }
+
+    /// Reads a response from the given I/O stream according to the
+    /// negotiated protocol.
+    async fn read_response<T>(
+        &mut self,
+        protocol: &Self::Protocol,
+        io: &mut T,
+    ) -> io::Result<Self::Response>
+    where
+        T: AsyncRead + Unpin + Send,
+    {
+        let mut buf = Vec::new();
+        io.read(&mut buf).await;
+        responses::Resp::decode(&*buf)
+            .map_err(|err| io::Error::new(io::ErrorKind::InvalidInput, err))
+    }
+
+    /// Writes a request to the given I/O stream according to the
+    /// negotiated protocol.
+    async fn write_request<T>(
+        &mut self,
+        protocol: &Self::Protocol,
+        io: &mut T,
+        req: Self::Request,
+    ) -> io::Result<()>
+    where
+        T: AsyncWrite + Unpin + Send,
+    {
+        let mut buf = Vec::new();
+        req.encode(&mut buf);
+        io.write_all(&buf);
+        Ok(())
+    }
+
+    /// Writes a response to the given I/O stream according to the
+    /// negotiated protocol.
+    async fn write_response<T>(
+        &mut self,
+        protocol: &Self::Protocol,
+        io: &mut T,
+        res: Self::Response,
+    ) -> io::Result<()>
+    where
+        T: AsyncWrite + Unpin + Send,
+    {
+        let mut buf = Vec::new();
+        res.encode(&mut buf);
+        io.write_all(&buf);
+        Ok(())
+    }
 }
 
 // We create a custom network behaviour that combines Gossipsub.
@@ -125,6 +244,7 @@ async fn handle_gossipsub_event(
 struct Behaviour {
     gossipsub: gossipsub::Behaviour,
     ping: ping::Behaviour,
+    request_reponse: request_response::Behaviour<ProtoCodec>,
 }
 
 impl Behaviour {
@@ -157,10 +277,10 @@ impl Behaviour {
         Behaviour {
             gossipsub,
             ping: Default::default(),
+            request_reponse: Default::default(),
         }
     }
 }
-
 #[derive(Debug, Error)]
 pub enum P2pError {
     #[error("init-p2p")]

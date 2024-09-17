@@ -54,6 +54,7 @@ libp2p = { git = "https://github.com/libp2p/rust-libp2p.git", features = [
   "macros",
   "tokio",
   "ping",
+  "request-response",
 ], rev = "a2a281609a0a64b211f7917aa856924983b63200" }
 libp2p-webrtc = { git = "https://github.com/libp2p/rust-libp2p.git", features = [
   "tokio",
