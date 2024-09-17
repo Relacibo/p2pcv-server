@@ -1,0 +1,27 @@
+[package]
+name = "p2p_dbg"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+log = "0.4.19"
+env_logger = "0.11.5"
+tokio = { version = "1.40.0", features = ["full"] }
+anyhow = "1.0.88"
+futures-util = "0.3.30"
+p2pcv-protobuf = { path = "../../libs/pvpcv_protobuf" }
+uuid = "1.10.0"
+dotenvy = "0.15.7"
+prost = "0.13.2"
+libp2p = { git = "https://github.com/libp2p/rust-libp2p.git", features = [
+  "ed25519",
+  "gossipsub",
+  "macros",
+  "tokio",
+], rev = "a2a281609a0a64b211f7917aa856924983b63200" }
+libp2p-webrtc = { git = "https://github.com/libp2p/rust-libp2p.git", features = [
+  "tokio",
+], rev = "a2a281609a0a64b211f7917aa856924983b63200" }
+libp2p-core = { git = "https://github.com/libp2p/rust-libp2p.git", rev = "a2a281609a0a64b211f7917aa856924983b63200" }
+rand = "0.8.5"
+base64 = "0.22"

@@ -238,20 +238,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "actix-ws"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a3a1fb4f9f2794b0aadaf2ba5f14a6f034c7e86957b458c506a8cb75953f2d99"
-dependencies = [
- "actix-codec",
- "actix-http",
- "actix-web",
- "bytestring",
- "futures-core",
- "tokio",
-]
-
-[[package]]
 name = "addr2line"
 version = "0.24.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3100,6 +3086,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "p2p_dbg"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "base64 0.22.1",
+ "dotenvy",
+ "env_logger",
+ "futures-util",
+ "libp2p",
+ "libp2p-core",
+ "libp2p-webrtc",
+ "log",
+ "p2pcv-protobuf",
+ "prost",
+ "rand",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
 name = "p2pcv-protobuf"
 version = "0.1.0"
 dependencies = [
@@ -3115,7 +3121,6 @@ dependencies = [
  "actix-web",
  "actix-web-httpauth",
  "actix-web-validator",
- "actix-ws",
  "async-trait",
  "base64 0.22.1",
  "bb8",
@@ -4724,18 +4729,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "tokio-tungstenite"
-version = "0.24.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "edc5f74e248dc973e0dbb7b74c7e0d6fcc301c694ff50049504004ef4d0cdcd9"
-dependencies = [
- "futures-util",
- "log",
- "tokio",
- "tungstenite",
-]
-
-[[package]]
 name = "tokio-util"
 version = "0.7.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4849,24 +4842,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b"
 
 [[package]]
-name = "tungstenite"
-version = "0.24.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "18e5b8366ee7a95b16d32197d0b2604b43a0be89dc5fac9f8e96ccafbaedda8a"
-dependencies = [
- "byteorder",
- "bytes",
- "data-encoding",
- "http 1.1.0",
- "httparse",
- "log",
- "rand",
- "sha1",
- "thiserror",
- "utf-8",
-]
-
-[[package]]
 name = "turn"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4975,12 +4950,6 @@ dependencies = [
  "idna 0.5.0",
  "percent-encoding",
 ]
-
-[[package]]
-name = "utf-8"
-version = "0.7.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "09cc8ee72d2a9becf2f2febe0205bbed8fc6615b7cb429ad062dc7b7ddd036a9"
 
 [[package]]
 name = "utf8parse"
@@ -5177,6 +5146,7 @@ dependencies = [
  "interceptor",
  "lazy_static",
  "log",
+ "pem",
  "rand",
  "rcgen",
  "regex",
@@ -5239,6 +5209,7 @@ dependencies = [
  "log",
  "p256",
  "p384",
+ "pem",
  "rand",
  "rand_core",
  "rcgen",
@@ -5385,22 +5356,6 @@ dependencies = [
  "thiserror",
  "tokio",
  "winapi",
-]
-
-[[package]]
-name = "websocket_dbg"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "dotenvy",
- "env_logger",
- "futures-util",
- "log",
- "p2pcv-protobuf",
- "prost",
- "tokio",
- "tokio-tungstenite",
- "uuid",
 ]
 
 [[package]]

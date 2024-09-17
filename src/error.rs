@@ -1,3 +1,5 @@
+use std::io;
+
 use actix_web::{error::ParseError, http::StatusCode, HttpResponseBuilder};
 use thiserror::Error;
 
@@ -114,4 +116,10 @@ struct JsonError<'a> {
     error: &'a str,
     #[serde(skip_serializing_if = "Option::is_none")]
     data: Option<&'a str>,
+}
+
+impl From<AppError> for io::Error {
+    fn from(value: AppError) -> Self {
+        io::Error::new(io::ErrorKind::Other, value)
+    }
 }
