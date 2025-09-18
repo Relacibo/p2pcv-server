@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package org.ggchess.proto.requests;
+package org.ggchess.server_client.requests;
 
 message Requ {
   int32 id = 1;
