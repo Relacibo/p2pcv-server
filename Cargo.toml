@@ -10,7 +10,7 @@ name = "app"
 path = "src/main.rs"
 
 [workspace]
-members = ["libs/pvpcv_protobuf", "tools/p2p_dbg", "migration"]
+members = ["libs/pvpcv_bebop", "tools/p2p_dbg", "migration"]
 
 [dependencies]
 axum = { version = "0.8", features = ["macros"] }
@@ -36,11 +36,9 @@ log = "0.4.19"
 async-trait = "0.1.82"
 validator = { version = "0.18", features = ["derive"] }
 rand = "0.8.5"
-prost = "0.13.2"
 futures = "0.3.30"
 dashmap = "6.1.0"
-prost-types = "0.13.2"
-p2pcv-protobuf = { path = "libs/pvpcv_protobuf" }
+p2pcv-bebop = { path = "libs/pvpcv_bebop" }
 migration = { path = "migration" }
 libp2p = { git = "https://github.com/libp2p/rust-libp2p.git", features = [
   "ed25519",

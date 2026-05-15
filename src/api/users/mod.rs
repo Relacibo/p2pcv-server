@@ -21,7 +21,7 @@ pub mod friends;
 
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
-        .route("", get(list))
+        .route("/", get(list))
         .route("/{uuid}", get(get_user).delete(delete_user))
         .merge(friend_requests::router())
         .merge(friends::router())

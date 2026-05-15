@@ -9,10 +9,8 @@ env_logger = "0.11.5"
 tokio = { version = "1.40.0", features = ["full"] }
 anyhow = "1.0.88"
 futures-util = "0.3.30"
-p2pcv-protobuf = { path = "../../libs/pvpcv_protobuf" }
+p2pcv-bebop = { path = "../../libs/pvpcv_bebop" }
 uuid = "1.10.0"
-dotenvy = "0.15.7"
-prost = "0.13.2"
 libp2p = { git = "https://github.com/libp2p/rust-libp2p.git", features = [
   "ed25519",
   "gossipsub",

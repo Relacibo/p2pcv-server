@@ -24,8 +24,7 @@ use libp2p::{
 };
 use libp2p_core::transport::Transport;
 use libp2p_webrtc::tokio::Certificate;
-use p2pcv_protobuf::{client_to_server, server_to_client};
-use prost::Message;
+use p2pcv_bebop::{C2sMsg, Guid, GuidExt, S2cMsg, UuidExt};
 use thiserror::Error;
 use uuid::Uuid;
 
@@ -144,7 +143,7 @@ async fn handle_c2s_event(
     jwt_config: &JwtConfig,
     registry: &PeerRegistry,
     pending: &mut HashMap<OutboundRequestId, PendingNewGame>,
-    event: request_response::Event<client_to_server::Msg, server_to_client::Msg>,
+    event: request_response::Event<C2sMsg, S2cMsg>,
 ) -> Result<(), P2pError> {
     use request_response::{Event, Message};
     match event {
@@ -154,23 +153,38 @@ async fn handle_c2s_event(
                 request, channel, ..
             },
         } => {
-            let Some(c2s) = request.c2s else {
+            let Some(c2s) = Some(request) else {
                 log::warn!("Received empty c2s message from {peer}");
                 return Ok(());
             };
-            use client_to_server::msg::C2s;
             match c2s {
-                C2s::RegisterPeer(reg) => {
-                    handle_register_peer(swarm, jwt_config, registry, peer, reg, channel).await;
+                C2sMsg::RegisterPeer { auth_token } => {
+                    handle_register_peer(swarm, jwt_config, registry, peer, auth_token, channel)
+                        .await;
                 }
-                C2s::GetFriendPeerId(req) => {
-                    handle_get_friend_peer_id(swarm, db, registry, peer, req, channel).await;
+                C2sMsg::GetFriendPeerId { friend_user_id } => {
+                    handle_get_friend_peer_id(swarm, db, registry, peer, friend_user_id, channel)
+                        .await;
                 }
-                C2s::NewGame(req) => {
-                    handle_new_game(swarm, db, registry, pending, peer, req, channel).await;
+                C2sMsg::NewGame { receiver_user_id, variant_id, variant_version } => {
+                    handle_new_game(
+                        swarm,
+                        db,
+                        registry,
+                        pending,
+                        peer,
+                        receiver_user_id,
+                        variant_id,
+                        variant_version,
+                        channel,
+                    )
+                    .await;
                 }
-                C2s::NewGameAnswer(_) => {
+                C2sMsg::NewGameAnswer { .. } => {
                     log::warn!("Unexpected NewGameAnswer via c2s from {peer}; ignoring");
+                }
+                C2sMsg::Unknown => {
+                    log::warn!("Received unknown C2S message variant from {peer}; ignoring");
                 }
             }
         }
@@ -198,27 +212,19 @@ async fn handle_register_peer(
     jwt_config: &JwtConfig,
     registry: &PeerRegistry,
     peer: PeerId,
-    reg: client_to_server::RegisterPeer,
-    channel: ResponseChannel<server_to_client::Msg>,
+    auth_token: String,
+    channel: ResponseChannel<S2cMsg>,
 ) {
-    let resp = match validate_jwt(jwt_config, &reg.auth_token) {
+    let resp = match validate_jwt(jwt_config, &auth_token) {
         Ok(claims) => {
             let user_id = claims.sub;
             registry.register(user_id, peer);
             log::info!("Registered peer {peer} for user {user_id}");
-            server_to_client::Msg {
-                s2c: Some(server_to_client::msg::S2c::RegisterPeerResponse(
-                    server_to_client::RegisterPeerResponse { success: true },
-                )),
-            }
+            S2cMsg::RegisterPeerResponse { success: true }
         }
         Err(err) => {
             log::warn!("RegisterPeer auth failed for {peer}: {err}");
-            server_to_client::Msg {
-                s2c: Some(server_to_client::msg::S2c::RegisterPeerResponse(
-                    server_to_client::RegisterPeerResponse { success: false },
-                )),
-            }
+            S2cMsg::RegisterPeerResponse { success: false }
         }
     };
     if swarm
@@ -236,14 +242,15 @@ async fn handle_get_friend_peer_id(
     db: &DbPool,
     registry: &PeerRegistry,
     peer: PeerId,
-    req: client_to_server::GetFriendPeerId,
-    channel: ResponseChannel<server_to_client::Msg>,
+    friend_user_id: Guid,
+    channel: ResponseChannel<S2cMsg>,
 ) {
     let peer_id_str = async {
         let requester_user_id = registry.user_id_for_peer(&peer)?;
-        let friend_user_id = Uuid::from_slice(&req.friend_user_id)
-            .ok()
-            .filter(|id| !id.is_nil())?;
+        let friend_user_id: Uuid = friend_user_id.to_uuid();
+        if friend_user_id.is_nil() {
+            return None;
+        }
 
         let is_friends = User::is_friends_with(db, requester_user_id, friend_user_id)
             .await
@@ -256,13 +263,7 @@ async fn handle_get_friend_peer_id(
     }
     .await;
 
-    let resp = server_to_client::Msg {
-        s2c: Some(server_to_client::msg::S2c::GetFriendPeerIdResponse(
-            server_to_client::GetFriendPeerIdResponse {
-                peer_id: peer_id_str,
-            },
-        )),
-    };
+    let resp = S2cMsg::GetFriendPeerIdResponse { peer_id: peer_id_str };
     if swarm
         .behaviour_mut()
         .c2s
@@ -279,16 +280,18 @@ async fn handle_new_game(
     registry: &PeerRegistry,
     pending: &mut HashMap<OutboundRequestId, PendingNewGame>,
     peer: PeerId,
-    req: client_to_server::NewGame,
-    channel: ResponseChannel<server_to_client::Msg>,
+    receiver_user_id: Guid,
+    variant_id: Guid,
+    variant_version: String,
+    channel: ResponseChannel<S2cMsg>,
 ) {
-    let result: Result<(PeerId, Uuid, server_to_client::NewGameEvent), ()> = async {
+    let result: Result<(PeerId, Uuid, S2cMsg), ()> = async {
         let sender_user_id = registry.user_id_for_peer(&peer).ok_or(())?;
 
-        let receiver_user_id = Uuid::from_slice(&req.receiver_user_id)
-            .ok()
-            .filter(|id| !id.is_nil())
-            .ok_or(())?;
+        let receiver_user_id: Uuid = receiver_user_id.to_uuid();
+        if receiver_user_id.is_nil() {
+            return Err(());
+        }
 
         let is_friends = User::is_friends_with(db, sender_user_id, receiver_user_id)
             .await
@@ -301,11 +304,11 @@ async fn handle_new_game(
 
         let sender_user = User::get(db, sender_user_id).await.map_err(|_| ())?;
 
-        let event = server_to_client::NewGameEvent {
-            sender_user_id: sender_user_id.as_bytes().to_vec(),
+        let event = S2cMsg::NewGameEvent {
+            sender_user_id: sender_user_id.to_guid(),
             sender_user_name: sender_user.user_name,
-            variant_id: req.variant_id,
-            variant_version: req.variant_version,
+            variant_id,
+            variant_version,
             timeout_secs: 60,
         };
         Ok((receiver_peer, sender_user_id, event))
@@ -314,10 +317,7 @@ async fn handle_new_game(
 
     match result {
         Ok((receiver_peer, sender_user_id, event)) => {
-            let msg = server_to_client::Msg {
-                s2c: Some(server_to_client::msg::S2c::NewGameEvent(event)),
-            };
-            let request_id = swarm.behaviour_mut().s2c.send_request(&receiver_peer, msg);
+            let request_id = swarm.behaviour_mut().s2c.send_request(&receiver_peer, event);
             pending.insert(
                 request_id,
                 PendingNewGame {
@@ -329,13 +329,9 @@ async fn handle_new_game(
             log::debug!("NewGame forwarded to {receiver_peer} (req_id={request_id:?})");
         }
         Err(()) => {
-            let decline = server_to_client::Msg {
-                s2c: Some(server_to_client::msg::S2c::NewGameResponse(
-                    server_to_client::NewGameResponse {
-                        accepted: false,
-                        receiver_peer_id: None,
-                    },
-                )),
+            let decline = S2cMsg::NewGameResponse {
+                accepted: Some(false),
+                receiver_peer_id: None,
             };
             if swarm
                 .behaviour_mut()
@@ -353,7 +349,7 @@ async fn handle_s2c_event(
     swarm: &mut Swarm<Behaviour>,
     _registry: &PeerRegistry,
     pending: &mut HashMap<OutboundRequestId, PendingNewGame>,
-    event: request_response::Event<server_to_client::Msg, client_to_server::Msg>,
+    event: request_response::Event<S2cMsg, C2sMsg>,
 ) -> Result<(), P2pError> {
     use request_response::{Event, Message};
     match event {
@@ -369,30 +365,17 @@ async fn handle_s2c_event(
                 log::warn!("Received s2c response for unknown request_id {request_id:?}");
                 return Ok(());
             };
-            let accepted = response
-                .c2s
-                .and_then(|c2s| {
-                    if let client_to_server::msg::C2s::NewGameAnswer(a) = c2s {
-                        Some(a.accepted)
-                    } else {
-                        None
-                    }
-                })
-                .unwrap_or(false);
+            let accepted = match response {
+                C2sMsg::NewGameAnswer { accepted } => accepted,
+                _ => false,
+            };
 
             let receiver_peer_id = if accepted {
                 Some(pending_game.receiver_peer_id.to_string())
             } else {
                 None
             };
-            let resp = server_to_client::Msg {
-                s2c: Some(server_to_client::msg::S2c::NewGameResponse(
-                    server_to_client::NewGameResponse {
-                        accepted,
-                        receiver_peer_id,
-                    },
-                )),
-            };
+            let resp = S2cMsg::NewGameResponse { accepted: Some(accepted), receiver_peer_id };
             if swarm
                 .behaviour_mut()
                 .c2s
@@ -410,13 +393,9 @@ async fn handle_s2c_event(
             log::warn!("s2c outbound failure to {peer}: {error:?} (id={request_id:?})");
             // Receiver disconnected or timed out — decline the original requester.
             if let Some(pending_game) = pending.remove(&request_id) {
-                let decline = server_to_client::Msg {
-                    s2c: Some(server_to_client::msg::S2c::NewGameResponse(
-                        server_to_client::NewGameResponse {
-                            accepted: false,
-                            receiver_peer_id: None,
-                        },
-                    )),
+                let decline = S2cMsg::NewGameResponse {
+                    accepted: Some(false),
+                    receiver_peer_id: None,
                 };
                 if swarm
                     .behaviour_mut()
@@ -440,10 +419,9 @@ async fn handle_s2c_event(
     Ok(())
 }
 
-fn validate_jwt(config: &JwtConfig, token_bytes: &[u8]) -> Result<Claims, P2pError> {
-    let token_str = std::str::from_utf8(token_bytes).map_err(|_| P2pError::InvalidToken)?;
+fn validate_jwt(config: &JwtConfig, token: &str) -> Result<Claims, P2pError> {
     let token_data =
-        jsonwebtoken::decode::<Claims>(token_str, &config.jwt_decoding_key, &config.jwt_validation)
+        jsonwebtoken::decode::<Claims>(token, &config.jwt_decoding_key, &config.jwt_validation)
             .map_err(|e| match e.kind() {
                 jsonwebtoken::errors::ErrorKind::ExpiredSignature => P2pError::TokenExpired,
                 _ => P2pError::InvalidToken,
@@ -488,7 +466,7 @@ impl PeerRegistry {
 
 struct PendingNewGame {
     /// Channel to reply to the original NewGame requester (c2s behaviour).
-    channel: ResponseChannel<server_to_client::Msg>,
+    channel: ResponseChannel<S2cMsg>,
     sender_user_id: Uuid,
     receiver_peer_id: PeerId,
 }
@@ -522,8 +500,8 @@ struct C2sCodec;
 #[async_trait]
 impl Codec for C2sCodec {
     type Protocol = C2sProtocol;
-    type Request = client_to_server::Msg;
-    type Response = server_to_client::Msg;
+    type Request = C2sMsg;
+    type Response = S2cMsg;
 
     async fn read_request<T>(&mut self, _: &Self::Protocol, io: &mut T) -> io::Result<Self::Request>
     where
@@ -531,8 +509,7 @@ impl Codec for C2sCodec {
     {
         let mut buf = Vec::new();
         io.read_to_end(&mut buf).await?;
-        client_to_server::Msg::decode(&*buf)
-            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
+        C2sMsg::deserialize(&buf).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
     }
 
     async fn read_response<T>(
@@ -545,8 +522,7 @@ impl Codec for C2sCodec {
     {
         let mut buf = Vec::new();
         io.read_to_end(&mut buf).await?;
-        server_to_client::Msg::decode(&*buf)
-            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
+        S2cMsg::deserialize(&buf).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
     }
 
     async fn write_request<T>(
@@ -558,10 +534,7 @@ impl Codec for C2sCodec {
     where
         T: AsyncWrite + Unpin + Send,
     {
-        let mut buf = Vec::new();
-        req.encode(&mut buf)
-            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
-        io.write_all(&buf).await
+        io.write_all(&req.serialize()).await
     }
 
     async fn write_response<T>(
@@ -573,10 +546,7 @@ impl Codec for C2sCodec {
     where
         T: AsyncWrite + Unpin + Send,
     {
-        let mut buf = Vec::new();
-        res.encode(&mut buf)
-            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
-        io.write_all(&buf).await
+        io.write_all(&res.serialize()).await
     }
 }
 
@@ -587,8 +557,8 @@ struct S2cCodec;
 #[async_trait]
 impl Codec for S2cCodec {
     type Protocol = S2cProtocol;
-    type Request = server_to_client::Msg;
-    type Response = client_to_server::Msg;
+    type Request = S2cMsg;
+    type Response = C2sMsg;
 
     async fn read_request<T>(&mut self, _: &Self::Protocol, io: &mut T) -> io::Result<Self::Request>
     where
@@ -596,8 +566,7 @@ impl Codec for S2cCodec {
     {
         let mut buf = Vec::new();
         io.read_to_end(&mut buf).await?;
-        server_to_client::Msg::decode(&*buf)
-            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
+        S2cMsg::deserialize(&buf).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
     }
 
     async fn read_response<T>(
@@ -610,8 +579,7 @@ impl Codec for S2cCodec {
     {
         let mut buf = Vec::new();
         io.read_to_end(&mut buf).await?;
-        client_to_server::Msg::decode(&*buf)
-            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
+        C2sMsg::deserialize(&buf).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
     }
 
     async fn write_request<T>(
@@ -623,10 +591,7 @@ impl Codec for S2cCodec {
     where
         T: AsyncWrite + Unpin + Send,
     {
-        let mut buf = Vec::new();
-        req.encode(&mut buf)
-            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
-        io.write_all(&buf).await
+        io.write_all(&req.serialize()).await
     }
 
     async fn write_response<T>(
@@ -638,10 +603,7 @@ impl Codec for S2cCodec {
     where
         T: AsyncWrite + Unpin + Send,
     {
-        let mut buf = Vec::new();
-        res.encode(&mut buf)
-            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
-        io.write_all(&buf).await
+        io.write_all(&res.serialize()).await
     }
 }
 

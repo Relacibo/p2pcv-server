@@ -26,11 +26,7 @@ use libp2p::{
 };
 use libp2p::{Multiaddr, Transport};
 use libp2p_core::muxing::StreamMuxerBox;
-use p2pcv_protobuf::{
-    client_to_server::{self, msg::C2s, NewGame},
-    server_to_client::{self, msg::S2c, NewGameEvent},
-};
-use prost::Message;
+use p2pcv_bebop::{C2sMsg, UuidExt};
 use rand::thread_rng;
 use tokio::{net::TcpStream, sync::Mutex};
 
@@ -99,12 +95,11 @@ async fn main() -> anyhow::Result<()> {
         }
     }
 
-    let new_game_request = NewGame {
-        receiver_user_id: receiver_user_id.as_bytes().to_vec(),
-        variant_id: variant_id.as_bytes().to_vec(),
+    let request = C2sMsg::NewGame {
+        receiver_user_id: receiver_user_id.to_guid(),
+        variant_id: variant_id.to_guid(),
         variant_version: "1.0.0".to_owned(),
     };
-    let request = C2s::NewGame(new_game_request);
 
     // pin_mut!(stdin_to_ws, handle);
     // future::select(future1, handle).await;

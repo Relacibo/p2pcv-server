@@ -1,0 +1,21 @@
+// server_to_client.bop — p2pcv signaling protocol, server → client messages
+
+union S2cMsg {
+    1 -> struct RegisterPeerResponse {
+        bool Success;
+    }
+    2 -> message GetFriendPeerIdResponse {
+        1 -> string PeerId;
+    }
+    3 -> message NewGameResponse {
+        1 -> bool Accepted;
+        2 -> string ReceiverPeerId;
+    }
+    4 -> struct NewGameEvent {
+        guid SenderUserId;
+        string SenderUserName;
+        guid VariantId;
+        string VariantVersion;
+        uint32 TimeoutSecs;
+    }
+}
