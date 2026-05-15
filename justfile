@@ -1,0 +1,18 @@
+# p2pcv-server justfile
+
+set dotenv-load := true
+
+default:
+    @just --list
+
+# Run SeaORM migrations
+migrate:
+    cargo run -p migration
+
+# Generate a new migration: just migration create_games
+migration name:
+    sea-orm-cli migrate generate {{ name }} --migration-dir migration/src
+
+# Regenerate bebop types from schemas
+bebop:
+    cargo build -p p2pcv-bebop

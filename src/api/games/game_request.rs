@@ -1,23 +1,19 @@
-use actix_web::{
-    web::{Data, Path},
-    HttpResponse,
+use std::sync::Arc;
+
+use axum::{
+    extract::{Path, State},
+    http::StatusCode,
 };
 use uuid::Uuid;
 
-use crate::{
-    api::auth::session::auth::Auth,
-    app_result::EndpointResultHttpResponse,
-    db::{db_conn::DbPool, extractor::DbConn, users::User},
-};
+use crate::{api::auth::session::auth::Auth, error::AppError, AppState};
 
-#[post("/send-request/from/{sender_id}/to/{receiver_id}")]
 pub async fn send(
-    mut db: DbConn,
+    State(state): State<Arc<AppState>>,
     auth: Auth,
-    path: Path<(Uuid, Uuid)>,
-) -> EndpointResultHttpResponse {
-    let (user_id, receiver_id) = path.into_inner();
+    Path((user_id, receiver_id)): Path<(Uuid, Uuid)>,
+) -> Result<StatusCode, AppError> {
     auth.should_be_user(user_id)?;
-    auth.should_be_friends_with(&mut db, receiver_id).await?;
-    Ok(HttpResponse::Ok().finish())
+    auth.should_be_friends_with(&state.db, receiver_id).await?;
+    Ok(StatusCode::OK)
 }

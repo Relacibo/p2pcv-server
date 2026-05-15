@@ -1,7 +1,12 @@
-use actix_web::web::{scope, ServiceConfig};
+use std::sync::Arc;
+
+use axum::{routing::post, Router};
 
 pub mod game_request;
 
-pub fn config(cfg: &mut ServiceConfig) {
-    cfg.service(scope("/games")).service(game_request::send);
+pub fn router() -> Router<Arc<crate::AppState>> {
+    Router::new().route(
+        "/send-request/from/{sender_id}/to/{receiver_id}",
+        post(game_request::send),
+    )
 }

@@ -1,6 +1,10 @@
-use jsonwebtoken::{decode_header, DecodingKey, Validation, Algorithm, decode};
+use jsonwebtoken::{decode, decode_header, Algorithm, DecodingKey, Validation};
 
-use crate::{db::users::{NewUser}, api::auth::public_key_storage::{KeyStore, PublicKey}, error::AppError};
+use crate::{
+    api::auth::public_key_storage::{KeyStore, PublicKey},
+    db::users::NewUser,
+    error::AppError,
+};
 
 use super::config::Config;
 

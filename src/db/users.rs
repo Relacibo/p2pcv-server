@@ -1,43 +1,26 @@
-use crate::error::AppError;
-use crate::app_result::AppResult;
-
-use super::schema::google_users as db_google_users;
-use super::schema::lichess_users as db_lichess_users;
-use super::schema::users as db_users;
-use chrono::{DateTime, Utc};
-
-use diesel::prelude::*;
-use diesel::result::OptionalExtension;
-use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
+use sea_orm::{
+    ActiveModelTrait, ActiveValue::Set, ColumnTrait, Condition, DatabaseConnection, DbBackend,
+    DbErr, EntityTrait, FromQueryResult, PaginatorTrait, QueryFilter, QueryOrder, Statement,
+    TransactionTrait,
+};
 use uuid::Uuid;
 
-#[derive(Serialize, Queryable, Clone, Debug, Selectable)]
+use crate::app_result::AppResult;
+
+use super::entities::{google_user, lichess_user, user};
+
+pub type User = user::Model;
+pub type LichessUser = lichess_user::Model;
+
+#[derive(Clone, Debug, Serialize, FromQueryResult)]
 #[serde(rename_all = "camelCase")]
-#[diesel(table_name = db_users)]
-pub struct User {
+pub struct PublicUser {
     pub id: Uuid,
     pub user_name: String,
-    pub display_name: String,
-    pub email: String,
-    pub locale: String,
-    pub verified_email: bool,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+    pub created_at: sea_orm::entity::prelude::DateTimeWithTimeZone,
 }
 
-#[derive(Serialize, Queryable, Clone, Debug, Selectable)]
-#[serde(rename_all = "camelCase")]
-#[diesel(table_name = db_lichess_users)]
-pub struct LichessUser {
-    pub id: String,
-    pub username: String,
-    pub user_id: Uuid,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-}
-
-#[derive(Insertable, Clone, Debug)]
-#[diesel(table_name = db_users)]
+#[derive(Clone, Debug)]
 pub struct NewUser {
     pub user_name: String,
     pub display_name: String,
@@ -46,8 +29,7 @@ pub struct NewUser {
     pub verified_email: bool,
 }
 
-#[derive(Insertable, Clone, Debug)]
-#[diesel(table_name = db_users)]
+#[derive(Clone, Debug)]
 pub struct NewUserWithId {
     pub id: Uuid,
     pub user_name: String,
@@ -57,180 +39,234 @@ pub struct NewUserWithId {
     pub verified_email: bool,
 }
 
-#[derive(AsChangeset, Clone, Debug)]
-#[diesel(table_name = db_lichess_users)]
-pub struct UpdateLichessUser {
-    pub username: Option<String>,
-}
-
-#[derive(Insertable, Clone, Debug)]
-#[diesel(table_name = db_lichess_users)]
+#[derive(Clone, Debug)]
 pub struct NewLichessUser {
     pub id: String,
     pub username: String,
     pub user_id: Uuid,
 }
 
-#[derive(Serialize, Queryable, QueryableByName, PartialEq, Debug, Clone, Selectable)]
-#[serde(rename_all = "camelCase")]
-#[diesel(table_name = db_users)]
-pub struct PublicUser {
-    pub id: Uuid,
-    pub user_name: String,
-    pub created_at: DateTime<Utc>,
+#[derive(Clone, Debug)]
+pub struct UpdateLichessUser {
+    pub username: Option<String>,
 }
 
-impl User {
-    pub async fn insert(conn: &mut AsyncPgConnection, user: NewUser) -> AppResult<()> {
-        use db_users::dsl::*;
-        diesel::insert_into(users)
-            .values(user)
-            .execute(conn)
-            .await?;
+#[derive(FromQueryResult)]
+struct FriendEntryRow {
+    id: Uuid,
+    user_name: String,
+    created_at: sea_orm::entity::prelude::DateTimeWithTimeZone,
+    friends_created_at: sea_orm::entity::prelude::DateTimeWithTimeZone,
+}
+
+impl From<user::Model> for PublicUser {
+    fn from(value: user::Model) -> Self {
+        Self {
+            id: value.id,
+            user_name: value.user_name,
+            created_at: value.created_at,
+        }
+    }
+}
+
+impl user::Model {
+    pub async fn delete(db: &DatabaseConnection, query_uuid: Uuid) -> AppResult<()> {
+        db.transaction::<_, _, crate::error::AppError>(|txn| {
+            Box::pin(async move {
+                super::entities::google_user::Entity::delete_many()
+                    .filter(google_user::Column::UserId.eq(query_uuid))
+                    .exec(txn)
+                    .await?;
+                super::entities::lichess_user::Entity::delete_many()
+                    .filter(lichess_user::Column::UserId.eq(query_uuid))
+                    .exec(txn)
+                    .await?;
+                super::entities::friend_request::Entity::delete_many()
+                    .filter(
+                        Condition::any()
+                            .add(super::entities::friend_request::Column::SenderId.eq(query_uuid))
+                            .add(
+                                super::entities::friend_request::Column::ReceiverId.eq(query_uuid),
+                            ),
+                    )
+                    .exec(txn)
+                    .await?;
+                super::entities::friend::Entity::delete_many()
+                    .filter(
+                        Condition::any()
+                            .add(super::entities::friend::Column::User1Id.eq(query_uuid))
+                            .add(super::entities::friend::Column::User2Id.eq(query_uuid)),
+                    )
+                    .exec(txn)
+                    .await?;
+                user::Entity::delete_by_id(query_uuid).exec(txn).await?;
+                Ok(())
+            })
+        })
+        .await?;
         Ok(())
     }
 
-    pub async fn delete(conn: &mut AsyncPgConnection, query_uuid: Uuid) -> AppResult<()> {
-        use db_google_users::dsl::{google_users, user_id};
-        use db_users::dsl::users;
-        diesel::delete(google_users.filter(user_id.eq(query_uuid)))
-            .execute(conn)
+    pub async fn list(db: &DatabaseConnection) -> AppResult<Vec<PublicUser>> {
+        let users = user::Entity::find()
+            .order_by_asc(user::Column::UserName)
+            .all(db)
             .await?;
-        diesel::delete(users.find(query_uuid)).execute(conn).await?;
-        Ok(())
+        Ok(users.into_iter().map(Into::into).collect())
     }
 
-    pub async fn list(conn: &mut AsyncPgConnection) -> AppResult<Vec<PublicUser>> {
-        use db_users::dsl::{user_name, users};
-        let us = users
-            .order(user_name.asc())
-            .select(PublicUser::as_select())
-            .load(conn)
-            .await?;
-        Ok(us)
-    }
-
-    pub async fn get(conn: &mut AsyncPgConnection, query_uuid: Uuid) -> AppResult<User> {
-        use db_users::dsl::users;
-        let user = users.find(query_uuid).get_result(conn).await?;
-        Ok(user)
+    pub async fn get(db: &DatabaseConnection, id: Uuid) -> AppResult<user::Model> {
+        user::Entity::find_by_id(id)
+            .one(db)
+            .await?
+            .ok_or_else(|| DbErr::RecordNotFound(format!("user {id}")))
+            .map_err(Into::into)
     }
 
     pub async fn insert_with_google_id(
-        conn: &mut AsyncPgConnection,
-        user: NewUser,
+        db: &DatabaseConnection,
+        new_user: NewUser,
         google_id: &str,
-    ) -> AppResult<User> {
-        use db_google_users::dsl::{google_users, id as g_id, user_id as g_user_id};
-        use db_users::dsl::users;
+    ) -> AppResult<user::Model> {
         let google_id = google_id.to_string();
         let user_id = Uuid::new_v4();
-        let user = user.clone().with_id(user_id);
-        let user = conn
-            .transaction::<_, AppError, _>(|conn| {
+        let user = new_user.with_id(user_id);
+        let inserted = db
+            .transaction::<_, _, crate::error::AppError>(|txn| {
                 Box::pin(async move {
-                    let user: User = diesel::insert_into(users)
-                        .values(user)
-                        .returning(users::all_columns())
-                        .get_result(conn)
+                    let user = user::Entity::insert(user.into_active_model())
+                        .exec_with_returning(txn)
                         .await?;
-                    diesel::insert_into(google_users)
-                        .values((g_id.eq(google_id), g_user_id.eq(user_id)))
-                        .execute(conn)
-                        .await?;
+                    google_user::Entity::insert(google_user::ActiveModel {
+                        id: Set(google_id),
+                        user_id: Set(user_id),
+                        created_at: Default::default(),
+                    })
+                    .exec(txn)
+                    .await?;
                     Ok(user)
                 })
             })
             .await?;
-        Ok(user)
+        Ok(inserted)
     }
 
     pub async fn insert_lichess_user(
-        conn: &mut AsyncPgConnection,
-        user: NewUserWithId,
-        lichess_user: NewLichessUser,
-    ) -> AppResult<(LichessUser, User)> {
-        use db_lichess_users::dsl::lichess_users;
-        use db_users::dsl::users;
-        let user = conn
-            .transaction::<_, AppError, _>(|conn| {
+        db: &DatabaseConnection,
+        new_user: NewUserWithId,
+        new_lichess_user: NewLichessUser,
+    ) -> AppResult<(lichess_user::Model, user::Model)> {
+        let inserted = db
+            .transaction::<_, _, crate::error::AppError>(|txn| {
                 Box::pin(async move {
-                    let user: User = diesel::insert_into(users)
-                        .values(user)
-                        .returning(User::as_returning())
-                        .get_result(conn)
+                    let user = user::Entity::insert(new_user.into_active_model())
+                        .exec_with_returning(txn)
                         .await?;
-                    let lichess_user: LichessUser = diesel::insert_into(lichess_users)
-                        .values(lichess_user)
-                        .returning(LichessUser::as_returning())
-                        .get_result(conn)
-                        .await?;
+                    let lichess_user = lichess_user::Entity::insert(lichess_user::ActiveModel {
+                        id: Set(new_lichess_user.id),
+                        username: Set(new_lichess_user.username),
+                        user_id: Set(new_lichess_user.user_id),
+                        created_at: Default::default(),
+                        updated_at: Default::default(),
+                    })
+                    .exec_with_returning(txn)
+                    .await?;
                     Ok((lichess_user, user))
                 })
             })
             .await?;
-        Ok(user)
+        Ok(inserted)
     }
 
     pub async fn get_with_google_id(
-        conn: &mut AsyncPgConnection,
+        db: &DatabaseConnection,
         google_id: &str,
-    ) -> AppResult<Option<User>> {
-        use db_google_users::dsl::google_users;
-        use db_users::dsl::users;
-        let user = google_users
-            .find(google_id)
-            .inner_join(users)
-            .select(users::all_columns())
-            .get_result(conn)
-            .await
-            .optional()?;
-        Ok(user)
+    ) -> AppResult<Option<user::Model>> {
+        let user_id = Self::get_id_with_google_id(db, google_id).await?;
+        match user_id {
+            Some(user_id) => Ok(Some(Self::get(db, user_id).await?)),
+            None => Ok(None),
+        }
     }
 
     pub async fn get_id_with_google_id(
-        conn: &mut AsyncPgConnection,
+        db: &DatabaseConnection,
         google_id: &str,
     ) -> AppResult<Option<Uuid>> {
-        use db_google_users::dsl::{google_users, user_id};
-        let uid = google_users
-            .find(google_id)
-            .select(user_id)
-            .get_result(conn)
-            .await
-            .optional()?;
-        Ok(uid)
+        let link = google_user::Entity::find_by_id(google_id.to_string())
+            .one(db)
+            .await?;
+        Ok(link.map(|link| link.user_id))
     }
 
     pub async fn get_with_lichess_id(
-        conn: &mut AsyncPgConnection,
+        db: &DatabaseConnection,
         lichess_id: &str,
-    ) -> AppResult<Option<User>> {
-        use db_lichess_users::dsl::lichess_users;
-        use db_users::dsl::users;
-        let user = lichess_users
-            .find(lichess_id)
-            .inner_join(users)
-            .select(users::all_columns())
-            .get_result(conn)
-            .await
-            .optional()?;
-        Ok(user)
+    ) -> AppResult<Option<user::Model>> {
+        let link = lichess_user::Entity::find_by_id(lichess_id.to_string())
+            .one(db)
+            .await?;
+        match link {
+            Some(link) => Ok(Some(Self::get(db, link.user_id).await?)),
+            None => Ok(None),
+        }
     }
 
     pub async fn update_lichess_user(
-        conn: &mut AsyncPgConnection,
-        lichess_uid: &str,
-        lichess_user: UpdateLichessUser,
-    ) -> AppResult<LichessUser> {
-        use db_lichess_users::dsl::id;
-        let user: LichessUser = diesel::update(db_lichess_users::table)
-            .filter(id.eq(lichess_uid))
-            .set(&lichess_user)
-            .returning(LichessUser::as_returning())
-            .get_result(conn)
+        db: &DatabaseConnection,
+        lichess_id: &str,
+        lichess_user_update: UpdateLichessUser,
+    ) -> AppResult<lichess_user::Model> {
+        let model = lichess_user::Entity::find_by_id(lichess_id.to_string())
+            .one(db)
+            .await?
+            .ok_or_else(|| DbErr::RecordNotFound(format!("lichess_user {lichess_id}")))?;
+        let mut active_model: lichess_user::ActiveModel = model.into();
+        if let Some(username) = lichess_user_update.username {
+            active_model.username = Set(username);
+        }
+        Ok(active_model.update(db).await?)
+    }
+
+    pub async fn is_friends_with(
+        db: &DatabaseConnection,
+        user1_id: Uuid,
+        user2_id: Uuid,
+    ) -> Result<bool, sea_orm::DbErr> {
+        let (user1_id, user2_id) = sort_tuple((user1_id, user2_id));
+        let count = super::entities::friend::Entity::find()
+            .filter(super::entities::friend::Column::User1Id.eq(user1_id))
+            .filter(super::entities::friend::Column::User2Id.eq(user2_id))
+            .count(db)
             .await?;
-        Ok(user)
+        Ok(count > 0)
+    }
+
+    pub async fn list_friends_by_user_id(
+        db: &DatabaseConnection,
+        user_id: Uuid,
+    ) -> Result<Vec<super::friends::FriendEntry>, sea_orm::DbErr> {
+        let rows = FriendEntryRow::find_by_statement(Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            r#"SELECT users.id, user_name, users.created_at, tmp.created_at_ret AS friends_created_at
+               FROM users INNER JOIN (SELECT * FROM get_friend_entries($1)) AS tmp ON users.id = tmp.friend_user_id_ret
+               ORDER BY user_name"#,
+            vec![user_id.into()],
+        ))
+        .all(db)
+        .await?;
+
+        Ok(rows
+            .into_iter()
+            .map(|row| super::friends::FriendEntry {
+                created_at: row.friends_created_at,
+                friend: PublicUser {
+                    id: row.id,
+                    user_name: row.user_name,
+                    created_at: row.created_at,
+                },
+            })
+            .collect())
     }
 }
 
@@ -251,5 +287,31 @@ impl NewUser {
             locale,
             verified_email,
         }
+    }
+}
+
+impl NewUserWithId {
+    fn into_active_model(self) -> user::ActiveModel {
+        user::ActiveModel {
+            id: Set(self.id),
+            user_name: Set(self.user_name),
+            display_name: Set(self.display_name),
+            email: Set(self.email),
+            locale: Set(self.locale.unwrap_or_else(|| "en".to_string())),
+            verified_email: Set(self.verified_email),
+            created_at: Default::default(),
+            updated_at: Default::default(),
+        }
+    }
+}
+
+fn sort_tuple<T>(t: (T, T)) -> (T, T)
+where
+    T: Ord,
+{
+    let (a, b) = t;
+    match a.cmp(&b) {
+        std::cmp::Ordering::Less | std::cmp::Ordering::Equal => (a, b),
+        std::cmp::Ordering::Greater => (b, a),
     }
 }

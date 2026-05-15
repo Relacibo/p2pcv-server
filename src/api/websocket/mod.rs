@@ -1,6 +1,7 @@
 use std::{
     borrow::BorrowMut,
     collections::HashMap,
+    env,
     sync::{
         atomic::{AtomicIsize, AtomicU16, Ordering},
         Arc,
@@ -12,7 +13,7 @@ use actix_web::{
     HttpRequest, Responder,
 };
 use actix_ws::{CloseReason, Closed, Session};
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Duration, Utc};
 use futures::StreamExt;
 use p2pcv_protobuf::{
     client_to_server::{
@@ -31,7 +32,15 @@ use crate::{api::auth::session::auth::Auth, error::AppError};
 use std::fmt::Debug;
 
 pub fn config(cfg: &mut ServiceConfig) {
-    cfg.service(ws).app_data(Data::new(Websockets::default()));
+    let ping_interval_secs = env::var("WS_PING_INTERVAL_SECS")
+        .ok()
+        .and_then(|s| s.parse::<i64>().ok())
+        .unwrap_or(60);
+    let ping_interval = Duration::seconds(ping_interval_secs);
+    cfg.service(ws).app_data(Data::new(Websockets {
+        ping_interval,
+        sessions: Default::default(),
+    }));
 }
 
 #[get("ws")]
@@ -93,6 +102,9 @@ async fn handle_client_message(
             ws_session.update_pinged();
             session.pong(&bytes).await?;
         }
+        actix_ws::Message::Pong(_) => {
+            ws_session.update_pinged();
+        }
         actix_ws::Message::Binary(msg) => {
             ws_session.update_pinged();
             let Msg {
@@ -137,7 +149,7 @@ async fn handle_c2s(
     Ok(())
 }
 
-async fn send_response(session: &mut Session, response: S2c) -> Result<(), WebsocketError> {
+async fn send_s2c(session: &mut Session, response: S2c) -> Result<(), WebsocketError> {
     let mut buf = Vec::new();
     response.encode(&mut buf);
     session.binary(buf).await?;
@@ -157,7 +169,7 @@ async fn handle_new_game(
         peer_id: Some(Uuid::new_v4().as_bytes().to_vec()),
     };
     let res = S2c::NewGameResponse(response);
-    send_response(session, res).await?;
+    send_s2c(session, res).await?;
     Ok(())
 }
 
@@ -184,6 +196,7 @@ async fn handle_new_game_event_response(
 
 #[derive(Debug, Default)]
 pub struct Websockets {
+    pub ping_interval: Duration,
     pub sessions: dashmap::DashMap<Uuid, WebsocketSession>,
 }
 

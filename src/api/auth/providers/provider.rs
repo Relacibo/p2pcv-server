@@ -1,10 +1,10 @@
-use actix_web::HttpRequest;
 use async_trait::async_trait;
-use diesel_async::AsyncPgConnection;
+use sea_orm::DatabaseConnection;
 use thiserror::Error;
 
 use crate::{
     api::auth::payloads::OauthData, app_result::AppResult, db::users::User, error::AppError,
+    AppState,
 };
 
 use super::{
@@ -13,28 +13,27 @@ use super::{
 
 #[async_trait]
 pub trait Provider {
-    async fn get_updated_user(&self, conn: &mut AsyncPgConnection) -> Result<User, ProviderError>;
+    async fn get_updated_user(&self, db: &DatabaseConnection) -> Result<User, ProviderError>;
     async fn insert_user(
         &self,
-        conn: &mut AsyncPgConnection,
+        db: &DatabaseConnection,
         username: &str,
     ) -> Result<User, ProviderError>;
 }
 
 impl ProviderFactory {
     pub async fn from_oauth_data(
-        req: &HttpRequest,
+        state: &AppState,
         oauth_data: OauthData,
-    ) -> AppResult<Box<dyn Provider>> {
-        let provider: Box<dyn Provider> = match oauth_data {
+    ) -> AppResult<Box<dyn Provider + Send + Sync>> {
+        let provider: Box<dyn Provider + Send + Sync> = match oauth_data {
             OauthData::Google { credential } => {
-                Box::new(GoogleProvider::new(req, credential).await?)
+                Box::new(GoogleProvider::new(state, credential).await?)
             }
-
             OauthData::Lichess {
                 code,
                 code_verifier,
-            } => Box::new(LichessProvider::new(req, code, code_verifier).await?),
+            } => Box::new(LichessProvider::new(state, code, code_verifier).await?),
         };
         Ok(provider)
     }
@@ -52,11 +51,11 @@ pub enum ProviderError {
 
 impl From<ProviderError> for AppError {
     fn from(value: ProviderError) -> Self {
-        use ProviderError::*;
         match value {
-            UserNotFound { .. } => AppError::Unexpected,
-            UserAlreadyExists { .. } => AppError::Unexpected,
-            App(err) => err,
+            ProviderError::UserNotFound { .. } | ProviderError::UserAlreadyExists { .. } => {
+                AppError::Unexpected
+            }
+            ProviderError::App(err) => err,
         }
     }
 }

@@ -1,7 +1,4 @@
-use crate::{
-    api::auth::session::claims::Claims,
-    db::users::{NewLichessUser, NewUser, NewUserWithId, UpdateLichessUser},
-};
+use crate::db::users::{NewLichessUser, NewUserWithId, UpdateLichessUser};
 
 #[derive(Debug, Clone)]
 pub struct LichessClaims {

@@ -1,23 +1,15 @@
-use std::sync::Arc;
-
-use actix_web::{web::Data, HttpRequest};
 use async_trait::async_trait;
-use diesel_async::AsyncPgConnection;
+use sea_orm::DatabaseConnection;
 
 use crate::{
-    api::auth::{
-        providers::provider::{Provider, ProviderError},
-        public_key_storage::KeyStore,
-    },
+    api::auth::providers::provider::{Provider, ProviderError},
     app_result::AppResult,
     db::users::{NewUser, User},
     error::AppError,
+    AppState,
 };
 
-use super::{
-    claims::{extract_google_claims, GoogleClaims},
-    config::Config,
-};
+use super::claims::{extract_google_claims, GoogleClaims};
 
 #[derive(Clone, Debug)]
 pub struct GoogleProvider {
@@ -25,52 +17,40 @@ pub struct GoogleProvider {
 }
 
 impl GoogleProvider {
-    pub async fn new(req: &HttpRequest, credential: String) -> AppResult<Self> {
-        let keystore = req
-            .app_data::<Data<KeyStore>>()
-            .unwrap()
-            .clone()
-            .into_inner();
-        let config = req.app_data::<Data<Config>>().unwrap().clone().into_inner();
-
-        let claims = extract_google_claims(&config, &keystore, &credential).await?;
-
+    pub async fn new(state: &AppState, credential: String) -> AppResult<Self> {
+        let claims =
+            extract_google_claims(&state.google_config, &state.google_keystore, &credential)
+                .await?;
         Ok(Self { claims })
     }
 }
 
 #[async_trait]
 impl Provider for GoogleProvider {
-    async fn get_updated_user(
-        &self,
-        mut conn: &mut AsyncPgConnection,
-    ) -> Result<User, ProviderError> {
-        let Self { claims } = self;
-        let GoogleClaims { sub, name, .. } = claims;
-        let user = User::get_with_google_id(&mut conn, sub)
-            .await?
-            .ok_or_else(|| ProviderError::UserNotFound {
+    async fn get_updated_user(&self, db: &DatabaseConnection) -> Result<User, ProviderError> {
+        let GoogleClaims { sub, name, .. } = &self.claims;
+        let user = User::get_with_google_id(db, sub).await?.ok_or_else(|| {
+            ProviderError::UserNotFound {
                 user_name: name.to_string(),
-            })?;
-        // Don't update, as we don't store any google specific data
+            }
+        })?;
         Ok(user)
     }
 
     async fn insert_user(
         &self,
-        mut conn: &mut AsyncPgConnection,
+        db: &DatabaseConnection,
         username: &str,
     ) -> Result<User, ProviderError> {
-        let Self { claims } = self;
-        let GoogleClaims { sub, .. } = claims;
-        let new_user: NewUser = claims.clone().to_db_user(username.to_string());
-        let insert_result = User::insert_with_google_id(&mut conn, new_user, &sub).await;
+        let GoogleClaims { sub, .. } = &self.claims;
+        let new_user: NewUser = self.claims.clone().to_db_user(username.to_string());
+        let insert_result = User::insert_with_google_id(db, new_user, sub).await;
         let user = match insert_result {
             Ok(user) => user,
             Err(AppError::UsernameAlreadyExists) => Err(ProviderError::UserAlreadyExists {
                 user_name: username.to_string(),
             })?,
-            res => res?,
+            Err(err) => Err(err)?,
         };
         Ok(user)
     }

@@ -1,0 +1,2 @@
+# Collapse generated/lock files in GitHub PR diffs
+Cargo.lock linguist-generated=true
