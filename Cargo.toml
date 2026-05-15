@@ -10,7 +10,6 @@ name = "app"
 path = "src/main.rs"
 
 [workspace]
-members = ["libs/pvpcv_bebop", "tools/p2p_dbg", "migration"]
 
 [dependencies]
 axum = { version = "0.8", features = ["macros"] }

@@ -3439,24 +3439,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "p2p_dbg"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "base64",
- "dotenvy",
- "env_logger",
- "futures-util",
- "libp2p",
- "libp2p-webrtc",
- "log",
- "p2pcv-bebop",
- "rand 0.8.6",
- "tokio",
- "uuid",
-]
-
-[[package]]
 name = "p2pcv-bebop"
 version = "0.1.0"
 dependencies = [
