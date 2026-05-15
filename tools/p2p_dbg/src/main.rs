@@ -1,34 +1,22 @@
 use std::{
     env,
     hash::{DefaultHasher, Hash, Hasher},
-    io::Read,
     net::Ipv4Addr,
-    str::FromStr,
-    sync::Arc,
     time::Duration,
 };
 
-use base64::Engine;
-use dotenvy::dotenv;
 use env_logger::Env;
-use futures_util::{
-    future, pin_mut,
-    stream::{SplitSink, SplitStream},
-    SinkExt, StreamExt,
-};
+use futures_util::StreamExt;
 use libp2p::{
+    core::muxing::StreamMuxerBox,
     gossipsub,
     identity::Keypair,
     multiaddr::Protocol,
-    multihash::Multihash,
     ping,
     swarm::{NetworkBehaviour, SwarmEvent},
+    Multiaddr, Transport,
 };
-use libp2p::{Multiaddr, Transport};
-use libp2p_core::muxing::StreamMuxerBox;
-use p2pcv_bebop::{C2sMsg, UuidExt};
 use rand::thread_rng;
-use tokio::{net::TcpStream, sync::Mutex};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -44,9 +32,6 @@ async fn main() -> anyhow::Result<()> {
     let server_listen_address =
         env::var("P2P_SERVER_LISTEN_ADDRESS").expect("P2P_SERVER_LISTEN_ADDRESS missing!");
 
-    let receiver_user_id = uuid::uuid!("12345678-dead-beef-b116-b0000000b135");
-    let variant_id = uuid::uuid!("fa21a473-dead-beef-b116-b0000000b135");
-
     let mut swarm = libp2p::SwarmBuilder::with_new_identity()
         .with_tokio()
         .with_other_transport(|id_keys| {
@@ -60,7 +45,9 @@ async fn main() -> anyhow::Result<()> {
             Ok(res)
         })?
         .with_behaviour(Behaviour::create)?
-        .with_swarm_config(|c| c.with_idle_connection_timeout(Duration::from_secs(timeout_secs)))
+        .with_swarm_config(|cfg| {
+            cfg.with_idle_connection_timeout(Duration::from_secs(timeout_secs))
+        })
         .build();
 
     let address_webrtc = Multiaddr::from(Ipv4Addr::UNSPECIFIED)
@@ -79,10 +66,10 @@ async fn main() -> anyhow::Result<()> {
             swarm_event = swarm.next() => {
                 if let Some(swarm_event) = swarm_event {
                     match swarm_event {
-                        SwarmEvent::ConnectionEstablished { peer_id, connection_id, endpoint, num_established, concurrent_dial_errors, established_in } => {
+                        SwarmEvent::ConnectionEstablished { peer_id, .. } => {
                             log::info!("Connected to {peer_id}!");
                         },
-                        SwarmEvent::ConnectionClosed { peer_id, connection_id, endpoint, num_established, cause } => {
+                        SwarmEvent::ConnectionClosed { peer_id, .. } => {
                             log::info!("Connection to {peer_id} closed!");
                         },
                         _ => ()
@@ -94,12 +81,6 @@ async fn main() -> anyhow::Result<()> {
             }
         }
     }
-
-    let request = C2sMsg::NewGame {
-        receiver_user_id: receiver_user_id.to_guid(),
-        variant_id: variant_id.to_guid(),
-        variant_version: "1.0.0".to_owned(),
-    };
 
     // pin_mut!(stdin_to_ws, handle);
     // future::select(future1, handle).await;

@@ -20,9 +20,8 @@ use libp2p::{
     ping,
     request_response::{self, Codec, OutboundRequestId, ProtocolSupport, ResponseChannel},
     swarm::{NetworkBehaviour, SwarmEvent},
-    Multiaddr, PeerId, Swarm, SwarmBuilder, TransportError,
+    Multiaddr, PeerId, Swarm, SwarmBuilder, Transport, TransportError,
 };
-use libp2p_core::transport::Transport;
 use libp2p_webrtc::tokio::Certificate;
 use p2pcv_bebop::{C2sMsg, Guid, GuidExt, S2cMsg, UuidExt};
 use thiserror::Error;
@@ -77,9 +76,7 @@ pub async fn init(db: DbPool, jwt_config: JwtConfig) -> Result<(), P2pError> {
         .expect("Could not add WebRTC transport")
         .with_behaviour(Behaviour::create)
         .map_err(|_| P2pError::InitP2p)?
-        .with_swarm_config(|cfg| {
-            cfg.with_idle_connection_timeout(Duration::from_secs(timeout_secs))
-        })
+        .with_swarm_config(|cfg| cfg.with_idle_connection_timeout(Duration::from_secs(timeout_secs)))
         .build();
 
     let address_webrtc = Multiaddr::from(address)
@@ -152,6 +149,7 @@ async fn handle_c2s_event(
             message: Message::Request {
                 request, channel, ..
             },
+            ..
         } => {
             let Some(c2s) = Some(request) else {
                 log::warn!("Received empty c2s message from {peer}");
@@ -192,6 +190,7 @@ async fn handle_c2s_event(
             peer,
             request_id,
             error,
+            ..
         } => {
             log::warn!("c2s outbound failure to {peer}: {error:?} (id={request_id:?})");
         }
@@ -199,6 +198,7 @@ async fn handle_c2s_event(
             peer,
             request_id,
             error,
+            ..
         } => {
             log::warn!("c2s inbound failure from {peer}: {error:?} (id={request_id:?})");
         }
@@ -360,6 +360,7 @@ async fn handle_s2c_event(
                     request_id,
                     response,
                 },
+            ..
         } => {
             let Some(pending_game) = pending.remove(&request_id) else {
                 log::warn!("Received s2c response for unknown request_id {request_id:?}");
@@ -389,6 +390,7 @@ async fn handle_s2c_event(
             peer,
             request_id,
             error,
+            ..
         } => {
             log::warn!("s2c outbound failure to {peer}: {error:?} (id={request_id:?})");
             // Receiver disconnected or timed out — decline the original requester.
@@ -411,6 +413,7 @@ async fn handle_s2c_event(
             peer,
             request_id,
             error,
+            ..
         } => {
             log::warn!("s2c inbound failure from {peer}: {error:?} (id={request_id:?})");
         }

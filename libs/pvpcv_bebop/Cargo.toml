@@ -1,7 +1,7 @@
 [package]
 name = "p2pcv-bebop"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 build = "build.rs"
 
 [features]
@@ -10,7 +10,7 @@ bebop-owned-all = []
 
 [dependencies]
 bebop = "3.2.3"
-uuid = { version = "1.2", features = ["v4"] }
+uuid = { version = "1.23", features = ["v4"] }
 
 [build-dependencies]
 bebop-tools = "3.2.3"

@@ -31,6 +31,11 @@ async fn main() -> io::Result<()> {
     dotenv().ok();
     env_logger::init_from_env(Env::default().default_filter_or("debug"));
 
+    let args: Vec<String> = std::env::args().collect();
+    if args.get(1).map(String::as_str) == Some("migrate") {
+        return run_migrations().await;
+    }
+
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL not set!");
     let host = env::var("ACTIX_HOST").expect("ACTIX_HOST not set!");
     let port = env::var("ACTIX_PORT").expect("ACTIX_PORT not set!");
@@ -38,7 +43,6 @@ async fn main() -> io::Result<()> {
     let db = Database::connect(&database_url)
         .await
         .expect("DB connection failed");
-    Migrator::up(&db, None).await.expect("Migration failed");
 
     let jwt_config = api::auth::session::config::Config::from_env();
     let google_config = api::auth::providers::google::config::Config::from_env();
@@ -87,4 +91,16 @@ fn cors_layer() -> CorsLayer {
     {
         CorsLayer::new()
     }
+}
+
+async fn run_migrations() -> io::Result<()> {
+    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL not set!");
+    let db = Database::connect(&database_url)
+        .await
+        .expect("DB connection failed");
+    Migrator::up(&db, None)
+        .await
+        .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+    log::info!("Migrations complete");
+    Ok(())
 }

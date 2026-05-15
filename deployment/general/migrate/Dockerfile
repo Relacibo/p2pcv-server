@@ -1,11 +1,29 @@
-FROM rust:bookworm
+ARG RUST_VERSION=1.95.0
+ARG CARGO_CHEF_VERSION=0.1.77
+ARG DEBIAN_TAG=trixie-slim
+FROM rust:${RUST_VERSION} AS chef
+RUN cargo install cargo-chef@${CARGO_CHEF_VERSION} --locked
+RUN apt update \
+  && DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
+  build-essential clang make cmake pkg-config \
+  && apt-get autoremove -y && apt-get clean -y
 WORKDIR /app
-RUN chmod 777 /app
-RUN apt update && DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends postgresql-client git
-RUN cargo install diesel_cli@^2.1 --locked --no-default-features --features postgres
 
-COPY /deployment/general/migrate/run.sh /usr/local/bin
+FROM chef AS planner
+COPY . .
+RUN cargo chef prepare --recipe-path recipe.json --bin app
 
-RUN chmod +rx /usr/local/bin/run.sh
+FROM chef AS builder
+COPY --from=planner /app/recipe.json recipe.json
+RUN cargo chef cook --release --recipe-path recipe.json --bin app
+COPY . .
+RUN cargo build --release --bin app
 
-CMD [ "/bin/bash", "/usr/local/bin/run.sh" ]
+FROM debian:${DEBIAN_TAG}
+WORKDIR /app
+RUN apt update && \
+  DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends libssl3 ca-certificates \
+  && apt-get autoremove -y && apt-get clean -y \
+  && rm -rf /var/lib/apt/lists/*
+COPY --from=builder /app/target/release/app /usr/local/bin
+CMD ["/usr/local/bin/app", "migrate"]

@@ -1,4 +1,4 @@
 [toolchain]
 channel = "stable"
-version = "1.80"
+version = "1.95.0"
 components = ["rustfmt", "clippy", "rustc", "rust-src"]

@@ -1,12 +1,13 @@
+use std::{fs, path::Path};
+
 fn main() {
-    let bebopc_path = std::path::PathBuf::from(
-        std::env::var("CARGO_MANIFEST_DIR").unwrap(),
-    )
-    .join("../../target/bebopc");
-    bebop_tools::download_bebopc(bebopc_path);
-    bebop_tools::build_schema_dir(
-        "schemas",
-        "src/generated",
-        &bebop_tools::BuildConfig::default(),
-    );
+    println!("cargo:rerun-if-changed=build.rs");
+    println!("cargo:rerun-if-changed=generated");
+
+    let src_dir = Path::new("src/generated");
+    fs::create_dir_all(src_dir).expect("generated output dir should exist");
+    for file in ["c2s.rs", "s2c.rs", "mod.rs"] {
+        fs::copy(Path::new("generated").join(file), src_dir.join(file))
+            .unwrap_or_else(|err| panic!("failed to copy generated/{file}: {err}"));
+    }
 }

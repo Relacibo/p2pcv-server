@@ -1,27 +1,28 @@
 [package]
 name = "p2p_dbg"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
-log = "0.4.19"
-env_logger = "0.11.5"
-tokio = { version = "1.40.0", features = ["full"] }
+log = "0.4.29"
+env_logger = "^0.11.5"
+tokio = { version = "1.52", features = ["full"] }
 anyhow = "1.0.88"
-futures-util = "0.3.30"
+futures-util = "0.3.32"
 p2pcv-bebop = { path = "../../libs/pvpcv_bebop" }
-uuid = "1.10.0"
-libp2p = { git = "https://github.com/libp2p/rust-libp2p.git", features = [
+uuid = "1.23"
+libp2p = { version = "0.56.0", features = [
   "ed25519",
   "gossipsub",
   "macros",
   "tokio",
   "ping",
   "request-response"
-], rev = "a2a281609a0a64b211f7917aa856924983b63200" }
-libp2p-webrtc = { git = "https://github.com/libp2p/rust-libp2p.git", features = [
+] }
+libp2p-webrtc = { version = "0.9.0-alpha.1", features = [
   "tokio",
-], rev = "a2a281609a0a64b211f7917aa856924983b63200" }
-libp2p-core = { git = "https://github.com/libp2p/rust-libp2p.git", rev = "a2a281609a0a64b211f7917aa856924983b63200" }
-rand = "0.8.5"
+  "pem"
+] }
+rand = "0.8.6"
 base64 = "0.22"
+dotenvy = "0.15.7"
