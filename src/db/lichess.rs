@@ -1,46 +1,38 @@
-use chrono::{DateTime, Utc};
-use diesel::result::OptionalExtension;
-use diesel::{ExpressionMethods, Insertable, QueryDsl, Queryable, Selectable};
-use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
+use sea_orm::{ActiveValue::Set, DatabaseConnection, EntityTrait};
 
 use crate::app_result::AppResult;
 
-use super::schema::lichess_access_tokens as db_lichess_access_tokens;
+use super::entities::lichess_access_token;
 
-#[derive(Insertable, Clone, Debug)]
-#[diesel(table_name = db_lichess_access_tokens)]
+pub type LichessAccessToken = lichess_access_token::Model;
+
+#[derive(Serialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct NewLichessAccessToken {
     pub id: String,
     pub access_token: String,
     pub expires: i64,
 }
 
-#[derive(Serialize, Queryable, Clone, Debug, Selectable)]
-#[serde(rename_all = "camelCase")]
-#[diesel(table_name = db_lichess_access_tokens)]
-pub struct LichessAccessToken {
-    pub id: String,
-    pub access_token: String,
-    pub expires: i64,
-    pub created_at: DateTime<Utc>,
-}
-
-impl LichessAccessToken {
-    pub async fn insert(conn: &mut AsyncPgConnection, token: NewLichessAccessToken) -> AppResult<()> {
-        use db_lichess_access_tokens::dsl::*;
-        diesel::insert_into(lichess_access_tokens)
-            .values(token)
-            .execute(conn)
-            .await?;
+impl lichess_access_token::Model {
+    pub async fn insert(db: &DatabaseConnection, token: NewLichessAccessToken) -> AppResult<()> {
+        lichess_access_token::Entity::insert(lichess_access_token::ActiveModel {
+            id: Set(token.id),
+            access_token: Set(token.access_token),
+            expires: Set(token.expires),
+            created_at: Default::default(),
+        })
+        .exec(db)
+        .await?;
         Ok(())
     }
-    pub async fn get(conn: &mut AsyncPgConnection, lid: String) -> AppResult<Option<LichessAccessToken>> {
-        use db_lichess_access_tokens::dsl::*;
-        let user = lichess_access_tokens
-            .find(lid)
-            .get_result(conn)
-            .await
-            .optional()?;
-        Ok(user)
+
+    pub async fn get(
+        db: &DatabaseConnection,
+        lid: String,
+    ) -> AppResult<Option<LichessAccessToken>> {
+        Ok(lichess_access_token::Entity::find_by_id(lid)
+            .one(db)
+            .await?)
     }
 }

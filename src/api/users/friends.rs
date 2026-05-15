@@ -1,46 +1,48 @@
-use actix_web::{
-    web::{Data, Json, Path, ServiceConfig},
-    HttpResponse,
+use std::sync::Arc;
+
+use axum::{
+    extract::{Path, State},
+    http::StatusCode,
+    routing::{delete, get},
+    Json, Router,
 };
 use uuid::Uuid;
 
 use crate::{
     api::auth::session::auth::Auth,
-    app_result::{EndpointResult, EndpointResultHttpResponse},
+    app_result::EndpointResult,
     db::{
-        db_conn::{DbConnection, DbPool}, extractor::DbConn, friends::{FriendEntry, Friends}, users::User
+        friends::{FriendEntry, Friends},
+        users::User,
     },
+    error::AppError,
+    AppState,
 };
 
-pub fn config(cfg: &mut ServiceConfig) {
-    cfg.service(delete).service(list);
+pub fn router() -> Router<Arc<AppState>> {
+    Router::new()
+        .route("/{user_id}/friends", get(list))
+        .route("/{user_id}/friends/{friend_user_id}", delete(delete_friend))
 }
 
-#[delete("/{user_id}/friends/{friend_user_id}")]
-pub async fn delete(
-    mut db: DbConn,
+pub async fn delete_friend(
+    State(state): State<Arc<AppState>>,
     auth: Auth,
-    path: Path<(Uuid, Uuid)>,
-) -> EndpointResultHttpResponse {
-    let (user_id, friend_user_id) = path.into_inner();
+    Path((user_id, friend_user_id)): Path<(Uuid, Uuid)>,
+) -> Result<StatusCode, AppError> {
     auth.should_be_user(user_id)?;
-
-    Friends::delete(&mut db, user_id, friend_user_id).await?;
-
-    Ok(HttpResponse::Ok().finish())
+    Friends::delete(&state.db, user_id, friend_user_id).await?;
+    Ok(StatusCode::OK)
 }
 
-#[get("/{user_id}/friends")]
 async fn list(
-    mut db: DbConn,
+    State(state): State<Arc<AppState>>,
     auth: Auth,
-    path: Path<Uuid>,
+    Path(user_id): Path<Uuid>,
 ) -> EndpointResult<ListResponseBody> {
-    let user_id = path.into_inner();
     auth.should_be_user(user_id)?;
-    let friends = User::list_friends_by_user_id(&mut db, user_id).await?;
-    let res = ListResponseBody { friends };
-    Ok(Json(res))
+    let friends = User::list_friends_by_user_id(&state.db, user_id).await?;
+    Ok(Json(ListResponseBody { friends }))
 }
 
 #[derive(Clone, Debug, Serialize)]

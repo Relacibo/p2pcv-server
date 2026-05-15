@@ -1,55 +1,51 @@
-use crate::{
-    api::auth::session::auth::Auth,
-    app_result::{EndpointResult, EndpointResultHttpResponse},
-    db::{
-        db_conn::DbPool,
-        users::{PublicUser, User},
-    },
-    error::AppError,
-};
-use actix_web::{
-    web::{self, Data, Json, Path, ServiceConfig},
-    HttpResponse,
+use std::sync::Arc;
+
+use axum::{
+    extract::{Path, State},
+    http::StatusCode,
+    routing::get,
+    Json, Router,
 };
 use uuid::Uuid;
+
+use crate::{
+    api::auth::session::auth::Auth,
+    app_result::EndpointResult,
+    db::users::{PublicUser, User},
+    error::AppError,
+    AppState,
+};
+
 pub mod friend_requests;
 pub mod friends;
 
-pub fn config(cfg: &mut ServiceConfig) {
-    cfg.service(
-        web::scope("/users")
-            .service(list)
-            .service(delete)
-            .service(get)
-            .configure(friend_requests::config)
-            .configure(friends::config),
-        // .configure(peer_connections::config),
-    );
+pub fn router() -> Router<Arc<AppState>> {
+    Router::new()
+        .route("", get(list))
+        .route("/{uuid}", get(get_user).delete(delete_user))
+        .merge(friend_requests::router())
+        .merge(friends::router())
 }
 
-#[get("")]
-pub async fn list(pool: Data<DbPool>) -> EndpointResult<Vec<PublicUser>> {
-    let mut db = pool.get().await?;
-    let res = User::list(&mut db).await?;
-    Ok(Json(res))
+pub async fn list(State(state): State<Arc<AppState>>) -> EndpointResult<Vec<PublicUser>> {
+    Ok(Json(User::list(&state.db).await?))
 }
 
-#[delete("/{uuid}")]
-pub async fn delete(
-    pool: Data<DbPool>,
-    user_id: Path<Uuid>,
+pub async fn delete_user(
+    State(state): State<Arc<AppState>>,
+    Path(user_id): Path<Uuid>,
     auth: Auth,
-) -> EndpointResultHttpResponse {
-    auth.should_be_user(*user_id)?;
-    let mut db = pool.get().await?;
-    User::delete(&mut db, *user_id).await?;
-    Ok(HttpResponse::Ok().finish())
+) -> Result<StatusCode, AppError> {
+    auth.should_be_user(user_id)?;
+    User::delete(&state.db, user_id).await?;
+    Ok(StatusCode::OK)
 }
 
-#[get("/{uuid}")]
-pub async fn get(pool: Data<DbPool>, auth: Auth, user_id: Path<Uuid>) -> EndpointResult<User> {
-    auth.should_be_user(*user_id)?;
-    let mut db = pool.get().await?;
-    let res = User::get(&mut db, *user_id).await?;
-    Ok(Json(res))
+pub async fn get_user(
+    State(state): State<Arc<AppState>>,
+    auth: Auth,
+    Path(user_id): Path<Uuid>,
+) -> EndpointResult<User> {
+    auth.should_be_user(user_id)?;
+    Ok(Json(User::get(&state.db, user_id).await?))
 }

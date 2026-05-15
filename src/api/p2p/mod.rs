@@ -34,7 +34,7 @@ use crate::{
     db::{db_conn::DbPool, users::User},
 };
 
-pub async fn init(pool: DbPool, jwt_config: JwtConfig) -> Result<(), P2pError> {
+pub async fn init(db: DbPool, jwt_config: JwtConfig) -> Result<(), P2pError> {
     let timeout_secs = env::var("P2P_TIMEOUT_SECS")
         .ok()
         .and_then(|s| s.parse::<u64>().ok())
@@ -98,8 +98,7 @@ pub async fn init(pool: DbPool, jwt_config: JwtConfig) -> Result<(), P2pError> {
             _ = tokio::signal::ctrl_c() => break,
         };
         if let Err(err) =
-            handle_swarm_event(&mut swarm, &pool, &jwt_config, &registry, &mut pending, event)
-                .await
+            handle_swarm_event(&mut swarm, &db, &jwt_config, &registry, &mut pending, event).await
         {
             log::error!("p2p event error: {err}");
         }
@@ -110,7 +109,7 @@ pub async fn init(pool: DbPool, jwt_config: JwtConfig) -> Result<(), P2pError> {
 
 async fn handle_swarm_event(
     swarm: &mut Swarm<Behaviour>,
-    pool: &DbPool,
+    db: &DbPool,
     jwt_config: &JwtConfig,
     registry: &PeerRegistry,
     pending: &mut HashMap<OutboundRequestId, PendingNewGame>,
@@ -119,7 +118,7 @@ async fn handle_swarm_event(
     log::debug!("{:?}", event);
     match event {
         SwarmEvent::Behaviour(BehaviourEvent::C2s(ev)) => {
-            handle_c2s_event(swarm, pool, jwt_config, registry, pending, ev).await?;
+            handle_c2s_event(swarm, db, jwt_config, registry, pending, ev).await?;
         }
         SwarmEvent::Behaviour(BehaviourEvent::S2c(ev)) => {
             handle_s2c_event(swarm, registry, pending, ev).await?;
@@ -141,7 +140,7 @@ async fn handle_swarm_event(
 
 async fn handle_c2s_event(
     swarm: &mut Swarm<Behaviour>,
-    pool: &DbPool,
+    db: &DbPool,
     jwt_config: &JwtConfig,
     registry: &PeerRegistry,
     pending: &mut HashMap<OutboundRequestId, PendingNewGame>,
@@ -151,7 +150,9 @@ async fn handle_c2s_event(
     match event {
         Event::Message {
             peer,
-            message: Message::Request { request, channel, .. },
+            message: Message::Request {
+                request, channel, ..
+            },
         } => {
             let Some(c2s) = request.c2s else {
                 log::warn!("Received empty c2s message from {peer}");
@@ -163,20 +164,28 @@ async fn handle_c2s_event(
                     handle_register_peer(swarm, jwt_config, registry, peer, reg, channel).await;
                 }
                 C2s::GetFriendPeerId(req) => {
-                    handle_get_friend_peer_id(swarm, pool, registry, peer, req, channel).await;
+                    handle_get_friend_peer_id(swarm, db, registry, peer, req, channel).await;
                 }
                 C2s::NewGame(req) => {
-                    handle_new_game(swarm, pool, registry, pending, peer, req, channel).await;
+                    handle_new_game(swarm, db, registry, pending, peer, req, channel).await;
                 }
                 C2s::NewGameAnswer(_) => {
                     log::warn!("Unexpected NewGameAnswer via c2s from {peer}; ignoring");
                 }
             }
         }
-        Event::OutboundFailure { peer, request_id, error } => {
+        Event::OutboundFailure {
+            peer,
+            request_id,
+            error,
+        } => {
             log::warn!("c2s outbound failure to {peer}: {error:?} (id={request_id:?})");
         }
-        Event::InboundFailure { peer, request_id, error } => {
+        Event::InboundFailure {
+            peer,
+            request_id,
+            error,
+        } => {
             log::warn!("c2s inbound failure from {peer}: {error:?} (id={request_id:?})");
         }
         _ => {}
@@ -212,14 +221,19 @@ async fn handle_register_peer(
             }
         }
     };
-    if swarm.behaviour_mut().c2s.send_response(channel, resp).is_err() {
+    if swarm
+        .behaviour_mut()
+        .c2s
+        .send_response(channel, resp)
+        .is_err()
+    {
         log::warn!("Could not send RegisterPeerResponse to {peer}: channel closed");
     }
 }
 
 async fn handle_get_friend_peer_id(
     swarm: &mut Swarm<Behaviour>,
-    pool: &DbPool,
+    db: &DbPool,
     registry: &PeerRegistry,
     peer: PeerId,
     req: client_to_server::GetFriendPeerId,
@@ -227,11 +241,11 @@ async fn handle_get_friend_peer_id(
 ) {
     let peer_id_str = async {
         let requester_user_id = registry.user_id_for_peer(&peer)?;
-        let friend_user_id =
-            Uuid::from_slice(&req.friend_user_id).ok().filter(|id| !id.is_nil())?;
+        let friend_user_id = Uuid::from_slice(&req.friend_user_id)
+            .ok()
+            .filter(|id| !id.is_nil())?;
 
-        let mut db = pool.get().await.ok()?;
-        let is_friends = User::is_friends_with(&mut *db, requester_user_id, friend_user_id)
+        let is_friends = User::is_friends_with(db, requester_user_id, friend_user_id)
             .await
             .ok()?;
         if !is_friends {
@@ -261,7 +275,7 @@ async fn handle_get_friend_peer_id(
 
 async fn handle_new_game(
     swarm: &mut Swarm<Behaviour>,
-    pool: &DbPool,
+    db: &DbPool,
     registry: &PeerRegistry,
     pending: &mut HashMap<OutboundRequestId, PendingNewGame>,
     peer: PeerId,
@@ -271,11 +285,12 @@ async fn handle_new_game(
     let result: Result<(PeerId, Uuid, server_to_client::NewGameEvent), ()> = async {
         let sender_user_id = registry.user_id_for_peer(&peer).ok_or(())?;
 
-        let receiver_user_id =
-            Uuid::from_slice(&req.receiver_user_id).ok().filter(|id| !id.is_nil()).ok_or(())?;
+        let receiver_user_id = Uuid::from_slice(&req.receiver_user_id)
+            .ok()
+            .filter(|id| !id.is_nil())
+            .ok_or(())?;
 
-        let mut db = pool.get().await.map_err(|_| ())?;
-        let is_friends = User::is_friends_with(&mut *db, sender_user_id, receiver_user_id)
+        let is_friends = User::is_friends_with(db, sender_user_id, receiver_user_id)
             .await
             .map_err(|_| ())?;
         if !is_friends {
@@ -284,7 +299,7 @@ async fn handle_new_game(
 
         let receiver_peer = registry.peer_id_for_user(&receiver_user_id).ok_or(())?;
 
-        let sender_user = User::get(&mut *db, sender_user_id).await.map_err(|_| ())?;
+        let sender_user = User::get(db, sender_user_id).await.map_err(|_| ())?;
 
         let event = server_to_client::NewGameEvent {
             sender_user_id: sender_user_id.as_bytes().to_vec(),
@@ -302,8 +317,7 @@ async fn handle_new_game(
             let msg = server_to_client::Msg {
                 s2c: Some(server_to_client::msg::S2c::NewGameEvent(event)),
             };
-            let request_id =
-                swarm.behaviour_mut().s2c.send_request(&receiver_peer, msg);
+            let request_id = swarm.behaviour_mut().s2c.send_request(&receiver_peer, msg);
             pending.insert(
                 request_id,
                 PendingNewGame {
@@ -323,7 +337,12 @@ async fn handle_new_game(
                     },
                 )),
             };
-            if swarm.behaviour_mut().c2s.send_response(channel, decline).is_err() {
+            if swarm
+                .behaviour_mut()
+                .c2s
+                .send_response(channel, decline)
+                .is_err()
+            {
                 log::warn!("Could not send NewGameResponse (decline) to {peer}: channel closed");
             }
         }
@@ -332,15 +351,19 @@ async fn handle_new_game(
 
 async fn handle_s2c_event(
     swarm: &mut Swarm<Behaviour>,
-    registry: &PeerRegistry,
+    _registry: &PeerRegistry,
     pending: &mut HashMap<OutboundRequestId, PendingNewGame>,
     event: request_response::Event<server_to_client::Msg, client_to_server::Msg>,
 ) -> Result<(), P2pError> {
     use request_response::{Event, Message};
     match event {
         Event::Message {
-            peer,
-            message: Message::Response { request_id, response },
+            peer: _,
+            message:
+                Message::Response {
+                    request_id,
+                    response,
+                },
         } => {
             let Some(pending_game) = pending.remove(&request_id) else {
                 log::warn!("Received s2c response for unknown request_id {request_id:?}");
@@ -379,7 +402,11 @@ async fn handle_s2c_event(
                 log::warn!("Could not forward NewGameResponse to original requester");
             }
         }
-        Event::OutboundFailure { peer, request_id, error } => {
+        Event::OutboundFailure {
+            peer,
+            request_id,
+            error,
+        } => {
             log::warn!("s2c outbound failure to {peer}: {error:?} (id={request_id:?})");
             // Receiver disconnected or timed out — decline the original requester.
             if let Some(pending_game) = pending.remove(&request_id) {
@@ -401,7 +428,11 @@ async fn handle_s2c_event(
                 }
             }
         }
-        Event::InboundFailure { peer, request_id, error } => {
+        Event::InboundFailure {
+            peer,
+            request_id,
+            error,
+        } => {
             log::warn!("s2c inbound failure from {peer}: {error:?} (id={request_id:?})");
         }
         _ => {}
@@ -670,10 +701,8 @@ pub enum P2pError {
     InitP2p,
     #[error("transport")]
     Transport(#[from] TransportError<io::Error>),
-    #[error("db-pool")]
-    DbPool,
     #[error("db")]
-    DbQuery(#[from] diesel::result::Error),
+    DbQuery(#[from] sea_orm::DbErr),
     #[error("invalid-token")]
     InvalidToken,
     #[error("token-expired")]

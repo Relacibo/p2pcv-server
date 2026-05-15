@@ -1,0 +1,18 @@
+use std::sync::Arc;
+
+use sea_orm::DatabaseConnection;
+
+use crate::api::auth::{
+    providers::{google, lichess},
+    public_key_storage::KeyStore,
+    session,
+};
+
+pub struct AppState {
+    pub db: DatabaseConnection,
+    pub jwt_config: session::Config,
+    pub reqwest_client: reqwest::Client,
+    pub google_config: google::config::Config,
+    pub google_keystore: Arc<KeyStore>,
+    pub lichess_config: lichess::config::Config,
+}
