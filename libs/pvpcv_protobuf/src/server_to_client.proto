@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package org.ggchess.server_to_client;
+
+message Msg {
+  oneof s2c {
+    RegisterPeerResponse register_peer_response = 1;
+    GetFriendPeerIdResponse get_friend_peer_id_response = 2;
+    NewGameResponse new_game_response = 3;
+    NewGameEvent new_game_event = 4;
+  }
+}
+
+message RegisterPeerResponse {
+  bool success = 1;
+}
+
+message GetFriendPeerIdResponse {
+  // Absent when the friend is offline or the caller is not authorised.
+  optional string peer_id = 1;
+}
+
+// Final answer to a NewGame request sent by the caller.
+message NewGameResponse {
+  bool accepted = 1;
+  // Set when accepted so the caller can dial the receiver directly.
+  optional string receiver_peer_id = 2;
+}
+
+// Server-initiated push: someone wants to play against this client.
+// The client must respond with a NewGameAnswer via the s2c protocol.
+message NewGameEvent {
+  bytes sender_user_id = 1;
+  string sender_user_name = 2;
+  bytes variant_id = 3;
+  string variant_version = 4;
+  int32 timeout_secs = 5;
+}

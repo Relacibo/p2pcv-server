@@ -1,4 +1,4 @@
-use api::p2p;
+use api::{auth::session::config::Config as JwtConfig, p2p};
 use db::db_conn::DbPool;
 use diesel_async::{pooled_connection::AsyncDieselConnectionManager, AsyncPgConnection};
 use dotenvy::dotenv;
@@ -49,12 +49,14 @@ async fn main() -> std::io::Result<()> {
         .build(manager)
         .await
         .expect("Failed to create pool.");
+    let p2p_pool = pool.clone();
     let pool_data = Data::new(pool);
 
     let json_config = JsonConfig::default();
     let json_config_data = Data::new(json_config);
 
-    let p2p = actix_web::rt::spawn(async { p2p::init().await });
+    let jwt_config = JwtConfig::from_env();
+    let p2p = actix_web::rt::spawn(async move { p2p::init(p2p_pool, jwt_config).await });
 
     let actix: JoinHandle<Result<_, io::Error>> = actix_web::rt::spawn(async move {
         HttpServer::new(move || {
