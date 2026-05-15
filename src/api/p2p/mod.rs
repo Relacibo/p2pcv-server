@@ -676,3 +676,175 @@ impl From<P2pError> for io::Error {
         io::Error::new(io::ErrorKind::Other, value)
     }
 }
+
+// ── Tests ─────────────────────────────────────────────────────────────────────
+
+#[cfg(test)]
+mod tests {
+    use jsonwebtoken::{DecodingKey, EncodingKey, Validation};
+    use uuid::Uuid;
+
+    use crate::api::auth::session::{claims::Claims, config::Config as JwtConfig};
+
+    use super::{validate_jwt, PeerRegistry, P2pError};
+
+    // ── helpers ───────────────────────────────────────────────────────────────
+
+    fn test_jwt_config() -> JwtConfig {
+        let secret = b"p2p-test-secret";
+        let mut validation = Validation::new(jsonwebtoken::Algorithm::HS256);
+        validation.set_audience(&["test"]);
+        validation.set_issuer(&["test"]);
+        JwtConfig {
+            jwt_encoding_key: EncodingKey::from_secret(secret),
+            jwt_decoding_key: DecodingKey::from_secret(secret),
+            jwt_validation: validation,
+            jwt_audience: vec!["test".into()],
+            jwt_issuers: vec!["test".into()],
+        }
+    }
+
+    fn make_token(config: &JwtConfig, user_id: Uuid) -> String {
+        Claims::new_24_hours(config, user_id)
+            .unwrap()
+            .generate_token(config)
+            .unwrap()
+    }
+
+    fn make_peer_id() -> libp2p::PeerId {
+        libp2p::PeerId::from(libp2p::identity::Keypair::generate_ed25519().public())
+    }
+
+    // ── PeerRegistry ──────────────────────────────────────────────────────────
+
+    #[test]
+    fn register_and_lookup_both_directions() {
+        let registry = PeerRegistry::default();
+        let user_id = Uuid::new_v4();
+        let peer_id = make_peer_id();
+
+        registry.register(user_id, peer_id);
+
+        assert_eq!(registry.peer_id_for_user(&user_id), Some(peer_id));
+        assert_eq!(registry.user_id_for_peer(&peer_id), Some(user_id));
+    }
+
+    #[test]
+    fn register_replaces_stale_mapping_for_same_user() {
+        let registry = PeerRegistry::default();
+        let user_id = Uuid::new_v4();
+        let old_peer = make_peer_id();
+        let new_peer = make_peer_id();
+
+        registry.register(user_id, old_peer);
+        registry.register(user_id, new_peer);
+
+        // New peer is authoritative.
+        assert_eq!(registry.peer_id_for_user(&user_id), Some(new_peer));
+        assert_eq!(registry.user_id_for_peer(&new_peer), Some(user_id));
+        // Old peer entry must be gone.
+        assert_eq!(registry.user_id_for_peer(&old_peer), None);
+    }
+
+    #[test]
+    fn remove_peer_cleans_both_directions() {
+        let registry = PeerRegistry::default();
+        let user_id = Uuid::new_v4();
+        let peer_id = make_peer_id();
+
+        registry.register(user_id, peer_id);
+        registry.remove_peer(&peer_id);
+
+        assert_eq!(registry.peer_id_for_user(&user_id), None);
+        assert_eq!(registry.user_id_for_peer(&peer_id), None);
+    }
+
+    #[test]
+    fn lookup_unknown_returns_none() {
+        let registry = PeerRegistry::default();
+        let unknown_user = Uuid::new_v4();
+        let unknown_peer = make_peer_id();
+
+        assert_eq!(registry.peer_id_for_user(&unknown_user), None);
+        assert_eq!(registry.user_id_for_peer(&unknown_peer), None);
+    }
+
+    #[test]
+    fn remove_peer_on_unknown_is_a_noop() {
+        let registry = PeerRegistry::default();
+        let unknown_peer = make_peer_id();
+        // Should not panic.
+        registry.remove_peer(&unknown_peer);
+    }
+
+    // ── validate_jwt ──────────────────────────────────────────────────────────
+
+    #[test]
+    fn valid_token_returns_correct_claims() {
+        let config = test_jwt_config();
+        let user_id = Uuid::new_v4();
+        let token = make_token(&config, user_id);
+
+        let claims = validate_jwt(&config, &token).expect("should accept valid token");
+        assert_eq!(claims.sub, user_id);
+    }
+
+    #[test]
+    fn tampered_token_is_rejected() {
+        let config = test_jwt_config();
+        let token = make_token(&config, Uuid::new_v4());
+        let tampered = format!("{token}x");
+
+        let err = validate_jwt(&config, &tampered).expect_err("should reject tampered token");
+        assert!(matches!(err, P2pError::InvalidToken));
+    }
+
+    #[test]
+    fn wrong_secret_is_rejected() {
+        let config = test_jwt_config();
+        let other_config = {
+            let secret = b"totally-different-secret";
+            let mut v = Validation::new(jsonwebtoken::Algorithm::HS256);
+            v.set_audience(&["test"]);
+            v.set_issuer(&["test"]);
+            JwtConfig {
+                jwt_encoding_key: EncodingKey::from_secret(secret),
+                jwt_decoding_key: DecodingKey::from_secret(secret),
+                jwt_validation: v,
+                jwt_audience: vec!["test".into()],
+                jwt_issuers: vec!["test".into()],
+            }
+        };
+        // Token signed with `other_config`, verified with `config` — must fail.
+        let token = make_token(&other_config, Uuid::new_v4());
+
+        let err = validate_jwt(&config, &token).expect_err("should reject wrong-secret token");
+        assert!(matches!(err, P2pError::InvalidToken));
+    }
+
+    #[test]
+    fn expired_token_returns_token_expired_error() {
+        use chrono::{Duration, Utc};
+        use jsonwebtoken::Header;
+
+        let config = test_jwt_config();
+        let user_id = Uuid::new_v4();
+        let now = Utc::now();
+        let expired_claims = Claims {
+            sub: user_id,
+            aud: vec!["test".into()],
+            iss: vec!["test".into()],
+            iat: now - Duration::days(2),
+            exp: now - Duration::days(1),
+        };
+        let token = jsonwebtoken::encode(
+            &Header::new(jsonwebtoken::Algorithm::HS256),
+            &expired_claims,
+            &config.jwt_encoding_key,
+        )
+        .unwrap();
+
+        let err = validate_jwt(&config, &token).expect_err("should reject expired token");
+        assert!(matches!(err, P2pError::TokenExpired));
+    }
+}

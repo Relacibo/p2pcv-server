@@ -4,7 +4,7 @@ use uuid::Uuid;
 use crate::error::AppError;
 
 use super::{auth::Auth, config::Config};
-use serde_with::{formats::Flexible, TimestampMilliSeconds};
+use serde_with::{formats::Flexible, TimestampSeconds};
 
 #[serde_as]
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -12,9 +12,9 @@ pub struct Claims {
     pub sub: Uuid,
     pub aud: Vec<String>,
     pub iss: Vec<String>,
-    #[serde_as(as = "TimestampMilliSeconds<i64, Flexible>")]
+    #[serde_as(as = "TimestampSeconds<i64, Flexible>")]
     pub exp: DateTime<Utc>,
-    #[serde_as(as = "TimestampMilliSeconds<i64, Flexible>")]
+    #[serde_as(as = "TimestampSeconds<i64, Flexible>")]
     pub iat: DateTime<Utc>,
 }
 
