@@ -1,6 +1,7 @@
 use std::{env, io, sync::Arc};
 
 use axum::{routing::get, Router};
+use futures::TryFutureExt;
 use dotenvy::dotenv;
 use env_logger::Env;
 use migration::{Migrator, MigratorTrait};
@@ -72,7 +73,17 @@ async fn main() -> io::Result<()> {
         .await
         .expect("failed to bind tcp listener");
 
-    let server = async move { axum::serve(listener, app).await.map_err(io::Error::from) };
+    let shutdown = async {
+        tokio::signal::ctrl_c()
+            .await
+            .expect("failed to listen for ctrl_c");
+        log::info!("Shutting down...");
+    };
+
+    let server = axum::serve(listener, app)
+        .with_graceful_shutdown(shutdown)
+        .into_future()
+        .map_err(io::Error::from);
     let p2p = async move {
         api::p2p::init(db, jwt_config)
             .await
