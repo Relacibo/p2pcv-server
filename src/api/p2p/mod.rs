@@ -58,15 +58,15 @@ pub async fn init(db: DbPool, jwt_config: JwtConfig) -> Result<(), P2pError> {
     let keypair = Keypair::ed25519_from_bytes(private_key)
         .expect("P2P_PRIVATE_KEY_ED25519 is not a private key");
 
-    let cert = crate::secret::read_secret("P2P_TRANSPORT_CERT_PEM")
-        .replace("$", "\n");
+    let cert = Certificate::generate(&mut rand::thread_rng())
+        .expect("Failed to generate WebRTC certificate");
 
     let mut swarm = SwarmBuilder::with_existing_identity(keypair)
         .with_tokio()
         .with_other_transport(|id_keys| {
             let transport = libp2p_webrtc::tokio::Transport::new(
                 id_keys.clone(),
-                Certificate::from_pem(cert.as_str()).expect("pem invalid!"),
+                cert,
             );
             let res = transport.map(|(peer_id, conn), _| (peer_id, StreamMuxerBox::new(conn)));
             Ok(res)
