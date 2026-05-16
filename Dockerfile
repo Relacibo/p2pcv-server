@@ -2,6 +2,7 @@ ARG RUST_VERSION=1.95.0
 ARG CARGO_CHEF_VERSION=0.1.77
 ARG DEBIAN_TAG=trixie-slim
 FROM rust:${RUST_VERSION} AS chef
+ARG CARGO_CHEF_VERSION
 RUN cargo install cargo-chef@${CARGO_CHEF_VERSION} --locked
 RUN apt update \
   && DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
@@ -21,6 +22,7 @@ RUN cargo chef cook --release --recipe-path recipe.json --bin app
 COPY . .
 RUN cargo build --release --bin app
 
+ARG DEBIAN_TAG=trixie-slim
 FROM debian:${DEBIAN_TAG}
 WORKDIR /app
 RUN apt update && \
