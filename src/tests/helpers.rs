@@ -21,29 +21,16 @@ use crate::{
     AppState,
 };
 
-use migration::{Migrator, MigratorTrait};
-
 /// Creates a fresh connection pool per test so that each test's pool lives
 /// entirely within its own Tokio runtime. Sharing a pool across runtimes
 /// causes `ConnectionAcquire(Timeout)` once the initialising runtime is dropped.
-/// Migrations are run automatically; concurrent calls are safe (races are ignored).
+/// Run `just migrate` (or `cargo run -- migrate`) before running tests.
 pub async fn test_db() -> DatabaseConnection {
     dotenvy::dotenv().ok();
     let url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set for tests");
-    let db = Database::connect(&url)
+    Database::connect(&url)
         .await
-        .expect("failed to connect to test DB");
-    // In CI, migrations already ran before `cargo test`. Locally this is a
-    // convenient no-op when the schema exists, or applies pending migrations.
-    // Error code 23505 (unique_violation) can occur when parallel tests race
-    // to create the same enum type — treat that as "already migrated".
-    if let Err(e) = Migrator::up(&db, None).await {
-        let msg = e.to_string();
-        if !msg.contains("23505") && !msg.contains("already exists") {
-            panic!("failed to run migrations: {e}");
-        }
-    }
-    db
+        .expect("failed to connect to test DB")
 }
 
 pub fn test_jwt_config() -> session::config::Config {
