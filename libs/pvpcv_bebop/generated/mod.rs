@@ -36,16 +36,50 @@ pub enum C2SMsg<'raw> {
     },
 
     /// Discriminator 3
-    NewGame {
-        receiver_user_id: ::bebop::Guid,
+    CreateLobby {
         variant_id: ::bebop::Guid,
         variant_version: &'raw str,
         script_url: &'raw str,
     },
 
     /// Discriminator 4
-    NewGameAnswer {
-        accepted: bool,
+    InviteToLobby {
+        lobby_id: ::bebop::Guid,
+        friend_user_ids: ::bebop::SliceWrapper<'raw, ::bebop::Guid>,
+    },
+
+    /// Discriminator 5
+    JoinLobby {
+        lobby_id: ::bebop::Guid,
+    },
+
+    /// Discriminator 6
+    LeaveLobby {
+        lobby_id: ::bebop::Guid,
+    },
+
+    /// Discriminator 7
+    DeleteLobby {
+        lobby_id: ::bebop::Guid,
+    },
+
+    /// Discriminator 8
+    StartGame {
+        lobby_id: ::bebop::Guid,
+    },
+
+    /// Discriminator 9
+    GameEnded {
+        lobby_id: ::bebop::Guid,
+    },
+
+    /// Discriminator 10
+    LobbyHeartbeat {
+        lobby_id: ::bebop::Guid,
+    },
+
+    /// Discriminator 11
+    LobbyEventAck {
     },
 }
 
@@ -70,23 +104,64 @@ impl<'raw> ::bebop::SubRecord<'raw> for C2SMsg<'raw> {
             => {
                 _friend_user_id.serialized_size()
             }
-            Self::NewGame {
-                receiver_user_id: ref _receiver_user_id,
+            Self::CreateLobby {
                 variant_id: ref _variant_id,
                 variant_version: ref _variant_version,
                 script_url: ref _script_url,
             }
             => {
-                _receiver_user_id.serialized_size() +
                 _variant_id.serialized_size() +
                 _variant_version.serialized_size() +
                 _script_url.serialized_size()
             }
-            Self::NewGameAnswer {
-                accepted: ref _accepted,
+            Self::InviteToLobby {
+                lobby_id: ref _lobby_id,
+                friend_user_ids: ref _friend_user_ids,
             }
             => {
-                _accepted.serialized_size()
+                _lobby_id.serialized_size() +
+                _friend_user_ids.serialized_size()
+            }
+            Self::JoinLobby {
+                lobby_id: ref _lobby_id,
+            }
+            => {
+                _lobby_id.serialized_size()
+            }
+            Self::LeaveLobby {
+                lobby_id: ref _lobby_id,
+            }
+            => {
+                _lobby_id.serialized_size()
+            }
+            Self::DeleteLobby {
+                lobby_id: ref _lobby_id,
+            }
+            => {
+                _lobby_id.serialized_size()
+            }
+            Self::StartGame {
+                lobby_id: ref _lobby_id,
+            }
+            => {
+                _lobby_id.serialized_size()
+            }
+            Self::GameEnded {
+                lobby_id: ref _lobby_id,
+            }
+            => {
+                _lobby_id.serialized_size()
+            }
+            Self::LobbyHeartbeat {
+                lobby_id: ref _lobby_id,
+            }
+            => {
+                _lobby_id.serialized_size()
+            }
+            Self::LobbyEventAck {
+            }
+            => {
+                0
             }
         }
     }
@@ -112,25 +187,72 @@ impl<'raw> ::bebop::SubRecord<'raw> for C2SMsg<'raw> {
                 2u8._serialize_chained(dest)?;
                 _friend_user_id._serialize_chained(dest)?;
             }
-            Self::NewGame {
-                receiver_user_id: ref _receiver_user_id,
+            Self::CreateLobby {
                 variant_id: ref _variant_id,
                 variant_version: ref _variant_version,
                 script_url: ref _script_url,
             }
             => {
                 3u8._serialize_chained(dest)?;
-                _receiver_user_id._serialize_chained(dest)?;
                 _variant_id._serialize_chained(dest)?;
                 _variant_version._serialize_chained(dest)?;
                 _script_url._serialize_chained(dest)?;
             }
-            Self::NewGameAnswer {
-                accepted: ref _accepted,
+            Self::InviteToLobby {
+                lobby_id: ref _lobby_id,
+                friend_user_ids: ref _friend_user_ids,
             }
             => {
                 4u8._serialize_chained(dest)?;
-                _accepted._serialize_chained(dest)?;
+                _lobby_id._serialize_chained(dest)?;
+                _friend_user_ids._serialize_chained(dest)?;
+            }
+            Self::JoinLobby {
+                lobby_id: ref _lobby_id,
+            }
+            => {
+                5u8._serialize_chained(dest)?;
+                _lobby_id._serialize_chained(dest)?;
+            }
+            Self::LeaveLobby {
+                lobby_id: ref _lobby_id,
+            }
+            => {
+                6u8._serialize_chained(dest)?;
+                _lobby_id._serialize_chained(dest)?;
+            }
+            Self::DeleteLobby {
+                lobby_id: ref _lobby_id,
+            }
+            => {
+                7u8._serialize_chained(dest)?;
+                _lobby_id._serialize_chained(dest)?;
+            }
+            Self::StartGame {
+                lobby_id: ref _lobby_id,
+            }
+            => {
+                8u8._serialize_chained(dest)?;
+                _lobby_id._serialize_chained(dest)?;
+            }
+            Self::GameEnded {
+                lobby_id: ref _lobby_id,
+            }
+            => {
+                9u8._serialize_chained(dest)?;
+                _lobby_id._serialize_chained(dest)?;
+            }
+            Self::LobbyHeartbeat {
+                lobby_id: ref _lobby_id,
+            }
+            => {
+                10u8._serialize_chained(dest)?;
+                _lobby_id._serialize_chained(dest)?;
+            }
+            Self::LobbyEventAck {
+            }
+            => {
+                11u8._serialize_chained(dest)?;
             }
         }
         Ok(size)
@@ -163,23 +285,74 @@ impl<'raw> ::bebop::SubRecord<'raw> for C2SMsg<'raw> {
                 i += read;
                 let (read, v2) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
                 i += read;
-                let (read, v3) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
-                i += read;
 
-                C2SMsg::NewGame {
-                    receiver_user_id: v0,
-                    variant_id: v1,
-                    variant_version: v2,
-                    script_url: v3,
+                C2SMsg::CreateLobby {
+                    variant_id: v0,
+                    variant_version: v1,
+                    script_url: v2,
                 }
             }
             4 => {
                 let (read, v0) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
                 i += read;
+                let (read, v1) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                i += read;
 
-                C2SMsg::NewGameAnswer {
-                    accepted: v0,
+                C2SMsg::InviteToLobby {
+                    lobby_id: v0,
+                    friend_user_ids: v1,
                 }
+            }
+            5 => {
+                let (read, v0) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                i += read;
+
+                C2SMsg::JoinLobby {
+                    lobby_id: v0,
+                }
+            }
+            6 => {
+                let (read, v0) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                i += read;
+
+                C2SMsg::LeaveLobby {
+                    lobby_id: v0,
+                }
+            }
+            7 => {
+                let (read, v0) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                i += read;
+
+                C2SMsg::DeleteLobby {
+                    lobby_id: v0,
+                }
+            }
+            8 => {
+                let (read, v0) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                i += read;
+
+                C2SMsg::StartGame {
+                    lobby_id: v0,
+                }
+            }
+            9 => {
+                let (read, v0) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                i += read;
+
+                C2SMsg::GameEnded {
+                    lobby_id: v0,
+                }
+            }
+            10 => {
+                let (read, v0) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                i += read;
+
+                C2SMsg::LobbyHeartbeat {
+                    lobby_id: v0,
+                }
+            }
+            11 => {
+                C2SMsg::LobbyEventAck {}
             }
             _ => {
                 i = len;
@@ -198,475 +371,6 @@ impl<'raw> ::bebop::SubRecord<'raw> for C2SMsg<'raw> {
 }
 
 impl<'raw> ::bebop::Record<'raw> for C2SMsg<'raw> {}
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum S2CMsg<'raw> {
-    /// An unknown type which is likely defined in a newer version of the schema.
-    Unknown,
-
-    /// Discriminator 1
-    RegisterPeerResponse {
-        success: bool,
-    },
-
-    /// Discriminator 2
-    GetFriendPeerIdResponse {
-        /// Field 1
-        peer_id: ::core::option::Option<&'raw str>,
-    },
-
-    /// Discriminator 3
-    NewGameResponse {
-        /// Field 1
-        accepted: ::core::option::Option<bool>,
-        /// Field 2
-        receiver_peer_id: ::core::option::Option<&'raw str>,
-    },
-
-    /// Discriminator 4
-    NewGameEvent {
-        /// Field 1
-        sender_user_id: ::core::option::Option<::bebop::Guid>,
-        /// Field 2
-        sender_user_name: ::core::option::Option<&'raw str>,
-        /// Field 3
-        variant_id: ::core::option::Option<::bebop::Guid>,
-        /// Field 4
-        variant_version: ::core::option::Option<&'raw str>,
-        /// Field 5
-        timeout_secs: ::core::option::Option<u32>,
-        /// Field 6
-        sender_peer_id: ::core::option::Option<&'raw str>,
-        /// Field 7
-        script_url: ::core::option::Option<&'raw str>,
-    },
-}
-
-impl<'raw> ::bebop::SubRecord<'raw> for S2CMsg<'raw> {
-    const MIN_SERIALIZED_SIZE: usize = ::bebop::LEN_SIZE + 1;
-
-    fn serialized_size(&self) -> usize {
-        ::bebop::LEN_SIZE + 1 +
-        match self {
-            S2CMsg::Unknown => {
-                0
-            }
-            Self::RegisterPeerResponse {
-                success: ref _success,
-            }
-            => {
-                _success.serialized_size()
-            }
-            Self::GetFriendPeerIdResponse {
-                peer_id: ref _peer_id,
-            }
-            => {
-                ::bebop::LEN_SIZE + 1 +
-                _peer_id.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0)
-            }
-            Self::NewGameResponse {
-                accepted: ref _accepted,
-                receiver_peer_id: ref _receiver_peer_id,
-            }
-            => {
-                ::bebop::LEN_SIZE + 1 +
-                _accepted.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
-                _receiver_peer_id.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0)
-            }
-            Self::NewGameEvent {
-                sender_user_id: ref _sender_user_id,
-                sender_user_name: ref _sender_user_name,
-                variant_id: ref _variant_id,
-                variant_version: ref _variant_version,
-                timeout_secs: ref _timeout_secs,
-                sender_peer_id: ref _sender_peer_id,
-                script_url: ref _script_url,
-            }
-            => {
-                ::bebop::LEN_SIZE + 1 +
-                _sender_user_id.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
-                _sender_user_name.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
-                _variant_id.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
-                _variant_version.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
-                _timeout_secs.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
-                _sender_peer_id.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
-                _script_url.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0)
-            }
-        }
-    }
-
-    ::bebop::define_serialize_chained!(Self => |zelf, dest| {
-        let size = zelf.serialized_size();
-        ::bebop::write_len(dest, size - ::bebop::LEN_SIZE - 1)?;
-        match zelf {
-            Self::Unknown => {
-                return Err(::bebop::SerializeError::CannotSerializeUnknownUnion);
-            }
-            Self::RegisterPeerResponse {
-                success: ref _success,
-            }
-            => {
-                1u8._serialize_chained(dest)?;
-                _success._serialize_chained(dest)?;
-            }
-            Self::GetFriendPeerIdResponse {
-                peer_id: ref _peer_id,
-            }
-            => {
-                2u8._serialize_chained(dest)?;
-                ::bebop::write_len(dest, size - ::bebop::LEN_SIZE * 2 - 1)?;
-                if let Some(ref v) = _peer_id {
-                    1u8._serialize_chained(dest)?;
-                    v._serialize_chained(dest)?;
-                }
-                0u8._serialize_chained(dest)?;
-            }
-            Self::NewGameResponse {
-                accepted: ref _accepted,
-                receiver_peer_id: ref _receiver_peer_id,
-            }
-            => {
-                3u8._serialize_chained(dest)?;
-                ::bebop::write_len(dest, size - ::bebop::LEN_SIZE * 2 - 1)?;
-                if let Some(ref v) = _accepted {
-                    1u8._serialize_chained(dest)?;
-                    v._serialize_chained(dest)?;
-                }
-                if let Some(ref v) = _receiver_peer_id {
-                    2u8._serialize_chained(dest)?;
-                    v._serialize_chained(dest)?;
-                }
-                0u8._serialize_chained(dest)?;
-            }
-            Self::NewGameEvent {
-                sender_user_id: ref _sender_user_id,
-                sender_user_name: ref _sender_user_name,
-                variant_id: ref _variant_id,
-                variant_version: ref _variant_version,
-                timeout_secs: ref _timeout_secs,
-                sender_peer_id: ref _sender_peer_id,
-                script_url: ref _script_url,
-            }
-            => {
-                4u8._serialize_chained(dest)?;
-                ::bebop::write_len(dest, size - ::bebop::LEN_SIZE * 2 - 1)?;
-                if let Some(ref v) = _sender_user_id {
-                    1u8._serialize_chained(dest)?;
-                    v._serialize_chained(dest)?;
-                }
-                if let Some(ref v) = _sender_user_name {
-                    2u8._serialize_chained(dest)?;
-                    v._serialize_chained(dest)?;
-                }
-                if let Some(ref v) = _variant_id {
-                    3u8._serialize_chained(dest)?;
-                    v._serialize_chained(dest)?;
-                }
-                if let Some(ref v) = _variant_version {
-                    4u8._serialize_chained(dest)?;
-                    v._serialize_chained(dest)?;
-                }
-                if let Some(ref v) = _timeout_secs {
-                    5u8._serialize_chained(dest)?;
-                    v._serialize_chained(dest)?;
-                }
-                if let Some(ref v) = _sender_peer_id {
-                    6u8._serialize_chained(dest)?;
-                    v._serialize_chained(dest)?;
-                }
-                if let Some(ref v) = _script_url {
-                    7u8._serialize_chained(dest)?;
-                    v._serialize_chained(dest)?;
-                }
-                0u8._serialize_chained(dest)?;
-            }
-        }
-        Ok(size)
-    });
-
-    fn _deserialize_chained(raw: &'raw [u8]) -> ::bebop::DeResult<(usize, Self)> {
-        let len = ::bebop::read_len(raw)? + ::bebop::LEN_SIZE + 1;
-        let mut i = ::bebop::LEN_SIZE + 1;
-        let de = match raw[::bebop::LEN_SIZE] {
-            1 => {
-                let (read, v0) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
-                i += read;
-
-                S2CMsg::RegisterPeerResponse {
-                    success: v0,
-                }
-            }
-            2 => {
-                let len = ::bebop::read_len(&raw[i..])? + i + ::bebop::LEN_SIZE;
-                i += ::bebop::LEN_SIZE;
-
-                #[cfg(not(feature = "unchecked"))]
-                if len == 0 {
-                    return Err(::bebop::DeserializeError::CorruptFrame);
-                }
-
-                if raw.len() < len {
-                    return Err(::bebop::DeserializeError::MoreDataExpected(len - raw.len()));
-                }
-
-                let mut _peer_id = None;
-
-                #[cfg(not(feature = "unchecked"))]
-                let mut last = 0;
-
-                while i < len {
-                    let di = raw[i];
-
-                    #[cfg(not(feature = "unchecked"))]
-                    if di != 0 {
-                        if di < last {
-                            return Err(::bebop::DeserializeError::CorruptFrame);
-                        }
-                        last = di;
-                    }
-
-                    i += 1;
-                    match di {
-                        0 => {
-                            break;
-                        }
-                        1 => {
-                            #[cfg(not(feature = "unchecked"))]
-                            if _peer_id.is_some() {
-                                return Err(::bebop::DeserializeError::DuplicateMessageField);
-                            }
-                            let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
-                            i += read;
-                            _peer_id = Some(value)
-                        }
-                        _ => {
-                            i = len;
-                            break;
-                        }
-                    }
-                }
-
-                if i != len {
-                    debug_assert!(i > len);
-                    return Err(::bebop::DeserializeError::CorruptFrame)
-                }
-
-                S2CMsg::GetFriendPeerIdResponse {
-                    peer_id: _peer_id,
-                }
-            }
-            3 => {
-                let len = ::bebop::read_len(&raw[i..])? + i + ::bebop::LEN_SIZE;
-                i += ::bebop::LEN_SIZE;
-
-                #[cfg(not(feature = "unchecked"))]
-                if len == 0 {
-                    return Err(::bebop::DeserializeError::CorruptFrame);
-                }
-
-                if raw.len() < len {
-                    return Err(::bebop::DeserializeError::MoreDataExpected(len - raw.len()));
-                }
-
-                let mut _accepted = None;
-                let mut _receiver_peer_id = None;
-
-                #[cfg(not(feature = "unchecked"))]
-                let mut last = 0;
-
-                while i < len {
-                    let di = raw[i];
-
-                    #[cfg(not(feature = "unchecked"))]
-                    if di != 0 {
-                        if di < last {
-                            return Err(::bebop::DeserializeError::CorruptFrame);
-                        }
-                        last = di;
-                    }
-
-                    i += 1;
-                    match di {
-                        0 => {
-                            break;
-                        }
-                        1 => {
-                            #[cfg(not(feature = "unchecked"))]
-                            if _accepted.is_some() {
-                                return Err(::bebop::DeserializeError::DuplicateMessageField);
-                            }
-                            let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
-                            i += read;
-                            _accepted = Some(value)
-                        }
-                        2 => {
-                            #[cfg(not(feature = "unchecked"))]
-                            if _receiver_peer_id.is_some() {
-                                return Err(::bebop::DeserializeError::DuplicateMessageField);
-                            }
-                            let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
-                            i += read;
-                            _receiver_peer_id = Some(value)
-                        }
-                        _ => {
-                            i = len;
-                            break;
-                        }
-                    }
-                }
-
-                if i != len {
-                    debug_assert!(i > len);
-                    return Err(::bebop::DeserializeError::CorruptFrame)
-                }
-
-                S2CMsg::NewGameResponse {
-                    accepted: _accepted,
-                    receiver_peer_id: _receiver_peer_id,
-                }
-            }
-            4 => {
-                let len = ::bebop::read_len(&raw[i..])? + i + ::bebop::LEN_SIZE;
-                i += ::bebop::LEN_SIZE;
-
-                #[cfg(not(feature = "unchecked"))]
-                if len == 0 {
-                    return Err(::bebop::DeserializeError::CorruptFrame);
-                }
-
-                if raw.len() < len {
-                    return Err(::bebop::DeserializeError::MoreDataExpected(len - raw.len()));
-                }
-
-                let mut _sender_user_id = None;
-                let mut _sender_user_name = None;
-                let mut _variant_id = None;
-                let mut _variant_version = None;
-                let mut _timeout_secs = None;
-                let mut _sender_peer_id = None;
-                let mut _script_url = None;
-
-                #[cfg(not(feature = "unchecked"))]
-                let mut last = 0;
-
-                while i < len {
-                    let di = raw[i];
-
-                    #[cfg(not(feature = "unchecked"))]
-                    if di != 0 {
-                        if di < last {
-                            return Err(::bebop::DeserializeError::CorruptFrame);
-                        }
-                        last = di;
-                    }
-
-                    i += 1;
-                    match di {
-                        0 => {
-                            break;
-                        }
-                        1 => {
-                            #[cfg(not(feature = "unchecked"))]
-                            if _sender_user_id.is_some() {
-                                return Err(::bebop::DeserializeError::DuplicateMessageField);
-                            }
-                            let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
-                            i += read;
-                            _sender_user_id = Some(value)
-                        }
-                        2 => {
-                            #[cfg(not(feature = "unchecked"))]
-                            if _sender_user_name.is_some() {
-                                return Err(::bebop::DeserializeError::DuplicateMessageField);
-                            }
-                            let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
-                            i += read;
-                            _sender_user_name = Some(value)
-                        }
-                        3 => {
-                            #[cfg(not(feature = "unchecked"))]
-                            if _variant_id.is_some() {
-                                return Err(::bebop::DeserializeError::DuplicateMessageField);
-                            }
-                            let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
-                            i += read;
-                            _variant_id = Some(value)
-                        }
-                        4 => {
-                            #[cfg(not(feature = "unchecked"))]
-                            if _variant_version.is_some() {
-                                return Err(::bebop::DeserializeError::DuplicateMessageField);
-                            }
-                            let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
-                            i += read;
-                            _variant_version = Some(value)
-                        }
-                        5 => {
-                            #[cfg(not(feature = "unchecked"))]
-                            if _timeout_secs.is_some() {
-                                return Err(::bebop::DeserializeError::DuplicateMessageField);
-                            }
-                            let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
-                            i += read;
-                            _timeout_secs = Some(value)
-                        }
-                        6 => {
-                            #[cfg(not(feature = "unchecked"))]
-                            if _sender_peer_id.is_some() {
-                                return Err(::bebop::DeserializeError::DuplicateMessageField);
-                            }
-                            let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
-                            i += read;
-                            _sender_peer_id = Some(value)
-                        }
-                        7 => {
-                            #[cfg(not(feature = "unchecked"))]
-                            if _script_url.is_some() {
-                                return Err(::bebop::DeserializeError::DuplicateMessageField);
-                            }
-                            let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
-                            i += read;
-                            _script_url = Some(value)
-                        }
-                        _ => {
-                            i = len;
-                            break;
-                        }
-                    }
-                }
-
-                if i != len {
-                    debug_assert!(i > len);
-                    return Err(::bebop::DeserializeError::CorruptFrame)
-                }
-
-                S2CMsg::NewGameEvent {
-                    sender_user_id: _sender_user_id,
-                    sender_user_name: _sender_user_name,
-                    variant_id: _variant_id,
-                    variant_version: _variant_version,
-                    timeout_secs: _timeout_secs,
-                    sender_peer_id: _sender_peer_id,
-                    script_url: _script_url,
-                }
-            }
-            _ => {
-                i = len;
-                S2CMsg::Unknown
-            }
-        };
-        if !cfg!(feature = "unchecked") && i != len {
-            debug_assert!(i > len);
-            Err(::bebop::DeserializeError::CorruptFrame)
-        }
-        else {
-            Ok((i, de))
-        }
-    }
-
-}
-
-impl<'raw> ::bebop::Record<'raw> for S2CMsg<'raw> {}
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum LobbyMsg<'raw> {
@@ -970,6 +674,1462 @@ impl<'raw> ::bebop::SubRecord<'raw> for LobbyMsg<'raw> {
 
 impl<'raw> ::bebop::Record<'raw> for LobbyMsg<'raw> {}
 
+#[derive(Clone, Debug, PartialEq)]
+pub enum S2CMsg<'raw> {
+    /// An unknown type which is likely defined in a newer version of the schema.
+    Unknown,
+
+    /// Discriminator 1
+    RegisterPeerResponse {
+        success: bool,
+    },
+
+    /// Discriminator 2
+    GetFriendPeerIdResponse {
+        /// Field 1
+        peer_id: ::core::option::Option<&'raw str>,
+    },
+
+    /// Discriminator 3
+    CreateLobbyResponse {
+        /// Field 1
+        success: ::core::option::Option<bool>,
+        /// Field 2
+        lobby_id: ::core::option::Option<::bebop::Guid>,
+    },
+
+    /// Discriminator 4
+    JoinLobbyResponse {
+        /// Field 1
+        success: ::core::option::Option<bool>,
+        /// Field 2
+        member_peer_ids: ::core::option::Option<::std::vec::Vec<&'raw str>>,
+        /// Field 3
+        member_names: ::core::option::Option<::std::vec::Vec<&'raw str>>,
+        /// Field 4
+        member_user_ids: ::core::option::Option<::bebop::SliceWrapper<'raw, ::bebop::Guid>>,
+        /// Field 5
+        host_peer_id: ::core::option::Option<&'raw str>,
+        /// Field 6
+        in_game: ::core::option::Option<bool>,
+    },
+
+    /// Discriminator 5
+    LeaveLobbyResponse {
+    },
+
+    /// Discriminator 6
+    DeleteLobbyResponse {
+        /// Field 1
+        success: ::core::option::Option<bool>,
+    },
+
+    /// Discriminator 7
+    StartGameResponse {
+        /// Field 1
+        success: ::core::option::Option<bool>,
+    },
+
+    /// Discriminator 8
+    GameEndedResponse {
+    },
+
+    /// Discriminator 9
+    LobbyHeartbeatResponse {
+    },
+
+    /// Discriminator 10
+    InviteToLobbyResponse {
+        /// Field 1
+        success: ::core::option::Option<bool>,
+    },
+
+    /// Discriminator 11
+    LobbyInvite {
+        /// Field 1
+        lobby_id: ::core::option::Option<::bebop::Guid>,
+        /// Field 2
+        host_user_id: ::core::option::Option<::bebop::Guid>,
+        /// Field 3
+        host_name: ::core::option::Option<&'raw str>,
+        /// Field 4
+        variant_id: ::core::option::Option<::bebop::Guid>,
+        /// Field 5
+        variant_version: ::core::option::Option<&'raw str>,
+        /// Field 6
+        script_url: ::core::option::Option<&'raw str>,
+    },
+
+    /// Discriminator 12
+    LobbyMemberJoined {
+        /// Field 1
+        lobby_id: ::core::option::Option<::bebop::Guid>,
+        /// Field 2
+        peer_id: ::core::option::Option<&'raw str>,
+        /// Field 3
+        user_id: ::core::option::Option<::bebop::Guid>,
+        /// Field 4
+        display_name: ::core::option::Option<&'raw str>,
+    },
+
+    /// Discriminator 13
+    LobbyMemberLeft {
+        /// Field 1
+        lobby_id: ::core::option::Option<::bebop::Guid>,
+        /// Field 2
+        peer_id: ::core::option::Option<&'raw str>,
+    },
+
+    /// Discriminator 14
+    LobbyDeleted {
+        /// Field 1
+        lobby_id: ::core::option::Option<::bebop::Guid>,
+    },
+
+    /// Discriminator 15
+    LobbyGameStarted {
+        /// Field 1
+        lobby_id: ::core::option::Option<::bebop::Guid>,
+        /// Field 2
+        peer_ids: ::core::option::Option<::std::vec::Vec<&'raw str>>,
+    },
+
+    /// Discriminator 16
+    LobbyGameEnded {
+        /// Field 1
+        lobby_id: ::core::option::Option<::bebop::Guid>,
+    },
+}
+
+impl<'raw> ::bebop::SubRecord<'raw> for S2CMsg<'raw> {
+    const MIN_SERIALIZED_SIZE: usize = ::bebop::LEN_SIZE + 1;
+
+    fn serialized_size(&self) -> usize {
+        ::bebop::LEN_SIZE + 1 +
+        match self {
+            S2CMsg::Unknown => {
+                0
+            }
+            Self::RegisterPeerResponse {
+                success: ref _success,
+            }
+            => {
+                _success.serialized_size()
+            }
+            Self::GetFriendPeerIdResponse {
+                peer_id: ref _peer_id,
+            }
+            => {
+                ::bebop::LEN_SIZE + 1 +
+                _peer_id.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0)
+            }
+            Self::CreateLobbyResponse {
+                success: ref _success,
+                lobby_id: ref _lobby_id,
+            }
+            => {
+                ::bebop::LEN_SIZE + 1 +
+                _success.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
+                _lobby_id.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0)
+            }
+            Self::JoinLobbyResponse {
+                success: ref _success,
+                member_peer_ids: ref _member_peer_ids,
+                member_names: ref _member_names,
+                member_user_ids: ref _member_user_ids,
+                host_peer_id: ref _host_peer_id,
+                in_game: ref _in_game,
+            }
+            => {
+                ::bebop::LEN_SIZE + 1 +
+                _success.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
+                _member_peer_ids.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
+                _member_names.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
+                _member_user_ids.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
+                _host_peer_id.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
+                _in_game.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0)
+            }
+            Self::LeaveLobbyResponse {
+            }
+            => {
+                0
+            }
+            Self::DeleteLobbyResponse {
+                success: ref _success,
+            }
+            => {
+                ::bebop::LEN_SIZE + 1 +
+                _success.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0)
+            }
+            Self::StartGameResponse {
+                success: ref _success,
+            }
+            => {
+                ::bebop::LEN_SIZE + 1 +
+                _success.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0)
+            }
+            Self::GameEndedResponse {
+            }
+            => {
+                0
+            }
+            Self::LobbyHeartbeatResponse {
+            }
+            => {
+                0
+            }
+            Self::InviteToLobbyResponse {
+                success: ref _success,
+            }
+            => {
+                ::bebop::LEN_SIZE + 1 +
+                _success.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0)
+            }
+            Self::LobbyInvite {
+                lobby_id: ref _lobby_id,
+                host_user_id: ref _host_user_id,
+                host_name: ref _host_name,
+                variant_id: ref _variant_id,
+                variant_version: ref _variant_version,
+                script_url: ref _script_url,
+            }
+            => {
+                ::bebop::LEN_SIZE + 1 +
+                _lobby_id.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
+                _host_user_id.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
+                _host_name.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
+                _variant_id.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
+                _variant_version.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
+                _script_url.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0)
+            }
+            Self::LobbyMemberJoined {
+                lobby_id: ref _lobby_id,
+                peer_id: ref _peer_id,
+                user_id: ref _user_id,
+                display_name: ref _display_name,
+            }
+            => {
+                ::bebop::LEN_SIZE + 1 +
+                _lobby_id.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
+                _peer_id.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
+                _user_id.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
+                _display_name.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0)
+            }
+            Self::LobbyMemberLeft {
+                lobby_id: ref _lobby_id,
+                peer_id: ref _peer_id,
+            }
+            => {
+                ::bebop::LEN_SIZE + 1 +
+                _lobby_id.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
+                _peer_id.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0)
+            }
+            Self::LobbyDeleted {
+                lobby_id: ref _lobby_id,
+            }
+            => {
+                ::bebop::LEN_SIZE + 1 +
+                _lobby_id.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0)
+            }
+            Self::LobbyGameStarted {
+                lobby_id: ref _lobby_id,
+                peer_ids: ref _peer_ids,
+            }
+            => {
+                ::bebop::LEN_SIZE + 1 +
+                _lobby_id.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
+                _peer_ids.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0)
+            }
+            Self::LobbyGameEnded {
+                lobby_id: ref _lobby_id,
+            }
+            => {
+                ::bebop::LEN_SIZE + 1 +
+                _lobby_id.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0)
+            }
+        }
+    }
+
+    ::bebop::define_serialize_chained!(Self => |zelf, dest| {
+        let size = zelf.serialized_size();
+        ::bebop::write_len(dest, size - ::bebop::LEN_SIZE - 1)?;
+        match zelf {
+            Self::Unknown => {
+                return Err(::bebop::SerializeError::CannotSerializeUnknownUnion);
+            }
+            Self::RegisterPeerResponse {
+                success: ref _success,
+            }
+            => {
+                1u8._serialize_chained(dest)?;
+                _success._serialize_chained(dest)?;
+            }
+            Self::GetFriendPeerIdResponse {
+                peer_id: ref _peer_id,
+            }
+            => {
+                2u8._serialize_chained(dest)?;
+                ::bebop::write_len(dest, size - ::bebop::LEN_SIZE * 2 - 1)?;
+                if let Some(ref v) = _peer_id {
+                    1u8._serialize_chained(dest)?;
+                    v._serialize_chained(dest)?;
+                }
+                0u8._serialize_chained(dest)?;
+            }
+            Self::CreateLobbyResponse {
+                success: ref _success,
+                lobby_id: ref _lobby_id,
+            }
+            => {
+                3u8._serialize_chained(dest)?;
+                ::bebop::write_len(dest, size - ::bebop::LEN_SIZE * 2 - 1)?;
+                if let Some(ref v) = _success {
+                    1u8._serialize_chained(dest)?;
+                    v._serialize_chained(dest)?;
+                }
+                if let Some(ref v) = _lobby_id {
+                    2u8._serialize_chained(dest)?;
+                    v._serialize_chained(dest)?;
+                }
+                0u8._serialize_chained(dest)?;
+            }
+            Self::JoinLobbyResponse {
+                success: ref _success,
+                member_peer_ids: ref _member_peer_ids,
+                member_names: ref _member_names,
+                member_user_ids: ref _member_user_ids,
+                host_peer_id: ref _host_peer_id,
+                in_game: ref _in_game,
+            }
+            => {
+                4u8._serialize_chained(dest)?;
+                ::bebop::write_len(dest, size - ::bebop::LEN_SIZE * 2 - 1)?;
+                if let Some(ref v) = _success {
+                    1u8._serialize_chained(dest)?;
+                    v._serialize_chained(dest)?;
+                }
+                if let Some(ref v) = _member_peer_ids {
+                    2u8._serialize_chained(dest)?;
+                    v._serialize_chained(dest)?;
+                }
+                if let Some(ref v) = _member_names {
+                    3u8._serialize_chained(dest)?;
+                    v._serialize_chained(dest)?;
+                }
+                if let Some(ref v) = _member_user_ids {
+                    4u8._serialize_chained(dest)?;
+                    v._serialize_chained(dest)?;
+                }
+                if let Some(ref v) = _host_peer_id {
+                    5u8._serialize_chained(dest)?;
+                    v._serialize_chained(dest)?;
+                }
+                if let Some(ref v) = _in_game {
+                    6u8._serialize_chained(dest)?;
+                    v._serialize_chained(dest)?;
+                }
+                0u8._serialize_chained(dest)?;
+            }
+            Self::LeaveLobbyResponse {
+            }
+            => {
+                5u8._serialize_chained(dest)?;
+            }
+            Self::DeleteLobbyResponse {
+                success: ref _success,
+            }
+            => {
+                6u8._serialize_chained(dest)?;
+                ::bebop::write_len(dest, size - ::bebop::LEN_SIZE * 2 - 1)?;
+                if let Some(ref v) = _success {
+                    1u8._serialize_chained(dest)?;
+                    v._serialize_chained(dest)?;
+                }
+                0u8._serialize_chained(dest)?;
+            }
+            Self::StartGameResponse {
+                success: ref _success,
+            }
+            => {
+                7u8._serialize_chained(dest)?;
+                ::bebop::write_len(dest, size - ::bebop::LEN_SIZE * 2 - 1)?;
+                if let Some(ref v) = _success {
+                    1u8._serialize_chained(dest)?;
+                    v._serialize_chained(dest)?;
+                }
+                0u8._serialize_chained(dest)?;
+            }
+            Self::GameEndedResponse {
+            }
+            => {
+                8u8._serialize_chained(dest)?;
+            }
+            Self::LobbyHeartbeatResponse {
+            }
+            => {
+                9u8._serialize_chained(dest)?;
+            }
+            Self::InviteToLobbyResponse {
+                success: ref _success,
+            }
+            => {
+                10u8._serialize_chained(dest)?;
+                ::bebop::write_len(dest, size - ::bebop::LEN_SIZE * 2 - 1)?;
+                if let Some(ref v) = _success {
+                    1u8._serialize_chained(dest)?;
+                    v._serialize_chained(dest)?;
+                }
+                0u8._serialize_chained(dest)?;
+            }
+            Self::LobbyInvite {
+                lobby_id: ref _lobby_id,
+                host_user_id: ref _host_user_id,
+                host_name: ref _host_name,
+                variant_id: ref _variant_id,
+                variant_version: ref _variant_version,
+                script_url: ref _script_url,
+            }
+            => {
+                11u8._serialize_chained(dest)?;
+                ::bebop::write_len(dest, size - ::bebop::LEN_SIZE * 2 - 1)?;
+                if let Some(ref v) = _lobby_id {
+                    1u8._serialize_chained(dest)?;
+                    v._serialize_chained(dest)?;
+                }
+                if let Some(ref v) = _host_user_id {
+                    2u8._serialize_chained(dest)?;
+                    v._serialize_chained(dest)?;
+                }
+                if let Some(ref v) = _host_name {
+                    3u8._serialize_chained(dest)?;
+                    v._serialize_chained(dest)?;
+                }
+                if let Some(ref v) = _variant_id {
+                    4u8._serialize_chained(dest)?;
+                    v._serialize_chained(dest)?;
+                }
+                if let Some(ref v) = _variant_version {
+                    5u8._serialize_chained(dest)?;
+                    v._serialize_chained(dest)?;
+                }
+                if let Some(ref v) = _script_url {
+                    6u8._serialize_chained(dest)?;
+                    v._serialize_chained(dest)?;
+                }
+                0u8._serialize_chained(dest)?;
+            }
+            Self::LobbyMemberJoined {
+                lobby_id: ref _lobby_id,
+                peer_id: ref _peer_id,
+                user_id: ref _user_id,
+                display_name: ref _display_name,
+            }
+            => {
+                12u8._serialize_chained(dest)?;
+                ::bebop::write_len(dest, size - ::bebop::LEN_SIZE * 2 - 1)?;
+                if let Some(ref v) = _lobby_id {
+                    1u8._serialize_chained(dest)?;
+                    v._serialize_chained(dest)?;
+                }
+                if let Some(ref v) = _peer_id {
+                    2u8._serialize_chained(dest)?;
+                    v._serialize_chained(dest)?;
+                }
+                if let Some(ref v) = _user_id {
+                    3u8._serialize_chained(dest)?;
+                    v._serialize_chained(dest)?;
+                }
+                if let Some(ref v) = _display_name {
+                    4u8._serialize_chained(dest)?;
+                    v._serialize_chained(dest)?;
+                }
+                0u8._serialize_chained(dest)?;
+            }
+            Self::LobbyMemberLeft {
+                lobby_id: ref _lobby_id,
+                peer_id: ref _peer_id,
+            }
+            => {
+                13u8._serialize_chained(dest)?;
+                ::bebop::write_len(dest, size - ::bebop::LEN_SIZE * 2 - 1)?;
+                if let Some(ref v) = _lobby_id {
+                    1u8._serialize_chained(dest)?;
+                    v._serialize_chained(dest)?;
+                }
+                if let Some(ref v) = _peer_id {
+                    2u8._serialize_chained(dest)?;
+                    v._serialize_chained(dest)?;
+                }
+                0u8._serialize_chained(dest)?;
+            }
+            Self::LobbyDeleted {
+                lobby_id: ref _lobby_id,
+            }
+            => {
+                14u8._serialize_chained(dest)?;
+                ::bebop::write_len(dest, size - ::bebop::LEN_SIZE * 2 - 1)?;
+                if let Some(ref v) = _lobby_id {
+                    1u8._serialize_chained(dest)?;
+                    v._serialize_chained(dest)?;
+                }
+                0u8._serialize_chained(dest)?;
+            }
+            Self::LobbyGameStarted {
+                lobby_id: ref _lobby_id,
+                peer_ids: ref _peer_ids,
+            }
+            => {
+                15u8._serialize_chained(dest)?;
+                ::bebop::write_len(dest, size - ::bebop::LEN_SIZE * 2 - 1)?;
+                if let Some(ref v) = _lobby_id {
+                    1u8._serialize_chained(dest)?;
+                    v._serialize_chained(dest)?;
+                }
+                if let Some(ref v) = _peer_ids {
+                    2u8._serialize_chained(dest)?;
+                    v._serialize_chained(dest)?;
+                }
+                0u8._serialize_chained(dest)?;
+            }
+            Self::LobbyGameEnded {
+                lobby_id: ref _lobby_id,
+            }
+            => {
+                16u8._serialize_chained(dest)?;
+                ::bebop::write_len(dest, size - ::bebop::LEN_SIZE * 2 - 1)?;
+                if let Some(ref v) = _lobby_id {
+                    1u8._serialize_chained(dest)?;
+                    v._serialize_chained(dest)?;
+                }
+                0u8._serialize_chained(dest)?;
+            }
+        }
+        Ok(size)
+    });
+
+    fn _deserialize_chained(raw: &'raw [u8]) -> ::bebop::DeResult<(usize, Self)> {
+        let len = ::bebop::read_len(raw)? + ::bebop::LEN_SIZE + 1;
+        let mut i = ::bebop::LEN_SIZE + 1;
+        let de = match raw[::bebop::LEN_SIZE] {
+            1 => {
+                let (read, v0) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                i += read;
+
+                S2CMsg::RegisterPeerResponse {
+                    success: v0,
+                }
+            }
+            2 => {
+                let len = ::bebop::read_len(&raw[i..])? + i + ::bebop::LEN_SIZE;
+                i += ::bebop::LEN_SIZE;
+
+                #[cfg(not(feature = "unchecked"))]
+                if len == 0 {
+                    return Err(::bebop::DeserializeError::CorruptFrame);
+                }
+
+                if raw.len() < len {
+                    return Err(::bebop::DeserializeError::MoreDataExpected(len - raw.len()));
+                }
+
+                let mut _peer_id = None;
+
+                #[cfg(not(feature = "unchecked"))]
+                let mut last = 0;
+
+                while i < len {
+                    let di = raw[i];
+
+                    #[cfg(not(feature = "unchecked"))]
+                    if di != 0 {
+                        if di < last {
+                            return Err(::bebop::DeserializeError::CorruptFrame);
+                        }
+                        last = di;
+                    }
+
+                    i += 1;
+                    match di {
+                        0 => {
+                            break;
+                        }
+                        1 => {
+                            #[cfg(not(feature = "unchecked"))]
+                            if _peer_id.is_some() {
+                                return Err(::bebop::DeserializeError::DuplicateMessageField);
+                            }
+                            let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                            i += read;
+                            _peer_id = Some(value)
+                        }
+                        _ => {
+                            i = len;
+                            break;
+                        }
+                    }
+                }
+
+                if i != len {
+                    debug_assert!(i > len);
+                    return Err(::bebop::DeserializeError::CorruptFrame)
+                }
+
+                S2CMsg::GetFriendPeerIdResponse {
+                    peer_id: _peer_id,
+                }
+            }
+            3 => {
+                let len = ::bebop::read_len(&raw[i..])? + i + ::bebop::LEN_SIZE;
+                i += ::bebop::LEN_SIZE;
+
+                #[cfg(not(feature = "unchecked"))]
+                if len == 0 {
+                    return Err(::bebop::DeserializeError::CorruptFrame);
+                }
+
+                if raw.len() < len {
+                    return Err(::bebop::DeserializeError::MoreDataExpected(len - raw.len()));
+                }
+
+                let mut _success = None;
+                let mut _lobby_id = None;
+
+                #[cfg(not(feature = "unchecked"))]
+                let mut last = 0;
+
+                while i < len {
+                    let di = raw[i];
+
+                    #[cfg(not(feature = "unchecked"))]
+                    if di != 0 {
+                        if di < last {
+                            return Err(::bebop::DeserializeError::CorruptFrame);
+                        }
+                        last = di;
+                    }
+
+                    i += 1;
+                    match di {
+                        0 => {
+                            break;
+                        }
+                        1 => {
+                            #[cfg(not(feature = "unchecked"))]
+                            if _success.is_some() {
+                                return Err(::bebop::DeserializeError::DuplicateMessageField);
+                            }
+                            let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                            i += read;
+                            _success = Some(value)
+                        }
+                        2 => {
+                            #[cfg(not(feature = "unchecked"))]
+                            if _lobby_id.is_some() {
+                                return Err(::bebop::DeserializeError::DuplicateMessageField);
+                            }
+                            let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                            i += read;
+                            _lobby_id = Some(value)
+                        }
+                        _ => {
+                            i = len;
+                            break;
+                        }
+                    }
+                }
+
+                if i != len {
+                    debug_assert!(i > len);
+                    return Err(::bebop::DeserializeError::CorruptFrame)
+                }
+
+                S2CMsg::CreateLobbyResponse {
+                    success: _success,
+                    lobby_id: _lobby_id,
+                }
+            }
+            4 => {
+                let len = ::bebop::read_len(&raw[i..])? + i + ::bebop::LEN_SIZE;
+                i += ::bebop::LEN_SIZE;
+
+                #[cfg(not(feature = "unchecked"))]
+                if len == 0 {
+                    return Err(::bebop::DeserializeError::CorruptFrame);
+                }
+
+                if raw.len() < len {
+                    return Err(::bebop::DeserializeError::MoreDataExpected(len - raw.len()));
+                }
+
+                let mut _success = None;
+                let mut _member_peer_ids = None;
+                let mut _member_names = None;
+                let mut _member_user_ids = None;
+                let mut _host_peer_id = None;
+                let mut _in_game = None;
+
+                #[cfg(not(feature = "unchecked"))]
+                let mut last = 0;
+
+                while i < len {
+                    let di = raw[i];
+
+                    #[cfg(not(feature = "unchecked"))]
+                    if di != 0 {
+                        if di < last {
+                            return Err(::bebop::DeserializeError::CorruptFrame);
+                        }
+                        last = di;
+                    }
+
+                    i += 1;
+                    match di {
+                        0 => {
+                            break;
+                        }
+                        1 => {
+                            #[cfg(not(feature = "unchecked"))]
+                            if _success.is_some() {
+                                return Err(::bebop::DeserializeError::DuplicateMessageField);
+                            }
+                            let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                            i += read;
+                            _success = Some(value)
+                        }
+                        2 => {
+                            #[cfg(not(feature = "unchecked"))]
+                            if _member_peer_ids.is_some() {
+                                return Err(::bebop::DeserializeError::DuplicateMessageField);
+                            }
+                            let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                            i += read;
+                            _member_peer_ids = Some(value)
+                        }
+                        3 => {
+                            #[cfg(not(feature = "unchecked"))]
+                            if _member_names.is_some() {
+                                return Err(::bebop::DeserializeError::DuplicateMessageField);
+                            }
+                            let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                            i += read;
+                            _member_names = Some(value)
+                        }
+                        4 => {
+                            #[cfg(not(feature = "unchecked"))]
+                            if _member_user_ids.is_some() {
+                                return Err(::bebop::DeserializeError::DuplicateMessageField);
+                            }
+                            let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                            i += read;
+                            _member_user_ids = Some(value)
+                        }
+                        5 => {
+                            #[cfg(not(feature = "unchecked"))]
+                            if _host_peer_id.is_some() {
+                                return Err(::bebop::DeserializeError::DuplicateMessageField);
+                            }
+                            let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                            i += read;
+                            _host_peer_id = Some(value)
+                        }
+                        6 => {
+                            #[cfg(not(feature = "unchecked"))]
+                            if _in_game.is_some() {
+                                return Err(::bebop::DeserializeError::DuplicateMessageField);
+                            }
+                            let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                            i += read;
+                            _in_game = Some(value)
+                        }
+                        _ => {
+                            i = len;
+                            break;
+                        }
+                    }
+                }
+
+                if i != len {
+                    debug_assert!(i > len);
+                    return Err(::bebop::DeserializeError::CorruptFrame)
+                }
+
+                S2CMsg::JoinLobbyResponse {
+                    success: _success,
+                    member_peer_ids: _member_peer_ids,
+                    member_names: _member_names,
+                    member_user_ids: _member_user_ids,
+                    host_peer_id: _host_peer_id,
+                    in_game: _in_game,
+                }
+            }
+            5 => {
+                S2CMsg::LeaveLobbyResponse {}
+            }
+            6 => {
+                let len = ::bebop::read_len(&raw[i..])? + i + ::bebop::LEN_SIZE;
+                i += ::bebop::LEN_SIZE;
+
+                #[cfg(not(feature = "unchecked"))]
+                if len == 0 {
+                    return Err(::bebop::DeserializeError::CorruptFrame);
+                }
+
+                if raw.len() < len {
+                    return Err(::bebop::DeserializeError::MoreDataExpected(len - raw.len()));
+                }
+
+                let mut _success = None;
+
+                #[cfg(not(feature = "unchecked"))]
+                let mut last = 0;
+
+                while i < len {
+                    let di = raw[i];
+
+                    #[cfg(not(feature = "unchecked"))]
+                    if di != 0 {
+                        if di < last {
+                            return Err(::bebop::DeserializeError::CorruptFrame);
+                        }
+                        last = di;
+                    }
+
+                    i += 1;
+                    match di {
+                        0 => {
+                            break;
+                        }
+                        1 => {
+                            #[cfg(not(feature = "unchecked"))]
+                            if _success.is_some() {
+                                return Err(::bebop::DeserializeError::DuplicateMessageField);
+                            }
+                            let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                            i += read;
+                            _success = Some(value)
+                        }
+                        _ => {
+                            i = len;
+                            break;
+                        }
+                    }
+                }
+
+                if i != len {
+                    debug_assert!(i > len);
+                    return Err(::bebop::DeserializeError::CorruptFrame)
+                }
+
+                S2CMsg::DeleteLobbyResponse {
+                    success: _success,
+                }
+            }
+            7 => {
+                let len = ::bebop::read_len(&raw[i..])? + i + ::bebop::LEN_SIZE;
+                i += ::bebop::LEN_SIZE;
+
+                #[cfg(not(feature = "unchecked"))]
+                if len == 0 {
+                    return Err(::bebop::DeserializeError::CorruptFrame);
+                }
+
+                if raw.len() < len {
+                    return Err(::bebop::DeserializeError::MoreDataExpected(len - raw.len()));
+                }
+
+                let mut _success = None;
+
+                #[cfg(not(feature = "unchecked"))]
+                let mut last = 0;
+
+                while i < len {
+                    let di = raw[i];
+
+                    #[cfg(not(feature = "unchecked"))]
+                    if di != 0 {
+                        if di < last {
+                            return Err(::bebop::DeserializeError::CorruptFrame);
+                        }
+                        last = di;
+                    }
+
+                    i += 1;
+                    match di {
+                        0 => {
+                            break;
+                        }
+                        1 => {
+                            #[cfg(not(feature = "unchecked"))]
+                            if _success.is_some() {
+                                return Err(::bebop::DeserializeError::DuplicateMessageField);
+                            }
+                            let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                            i += read;
+                            _success = Some(value)
+                        }
+                        _ => {
+                            i = len;
+                            break;
+                        }
+                    }
+                }
+
+                if i != len {
+                    debug_assert!(i > len);
+                    return Err(::bebop::DeserializeError::CorruptFrame)
+                }
+
+                S2CMsg::StartGameResponse {
+                    success: _success,
+                }
+            }
+            8 => {
+                S2CMsg::GameEndedResponse {}
+            }
+            9 => {
+                S2CMsg::LobbyHeartbeatResponse {}
+            }
+            10 => {
+                let len = ::bebop::read_len(&raw[i..])? + i + ::bebop::LEN_SIZE;
+                i += ::bebop::LEN_SIZE;
+
+                #[cfg(not(feature = "unchecked"))]
+                if len == 0 {
+                    return Err(::bebop::DeserializeError::CorruptFrame);
+                }
+
+                if raw.len() < len {
+                    return Err(::bebop::DeserializeError::MoreDataExpected(len - raw.len()));
+                }
+
+                let mut _success = None;
+
+                #[cfg(not(feature = "unchecked"))]
+                let mut last = 0;
+
+                while i < len {
+                    let di = raw[i];
+
+                    #[cfg(not(feature = "unchecked"))]
+                    if di != 0 {
+                        if di < last {
+                            return Err(::bebop::DeserializeError::CorruptFrame);
+                        }
+                        last = di;
+                    }
+
+                    i += 1;
+                    match di {
+                        0 => {
+                            break;
+                        }
+                        1 => {
+                            #[cfg(not(feature = "unchecked"))]
+                            if _success.is_some() {
+                                return Err(::bebop::DeserializeError::DuplicateMessageField);
+                            }
+                            let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                            i += read;
+                            _success = Some(value)
+                        }
+                        _ => {
+                            i = len;
+                            break;
+                        }
+                    }
+                }
+
+                if i != len {
+                    debug_assert!(i > len);
+                    return Err(::bebop::DeserializeError::CorruptFrame)
+                }
+
+                S2CMsg::InviteToLobbyResponse {
+                    success: _success,
+                }
+            }
+            11 => {
+                let len = ::bebop::read_len(&raw[i..])? + i + ::bebop::LEN_SIZE;
+                i += ::bebop::LEN_SIZE;
+
+                #[cfg(not(feature = "unchecked"))]
+                if len == 0 {
+                    return Err(::bebop::DeserializeError::CorruptFrame);
+                }
+
+                if raw.len() < len {
+                    return Err(::bebop::DeserializeError::MoreDataExpected(len - raw.len()));
+                }
+
+                let mut _lobby_id = None;
+                let mut _host_user_id = None;
+                let mut _host_name = None;
+                let mut _variant_id = None;
+                let mut _variant_version = None;
+                let mut _script_url = None;
+
+                #[cfg(not(feature = "unchecked"))]
+                let mut last = 0;
+
+                while i < len {
+                    let di = raw[i];
+
+                    #[cfg(not(feature = "unchecked"))]
+                    if di != 0 {
+                        if di < last {
+                            return Err(::bebop::DeserializeError::CorruptFrame);
+                        }
+                        last = di;
+                    }
+
+                    i += 1;
+                    match di {
+                        0 => {
+                            break;
+                        }
+                        1 => {
+                            #[cfg(not(feature = "unchecked"))]
+                            if _lobby_id.is_some() {
+                                return Err(::bebop::DeserializeError::DuplicateMessageField);
+                            }
+                            let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                            i += read;
+                            _lobby_id = Some(value)
+                        }
+                        2 => {
+                            #[cfg(not(feature = "unchecked"))]
+                            if _host_user_id.is_some() {
+                                return Err(::bebop::DeserializeError::DuplicateMessageField);
+                            }
+                            let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                            i += read;
+                            _host_user_id = Some(value)
+                        }
+                        3 => {
+                            #[cfg(not(feature = "unchecked"))]
+                            if _host_name.is_some() {
+                                return Err(::bebop::DeserializeError::DuplicateMessageField);
+                            }
+                            let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                            i += read;
+                            _host_name = Some(value)
+                        }
+                        4 => {
+                            #[cfg(not(feature = "unchecked"))]
+                            if _variant_id.is_some() {
+                                return Err(::bebop::DeserializeError::DuplicateMessageField);
+                            }
+                            let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                            i += read;
+                            _variant_id = Some(value)
+                        }
+                        5 => {
+                            #[cfg(not(feature = "unchecked"))]
+                            if _variant_version.is_some() {
+                                return Err(::bebop::DeserializeError::DuplicateMessageField);
+                            }
+                            let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                            i += read;
+                            _variant_version = Some(value)
+                        }
+                        6 => {
+                            #[cfg(not(feature = "unchecked"))]
+                            if _script_url.is_some() {
+                                return Err(::bebop::DeserializeError::DuplicateMessageField);
+                            }
+                            let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                            i += read;
+                            _script_url = Some(value)
+                        }
+                        _ => {
+                            i = len;
+                            break;
+                        }
+                    }
+                }
+
+                if i != len {
+                    debug_assert!(i > len);
+                    return Err(::bebop::DeserializeError::CorruptFrame)
+                }
+
+                S2CMsg::LobbyInvite {
+                    lobby_id: _lobby_id,
+                    host_user_id: _host_user_id,
+                    host_name: _host_name,
+                    variant_id: _variant_id,
+                    variant_version: _variant_version,
+                    script_url: _script_url,
+                }
+            }
+            12 => {
+                let len = ::bebop::read_len(&raw[i..])? + i + ::bebop::LEN_SIZE;
+                i += ::bebop::LEN_SIZE;
+
+                #[cfg(not(feature = "unchecked"))]
+                if len == 0 {
+                    return Err(::bebop::DeserializeError::CorruptFrame);
+                }
+
+                if raw.len() < len {
+                    return Err(::bebop::DeserializeError::MoreDataExpected(len - raw.len()));
+                }
+
+                let mut _lobby_id = None;
+                let mut _peer_id = None;
+                let mut _user_id = None;
+                let mut _display_name = None;
+
+                #[cfg(not(feature = "unchecked"))]
+                let mut last = 0;
+
+                while i < len {
+                    let di = raw[i];
+
+                    #[cfg(not(feature = "unchecked"))]
+                    if di != 0 {
+                        if di < last {
+                            return Err(::bebop::DeserializeError::CorruptFrame);
+                        }
+                        last = di;
+                    }
+
+                    i += 1;
+                    match di {
+                        0 => {
+                            break;
+                        }
+                        1 => {
+                            #[cfg(not(feature = "unchecked"))]
+                            if _lobby_id.is_some() {
+                                return Err(::bebop::DeserializeError::DuplicateMessageField);
+                            }
+                            let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                            i += read;
+                            _lobby_id = Some(value)
+                        }
+                        2 => {
+                            #[cfg(not(feature = "unchecked"))]
+                            if _peer_id.is_some() {
+                                return Err(::bebop::DeserializeError::DuplicateMessageField);
+                            }
+                            let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                            i += read;
+                            _peer_id = Some(value)
+                        }
+                        3 => {
+                            #[cfg(not(feature = "unchecked"))]
+                            if _user_id.is_some() {
+                                return Err(::bebop::DeserializeError::DuplicateMessageField);
+                            }
+                            let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                            i += read;
+                            _user_id = Some(value)
+                        }
+                        4 => {
+                            #[cfg(not(feature = "unchecked"))]
+                            if _display_name.is_some() {
+                                return Err(::bebop::DeserializeError::DuplicateMessageField);
+                            }
+                            let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                            i += read;
+                            _display_name = Some(value)
+                        }
+                        _ => {
+                            i = len;
+                            break;
+                        }
+                    }
+                }
+
+                if i != len {
+                    debug_assert!(i > len);
+                    return Err(::bebop::DeserializeError::CorruptFrame)
+                }
+
+                S2CMsg::LobbyMemberJoined {
+                    lobby_id: _lobby_id,
+                    peer_id: _peer_id,
+                    user_id: _user_id,
+                    display_name: _display_name,
+                }
+            }
+            13 => {
+                let len = ::bebop::read_len(&raw[i..])? + i + ::bebop::LEN_SIZE;
+                i += ::bebop::LEN_SIZE;
+
+                #[cfg(not(feature = "unchecked"))]
+                if len == 0 {
+                    return Err(::bebop::DeserializeError::CorruptFrame);
+                }
+
+                if raw.len() < len {
+                    return Err(::bebop::DeserializeError::MoreDataExpected(len - raw.len()));
+                }
+
+                let mut _lobby_id = None;
+                let mut _peer_id = None;
+
+                #[cfg(not(feature = "unchecked"))]
+                let mut last = 0;
+
+                while i < len {
+                    let di = raw[i];
+
+                    #[cfg(not(feature = "unchecked"))]
+                    if di != 0 {
+                        if di < last {
+                            return Err(::bebop::DeserializeError::CorruptFrame);
+                        }
+                        last = di;
+                    }
+
+                    i += 1;
+                    match di {
+                        0 => {
+                            break;
+                        }
+                        1 => {
+                            #[cfg(not(feature = "unchecked"))]
+                            if _lobby_id.is_some() {
+                                return Err(::bebop::DeserializeError::DuplicateMessageField);
+                            }
+                            let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                            i += read;
+                            _lobby_id = Some(value)
+                        }
+                        2 => {
+                            #[cfg(not(feature = "unchecked"))]
+                            if _peer_id.is_some() {
+                                return Err(::bebop::DeserializeError::DuplicateMessageField);
+                            }
+                            let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                            i += read;
+                            _peer_id = Some(value)
+                        }
+                        _ => {
+                            i = len;
+                            break;
+                        }
+                    }
+                }
+
+                if i != len {
+                    debug_assert!(i > len);
+                    return Err(::bebop::DeserializeError::CorruptFrame)
+                }
+
+                S2CMsg::LobbyMemberLeft {
+                    lobby_id: _lobby_id,
+                    peer_id: _peer_id,
+                }
+            }
+            14 => {
+                let len = ::bebop::read_len(&raw[i..])? + i + ::bebop::LEN_SIZE;
+                i += ::bebop::LEN_SIZE;
+
+                #[cfg(not(feature = "unchecked"))]
+                if len == 0 {
+                    return Err(::bebop::DeserializeError::CorruptFrame);
+                }
+
+                if raw.len() < len {
+                    return Err(::bebop::DeserializeError::MoreDataExpected(len - raw.len()));
+                }
+
+                let mut _lobby_id = None;
+
+                #[cfg(not(feature = "unchecked"))]
+                let mut last = 0;
+
+                while i < len {
+                    let di = raw[i];
+
+                    #[cfg(not(feature = "unchecked"))]
+                    if di != 0 {
+                        if di < last {
+                            return Err(::bebop::DeserializeError::CorruptFrame);
+                        }
+                        last = di;
+                    }
+
+                    i += 1;
+                    match di {
+                        0 => {
+                            break;
+                        }
+                        1 => {
+                            #[cfg(not(feature = "unchecked"))]
+                            if _lobby_id.is_some() {
+                                return Err(::bebop::DeserializeError::DuplicateMessageField);
+                            }
+                            let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                            i += read;
+                            _lobby_id = Some(value)
+                        }
+                        _ => {
+                            i = len;
+                            break;
+                        }
+                    }
+                }
+
+                if i != len {
+                    debug_assert!(i > len);
+                    return Err(::bebop::DeserializeError::CorruptFrame)
+                }
+
+                S2CMsg::LobbyDeleted {
+                    lobby_id: _lobby_id,
+                }
+            }
+            15 => {
+                let len = ::bebop::read_len(&raw[i..])? + i + ::bebop::LEN_SIZE;
+                i += ::bebop::LEN_SIZE;
+
+                #[cfg(not(feature = "unchecked"))]
+                if len == 0 {
+                    return Err(::bebop::DeserializeError::CorruptFrame);
+                }
+
+                if raw.len() < len {
+                    return Err(::bebop::DeserializeError::MoreDataExpected(len - raw.len()));
+                }
+
+                let mut _lobby_id = None;
+                let mut _peer_ids = None;
+
+                #[cfg(not(feature = "unchecked"))]
+                let mut last = 0;
+
+                while i < len {
+                    let di = raw[i];
+
+                    #[cfg(not(feature = "unchecked"))]
+                    if di != 0 {
+                        if di < last {
+                            return Err(::bebop::DeserializeError::CorruptFrame);
+                        }
+                        last = di;
+                    }
+
+                    i += 1;
+                    match di {
+                        0 => {
+                            break;
+                        }
+                        1 => {
+                            #[cfg(not(feature = "unchecked"))]
+                            if _lobby_id.is_some() {
+                                return Err(::bebop::DeserializeError::DuplicateMessageField);
+                            }
+                            let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                            i += read;
+                            _lobby_id = Some(value)
+                        }
+                        2 => {
+                            #[cfg(not(feature = "unchecked"))]
+                            if _peer_ids.is_some() {
+                                return Err(::bebop::DeserializeError::DuplicateMessageField);
+                            }
+                            let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                            i += read;
+                            _peer_ids = Some(value)
+                        }
+                        _ => {
+                            i = len;
+                            break;
+                        }
+                    }
+                }
+
+                if i != len {
+                    debug_assert!(i > len);
+                    return Err(::bebop::DeserializeError::CorruptFrame)
+                }
+
+                S2CMsg::LobbyGameStarted {
+                    lobby_id: _lobby_id,
+                    peer_ids: _peer_ids,
+                }
+            }
+            16 => {
+                let len = ::bebop::read_len(&raw[i..])? + i + ::bebop::LEN_SIZE;
+                i += ::bebop::LEN_SIZE;
+
+                #[cfg(not(feature = "unchecked"))]
+                if len == 0 {
+                    return Err(::bebop::DeserializeError::CorruptFrame);
+                }
+
+                if raw.len() < len {
+                    return Err(::bebop::DeserializeError::MoreDataExpected(len - raw.len()));
+                }
+
+                let mut _lobby_id = None;
+
+                #[cfg(not(feature = "unchecked"))]
+                let mut last = 0;
+
+                while i < len {
+                    let di = raw[i];
+
+                    #[cfg(not(feature = "unchecked"))]
+                    if di != 0 {
+                        if di < last {
+                            return Err(::bebop::DeserializeError::CorruptFrame);
+                        }
+                        last = di;
+                    }
+
+                    i += 1;
+                    match di {
+                        0 => {
+                            break;
+                        }
+                        1 => {
+                            #[cfg(not(feature = "unchecked"))]
+                            if _lobby_id.is_some() {
+                                return Err(::bebop::DeserializeError::DuplicateMessageField);
+                            }
+                            let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                            i += read;
+                            _lobby_id = Some(value)
+                        }
+                        _ => {
+                            i = len;
+                            break;
+                        }
+                    }
+                }
+
+                if i != len {
+                    debug_assert!(i > len);
+                    return Err(::bebop::DeserializeError::CorruptFrame)
+                }
+
+                S2CMsg::LobbyGameEnded {
+                    lobby_id: _lobby_id,
+                }
+            }
+            _ => {
+                i = len;
+                S2CMsg::Unknown
+            }
+        };
+        if !cfg!(feature = "unchecked") && i != len {
+            debug_assert!(i > len);
+            Err(::bebop::DeserializeError::CorruptFrame)
+        }
+        else {
+            Ok((i, de))
+        }
+    }
+
+}
+
+impl<'raw> ::bebop::Record<'raw> for S2CMsg<'raw> {}
+
 #[cfg(feature = "bebop-owned-all")]
 pub mod owned {
     #![allow(warnings)]
@@ -994,16 +2154,50 @@ pub mod owned {
         },
 
         /// Discriminator 3
-        NewGame {
-            receiver_user_id: ::bebop::Guid,
+        CreateLobby {
             variant_id: ::bebop::Guid,
             variant_version: String,
             script_url: String,
         },
 
         /// Discriminator 4
-        NewGameAnswer {
-            accepted: bool,
+        InviteToLobby {
+            lobby_id: ::bebop::Guid,
+            friend_user_ids: ::std::vec::Vec<::bebop::Guid>,
+        },
+
+        /// Discriminator 5
+        JoinLobby {
+            lobby_id: ::bebop::Guid,
+        },
+
+        /// Discriminator 6
+        LeaveLobby {
+            lobby_id: ::bebop::Guid,
+        },
+
+        /// Discriminator 7
+        DeleteLobby {
+            lobby_id: ::bebop::Guid,
+        },
+
+        /// Discriminator 8
+        StartGame {
+            lobby_id: ::bebop::Guid,
+        },
+
+        /// Discriminator 9
+        GameEnded {
+            lobby_id: ::bebop::Guid,
+        },
+
+        /// Discriminator 10
+        LobbyHeartbeat {
+            lobby_id: ::bebop::Guid,
+        },
+
+        /// Discriminator 11
+        LobbyEventAck {
         },
     }
 
@@ -1029,26 +2223,80 @@ pub mod owned {
                         friend_user_id: _friend_user_id,
                     }
                 }
-                super::C2SMsg::NewGame {
-                    receiver_user_id: _receiver_user_id,
+                super::C2SMsg::CreateLobby {
                     variant_id: _variant_id,
                     variant_version: _variant_version,
                     script_url: _script_url,
                 }
                 => {
-                    Self::NewGame {
-                        receiver_user_id: _receiver_user_id,
+                    Self::CreateLobby {
                         variant_id: _variant_id,
                         variant_version: _variant_version.into(),
                         script_url: _script_url.into(),
                     }
                 }
-                super::C2SMsg::NewGameAnswer {
-                    accepted: _accepted,
+                super::C2SMsg::InviteToLobby {
+                    lobby_id: _lobby_id,
+                    friend_user_ids: _friend_user_ids,
                 }
                 => {
-                    Self::NewGameAnswer {
-                        accepted: _accepted,
+                    Self::InviteToLobby {
+                        lobby_id: _lobby_id,
+                        friend_user_ids: _friend_user_ids.iter().map(|value| value).collect(),
+                    }
+                }
+                super::C2SMsg::JoinLobby {
+                    lobby_id: _lobby_id,
+                }
+                => {
+                    Self::JoinLobby {
+                        lobby_id: _lobby_id,
+                    }
+                }
+                super::C2SMsg::LeaveLobby {
+                    lobby_id: _lobby_id,
+                }
+                => {
+                    Self::LeaveLobby {
+                        lobby_id: _lobby_id,
+                    }
+                }
+                super::C2SMsg::DeleteLobby {
+                    lobby_id: _lobby_id,
+                }
+                => {
+                    Self::DeleteLobby {
+                        lobby_id: _lobby_id,
+                    }
+                }
+                super::C2SMsg::StartGame {
+                    lobby_id: _lobby_id,
+                }
+                => {
+                    Self::StartGame {
+                        lobby_id: _lobby_id,
+                    }
+                }
+                super::C2SMsg::GameEnded {
+                    lobby_id: _lobby_id,
+                }
+                => {
+                    Self::GameEnded {
+                        lobby_id: _lobby_id,
+                    }
+                }
+                super::C2SMsg::LobbyHeartbeat {
+                    lobby_id: _lobby_id,
+                }
+                => {
+                    Self::LobbyHeartbeat {
+                        lobby_id: _lobby_id,
+                    }
+                }
+                super::C2SMsg::LobbyEventAck {
+                }
+                => {
+                    Self::LobbyEventAck {
                     }
                 }
             }
@@ -1076,23 +2324,64 @@ pub mod owned {
                 => {
                     _friend_user_id.serialized_size()
                 }
-                Self::NewGame {
-                    receiver_user_id: ref _receiver_user_id,
+                Self::CreateLobby {
                     variant_id: ref _variant_id,
                     variant_version: ref _variant_version,
                     script_url: ref _script_url,
                 }
                 => {
-                    _receiver_user_id.serialized_size() +
                     _variant_id.serialized_size() +
                     _variant_version.serialized_size() +
                     _script_url.serialized_size()
                 }
-                Self::NewGameAnswer {
-                    accepted: ref _accepted,
+                Self::InviteToLobby {
+                    lobby_id: ref _lobby_id,
+                    friend_user_ids: ref _friend_user_ids,
                 }
                 => {
-                    _accepted.serialized_size()
+                    _lobby_id.serialized_size() +
+                    _friend_user_ids.serialized_size()
+                }
+                Self::JoinLobby {
+                    lobby_id: ref _lobby_id,
+                }
+                => {
+                    _lobby_id.serialized_size()
+                }
+                Self::LeaveLobby {
+                    lobby_id: ref _lobby_id,
+                }
+                => {
+                    _lobby_id.serialized_size()
+                }
+                Self::DeleteLobby {
+                    lobby_id: ref _lobby_id,
+                }
+                => {
+                    _lobby_id.serialized_size()
+                }
+                Self::StartGame {
+                    lobby_id: ref _lobby_id,
+                }
+                => {
+                    _lobby_id.serialized_size()
+                }
+                Self::GameEnded {
+                    lobby_id: ref _lobby_id,
+                }
+                => {
+                    _lobby_id.serialized_size()
+                }
+                Self::LobbyHeartbeat {
+                    lobby_id: ref _lobby_id,
+                }
+                => {
+                    _lobby_id.serialized_size()
+                }
+                Self::LobbyEventAck {
+                }
+                => {
+                    0
                 }
             }
         }
@@ -1118,25 +2407,72 @@ pub mod owned {
                     2u8._serialize_chained(dest)?;
                     _friend_user_id._serialize_chained(dest)?;
                 }
-                Self::NewGame {
-                    receiver_user_id: ref _receiver_user_id,
+                Self::CreateLobby {
                     variant_id: ref _variant_id,
                     variant_version: ref _variant_version,
                     script_url: ref _script_url,
                 }
                 => {
                     3u8._serialize_chained(dest)?;
-                    _receiver_user_id._serialize_chained(dest)?;
                     _variant_id._serialize_chained(dest)?;
                     _variant_version._serialize_chained(dest)?;
                     _script_url._serialize_chained(dest)?;
                 }
-                Self::NewGameAnswer {
-                    accepted: ref _accepted,
+                Self::InviteToLobby {
+                    lobby_id: ref _lobby_id,
+                    friend_user_ids: ref _friend_user_ids,
                 }
                 => {
                     4u8._serialize_chained(dest)?;
-                    _accepted._serialize_chained(dest)?;
+                    _lobby_id._serialize_chained(dest)?;
+                    _friend_user_ids._serialize_chained(dest)?;
+                }
+                Self::JoinLobby {
+                    lobby_id: ref _lobby_id,
+                }
+                => {
+                    5u8._serialize_chained(dest)?;
+                    _lobby_id._serialize_chained(dest)?;
+                }
+                Self::LeaveLobby {
+                    lobby_id: ref _lobby_id,
+                }
+                => {
+                    6u8._serialize_chained(dest)?;
+                    _lobby_id._serialize_chained(dest)?;
+                }
+                Self::DeleteLobby {
+                    lobby_id: ref _lobby_id,
+                }
+                => {
+                    7u8._serialize_chained(dest)?;
+                    _lobby_id._serialize_chained(dest)?;
+                }
+                Self::StartGame {
+                    lobby_id: ref _lobby_id,
+                }
+                => {
+                    8u8._serialize_chained(dest)?;
+                    _lobby_id._serialize_chained(dest)?;
+                }
+                Self::GameEnded {
+                    lobby_id: ref _lobby_id,
+                }
+                => {
+                    9u8._serialize_chained(dest)?;
+                    _lobby_id._serialize_chained(dest)?;
+                }
+                Self::LobbyHeartbeat {
+                    lobby_id: ref _lobby_id,
+                }
+                => {
+                    10u8._serialize_chained(dest)?;
+                    _lobby_id._serialize_chained(dest)?;
+                }
+                Self::LobbyEventAck {
+                }
+                => {
+                    11u8._serialize_chained(dest)?;
                 }
             }
             Ok(size)
@@ -1169,23 +2505,74 @@ pub mod owned {
                     i += read;
                     let (read, v2) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
                     i += read;
-                    let (read, v3) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
-                    i += read;
 
-                    C2SMsg::NewGame {
-                        receiver_user_id: v0,
-                        variant_id: v1,
-                        variant_version: v2,
-                        script_url: v3,
+                    C2SMsg::CreateLobby {
+                        variant_id: v0,
+                        variant_version: v1,
+                        script_url: v2,
                     }
                 }
                 4 => {
                     let (read, v0) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
                     i += read;
+                    let (read, v1) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                    i += read;
 
-                    C2SMsg::NewGameAnswer {
-                        accepted: v0,
+                    C2SMsg::InviteToLobby {
+                        lobby_id: v0,
+                        friend_user_ids: v1,
                     }
+                }
+                5 => {
+                    let (read, v0) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                    i += read;
+
+                    C2SMsg::JoinLobby {
+                        lobby_id: v0,
+                    }
+                }
+                6 => {
+                    let (read, v0) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                    i += read;
+
+                    C2SMsg::LeaveLobby {
+                        lobby_id: v0,
+                    }
+                }
+                7 => {
+                    let (read, v0) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                    i += read;
+
+                    C2SMsg::DeleteLobby {
+                        lobby_id: v0,
+                    }
+                }
+                8 => {
+                    let (read, v0) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                    i += read;
+
+                    C2SMsg::StartGame {
+                        lobby_id: v0,
+                    }
+                }
+                9 => {
+                    let (read, v0) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                    i += read;
+
+                    C2SMsg::GameEnded {
+                        lobby_id: v0,
+                    }
+                }
+                10 => {
+                    let (read, v0) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                    i += read;
+
+                    C2SMsg::LobbyHeartbeat {
+                        lobby_id: v0,
+                    }
+                }
+                11 => {
+                    C2SMsg::LobbyEventAck {}
                 }
                 _ => {
                     i = len;
@@ -1204,531 +2591,6 @@ pub mod owned {
     }
 
     impl<'raw> ::bebop::Record<'raw> for C2SMsg {}
-
-    #[derive(Clone, Debug, PartialEq)]
-    pub enum S2CMsg {
-        /// An unknown type which is likely defined in a newer version of the schema.
-        Unknown,
-
-        /// Discriminator 1
-        RegisterPeerResponse {
-            success: bool,
-        },
-
-        /// Discriminator 2
-        GetFriendPeerIdResponse {
-            /// Field 1
-            peer_id: ::core::option::Option<String>,
-        },
-
-        /// Discriminator 3
-        NewGameResponse {
-            /// Field 1
-            accepted: ::core::option::Option<bool>,
-            /// Field 2
-            receiver_peer_id: ::core::option::Option<String>,
-        },
-
-        /// Discriminator 4
-        NewGameEvent {
-            /// Field 1
-            sender_user_id: ::core::option::Option<::bebop::Guid>,
-            /// Field 2
-            sender_user_name: ::core::option::Option<String>,
-            /// Field 3
-            variant_id: ::core::option::Option<::bebop::Guid>,
-            /// Field 4
-            variant_version: ::core::option::Option<String>,
-            /// Field 5
-            timeout_secs: ::core::option::Option<u32>,
-            /// Field 6
-            sender_peer_id: ::core::option::Option<String>,
-            /// Field 7
-            script_url: ::core::option::Option<String>,
-        },
-    }
-
-    impl<'raw> ::core::convert::From<super::S2CMsg<'raw>> for S2CMsg {
-        fn from(value: super::S2CMsg) -> Self {
-            match value {
-                super::S2CMsg::Unknown => {
-                    Self::Unknown
-                }
-                super::S2CMsg::RegisterPeerResponse {
-                    success: _success,
-                }
-                => {
-                    Self::RegisterPeerResponse {
-                        success: _success,
-                    }
-                }
-                super::S2CMsg::GetFriendPeerIdResponse {
-                    peer_id: _peer_id,
-                }
-                => {
-                    Self::GetFriendPeerIdResponse {
-                        peer_id: _peer_id.map(|value| value.into()),
-                    }
-                }
-                super::S2CMsg::NewGameResponse {
-                    accepted: _accepted,
-                    receiver_peer_id: _receiver_peer_id,
-                }
-                => {
-                    Self::NewGameResponse {
-                        accepted: _accepted,
-                        receiver_peer_id: _receiver_peer_id.map(|value| value.into()),
-                    }
-                }
-                super::S2CMsg::NewGameEvent {
-                    sender_user_id: _sender_user_id,
-                    sender_user_name: _sender_user_name,
-                    variant_id: _variant_id,
-                    variant_version: _variant_version,
-                    timeout_secs: _timeout_secs,
-                    sender_peer_id: _sender_peer_id,
-                    script_url: _script_url,
-                }
-                => {
-                    Self::NewGameEvent {
-                        sender_user_id: _sender_user_id,
-                        sender_user_name: _sender_user_name.map(|value| value.into()),
-                        variant_id: _variant_id,
-                        variant_version: _variant_version.map(|value| value.into()),
-                        timeout_secs: _timeout_secs,
-                        sender_peer_id: _sender_peer_id.map(|value| value.into()),
-                        script_url: _script_url.map(|value| value.into()),
-                    }
-                }
-            }
-        }
-
-    }
-    impl<'raw> ::bebop::SubRecord<'raw> for S2CMsg {
-        const MIN_SERIALIZED_SIZE: usize = ::bebop::LEN_SIZE + 1;
-
-        fn serialized_size(&self) -> usize {
-            ::bebop::LEN_SIZE + 1 +
-            match self {
-                S2CMsg::Unknown => {
-                    0
-                }
-                Self::RegisterPeerResponse {
-                    success: ref _success,
-                }
-                => {
-                    _success.serialized_size()
-                }
-                Self::GetFriendPeerIdResponse {
-                    peer_id: ref _peer_id,
-                }
-                => {
-                    ::bebop::LEN_SIZE + 1 +
-                    _peer_id.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0)
-                }
-                Self::NewGameResponse {
-                    accepted: ref _accepted,
-                    receiver_peer_id: ref _receiver_peer_id,
-                }
-                => {
-                    ::bebop::LEN_SIZE + 1 +
-                    _accepted.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
-                    _receiver_peer_id.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0)
-                }
-                Self::NewGameEvent {
-                    sender_user_id: ref _sender_user_id,
-                    sender_user_name: ref _sender_user_name,
-                    variant_id: ref _variant_id,
-                    variant_version: ref _variant_version,
-                    timeout_secs: ref _timeout_secs,
-                    sender_peer_id: ref _sender_peer_id,
-                    script_url: ref _script_url,
-                }
-                => {
-                    ::bebop::LEN_SIZE + 1 +
-                    _sender_user_id.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
-                    _sender_user_name.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
-                    _variant_id.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
-                    _variant_version.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
-                    _timeout_secs.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
-                    _sender_peer_id.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
-                    _script_url.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0)
-                }
-            }
-        }
-
-        ::bebop::define_serialize_chained!(Self => |zelf, dest| {
-            let size = zelf.serialized_size();
-            ::bebop::write_len(dest, size - ::bebop::LEN_SIZE - 1)?;
-            match zelf {
-                Self::Unknown => {
-                    return Err(::bebop::SerializeError::CannotSerializeUnknownUnion);
-                }
-                Self::RegisterPeerResponse {
-                    success: ref _success,
-                }
-                => {
-                    1u8._serialize_chained(dest)?;
-                    _success._serialize_chained(dest)?;
-                }
-                Self::GetFriendPeerIdResponse {
-                    peer_id: ref _peer_id,
-                }
-                => {
-                    2u8._serialize_chained(dest)?;
-                    ::bebop::write_len(dest, size - ::bebop::LEN_SIZE * 2 - 1)?;
-                    if let Some(ref v) = _peer_id {
-                        1u8._serialize_chained(dest)?;
-                        v._serialize_chained(dest)?;
-                    }
-                    0u8._serialize_chained(dest)?;
-                }
-                Self::NewGameResponse {
-                    accepted: ref _accepted,
-                    receiver_peer_id: ref _receiver_peer_id,
-                }
-                => {
-                    3u8._serialize_chained(dest)?;
-                    ::bebop::write_len(dest, size - ::bebop::LEN_SIZE * 2 - 1)?;
-                    if let Some(ref v) = _accepted {
-                        1u8._serialize_chained(dest)?;
-                        v._serialize_chained(dest)?;
-                    }
-                    if let Some(ref v) = _receiver_peer_id {
-                        2u8._serialize_chained(dest)?;
-                        v._serialize_chained(dest)?;
-                    }
-                    0u8._serialize_chained(dest)?;
-                }
-                Self::NewGameEvent {
-                    sender_user_id: ref _sender_user_id,
-                    sender_user_name: ref _sender_user_name,
-                    variant_id: ref _variant_id,
-                    variant_version: ref _variant_version,
-                    timeout_secs: ref _timeout_secs,
-                    sender_peer_id: ref _sender_peer_id,
-                    script_url: ref _script_url,
-                }
-                => {
-                    4u8._serialize_chained(dest)?;
-                    ::bebop::write_len(dest, size - ::bebop::LEN_SIZE * 2 - 1)?;
-                    if let Some(ref v) = _sender_user_id {
-                        1u8._serialize_chained(dest)?;
-                        v._serialize_chained(dest)?;
-                    }
-                    if let Some(ref v) = _sender_user_name {
-                        2u8._serialize_chained(dest)?;
-                        v._serialize_chained(dest)?;
-                    }
-                    if let Some(ref v) = _variant_id {
-                        3u8._serialize_chained(dest)?;
-                        v._serialize_chained(dest)?;
-                    }
-                    if let Some(ref v) = _variant_version {
-                        4u8._serialize_chained(dest)?;
-                        v._serialize_chained(dest)?;
-                    }
-                    if let Some(ref v) = _timeout_secs {
-                        5u8._serialize_chained(dest)?;
-                        v._serialize_chained(dest)?;
-                    }
-                    if let Some(ref v) = _sender_peer_id {
-                        6u8._serialize_chained(dest)?;
-                        v._serialize_chained(dest)?;
-                    }
-                    if let Some(ref v) = _script_url {
-                        7u8._serialize_chained(dest)?;
-                        v._serialize_chained(dest)?;
-                    }
-                    0u8._serialize_chained(dest)?;
-                }
-            }
-            Ok(size)
-        });
-
-        fn _deserialize_chained(raw: &'raw [u8]) -> ::bebop::DeResult<(usize, Self)> {
-            let len = ::bebop::read_len(raw)? + ::bebop::LEN_SIZE + 1;
-            let mut i = ::bebop::LEN_SIZE + 1;
-            let de = match raw[::bebop::LEN_SIZE] {
-                1 => {
-                    let (read, v0) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
-                    i += read;
-
-                    S2CMsg::RegisterPeerResponse {
-                        success: v0,
-                    }
-                }
-                2 => {
-                    let len = ::bebop::read_len(&raw[i..])? + i + ::bebop::LEN_SIZE;
-                    i += ::bebop::LEN_SIZE;
-
-                    #[cfg(not(feature = "unchecked"))]
-                    if len == 0 {
-                        return Err(::bebop::DeserializeError::CorruptFrame);
-                    }
-
-                    if raw.len() < len {
-                        return Err(::bebop::DeserializeError::MoreDataExpected(len - raw.len()));
-                    }
-
-                    let mut _peer_id = None;
-
-                    #[cfg(not(feature = "unchecked"))]
-                    let mut last = 0;
-
-                    while i < len {
-                        let di = raw[i];
-
-                        #[cfg(not(feature = "unchecked"))]
-                        if di != 0 {
-                            if di < last {
-                                return Err(::bebop::DeserializeError::CorruptFrame);
-                            }
-                            last = di;
-                        }
-
-                        i += 1;
-                        match di {
-                            0 => {
-                                break;
-                            }
-                            1 => {
-                                #[cfg(not(feature = "unchecked"))]
-                                if _peer_id.is_some() {
-                                    return Err(::bebop::DeserializeError::DuplicateMessageField);
-                                }
-                                let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
-                                i += read;
-                                _peer_id = Some(value)
-                            }
-                            _ => {
-                                i = len;
-                                break;
-                            }
-                        }
-                    }
-
-                    if i != len {
-                        debug_assert!(i > len);
-                        return Err(::bebop::DeserializeError::CorruptFrame)
-                    }
-
-                    S2CMsg::GetFriendPeerIdResponse {
-                        peer_id: _peer_id,
-                    }
-                }
-                3 => {
-                    let len = ::bebop::read_len(&raw[i..])? + i + ::bebop::LEN_SIZE;
-                    i += ::bebop::LEN_SIZE;
-
-                    #[cfg(not(feature = "unchecked"))]
-                    if len == 0 {
-                        return Err(::bebop::DeserializeError::CorruptFrame);
-                    }
-
-                    if raw.len() < len {
-                        return Err(::bebop::DeserializeError::MoreDataExpected(len - raw.len()));
-                    }
-
-                    let mut _accepted = None;
-                    let mut _receiver_peer_id = None;
-
-                    #[cfg(not(feature = "unchecked"))]
-                    let mut last = 0;
-
-                    while i < len {
-                        let di = raw[i];
-
-                        #[cfg(not(feature = "unchecked"))]
-                        if di != 0 {
-                            if di < last {
-                                return Err(::bebop::DeserializeError::CorruptFrame);
-                            }
-                            last = di;
-                        }
-
-                        i += 1;
-                        match di {
-                            0 => {
-                                break;
-                            }
-                            1 => {
-                                #[cfg(not(feature = "unchecked"))]
-                                if _accepted.is_some() {
-                                    return Err(::bebop::DeserializeError::DuplicateMessageField);
-                                }
-                                let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
-                                i += read;
-                                _accepted = Some(value)
-                            }
-                            2 => {
-                                #[cfg(not(feature = "unchecked"))]
-                                if _receiver_peer_id.is_some() {
-                                    return Err(::bebop::DeserializeError::DuplicateMessageField);
-                                }
-                                let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
-                                i += read;
-                                _receiver_peer_id = Some(value)
-                            }
-                            _ => {
-                                i = len;
-                                break;
-                            }
-                        }
-                    }
-
-                    if i != len {
-                        debug_assert!(i > len);
-                        return Err(::bebop::DeserializeError::CorruptFrame)
-                    }
-
-                    S2CMsg::NewGameResponse {
-                        accepted: _accepted,
-                        receiver_peer_id: _receiver_peer_id,
-                    }
-                }
-                4 => {
-                    let len = ::bebop::read_len(&raw[i..])? + i + ::bebop::LEN_SIZE;
-                    i += ::bebop::LEN_SIZE;
-
-                    #[cfg(not(feature = "unchecked"))]
-                    if len == 0 {
-                        return Err(::bebop::DeserializeError::CorruptFrame);
-                    }
-
-                    if raw.len() < len {
-                        return Err(::bebop::DeserializeError::MoreDataExpected(len - raw.len()));
-                    }
-
-                    let mut _sender_user_id = None;
-                    let mut _sender_user_name = None;
-                    let mut _variant_id = None;
-                    let mut _variant_version = None;
-                    let mut _timeout_secs = None;
-                    let mut _sender_peer_id = None;
-                    let mut _script_url = None;
-
-                    #[cfg(not(feature = "unchecked"))]
-                    let mut last = 0;
-
-                    while i < len {
-                        let di = raw[i];
-
-                        #[cfg(not(feature = "unchecked"))]
-                        if di != 0 {
-                            if di < last {
-                                return Err(::bebop::DeserializeError::CorruptFrame);
-                            }
-                            last = di;
-                        }
-
-                        i += 1;
-                        match di {
-                            0 => {
-                                break;
-                            }
-                            1 => {
-                                #[cfg(not(feature = "unchecked"))]
-                                if _sender_user_id.is_some() {
-                                    return Err(::bebop::DeserializeError::DuplicateMessageField);
-                                }
-                                let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
-                                i += read;
-                                _sender_user_id = Some(value)
-                            }
-                            2 => {
-                                #[cfg(not(feature = "unchecked"))]
-                                if _sender_user_name.is_some() {
-                                    return Err(::bebop::DeserializeError::DuplicateMessageField);
-                                }
-                                let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
-                                i += read;
-                                _sender_user_name = Some(value)
-                            }
-                            3 => {
-                                #[cfg(not(feature = "unchecked"))]
-                                if _variant_id.is_some() {
-                                    return Err(::bebop::DeserializeError::DuplicateMessageField);
-                                }
-                                let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
-                                i += read;
-                                _variant_id = Some(value)
-                            }
-                            4 => {
-                                #[cfg(not(feature = "unchecked"))]
-                                if _variant_version.is_some() {
-                                    return Err(::bebop::DeserializeError::DuplicateMessageField);
-                                }
-                                let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
-                                i += read;
-                                _variant_version = Some(value)
-                            }
-                            5 => {
-                                #[cfg(not(feature = "unchecked"))]
-                                if _timeout_secs.is_some() {
-                                    return Err(::bebop::DeserializeError::DuplicateMessageField);
-                                }
-                                let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
-                                i += read;
-                                _timeout_secs = Some(value)
-                            }
-                            6 => {
-                                #[cfg(not(feature = "unchecked"))]
-                                if _sender_peer_id.is_some() {
-                                    return Err(::bebop::DeserializeError::DuplicateMessageField);
-                                }
-                                let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
-                                i += read;
-                                _sender_peer_id = Some(value)
-                            }
-                            7 => {
-                                #[cfg(not(feature = "unchecked"))]
-                                if _script_url.is_some() {
-                                    return Err(::bebop::DeserializeError::DuplicateMessageField);
-                                }
-                                let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
-                                i += read;
-                                _script_url = Some(value)
-                            }
-                            _ => {
-                                i = len;
-                                break;
-                            }
-                        }
-                    }
-
-                    if i != len {
-                        debug_assert!(i > len);
-                        return Err(::bebop::DeserializeError::CorruptFrame)
-                    }
-
-                    S2CMsg::NewGameEvent {
-                        sender_user_id: _sender_user_id,
-                        sender_user_name: _sender_user_name,
-                        variant_id: _variant_id,
-                        variant_version: _variant_version,
-                        timeout_secs: _timeout_secs,
-                        sender_peer_id: _sender_peer_id,
-                        script_url: _script_url,
-                    }
-                }
-                _ => {
-                    i = len;
-                    S2CMsg::Unknown
-                }
-            };
-            if !cfg!(feature = "unchecked") && i != len {
-                debug_assert!(i > len);
-                Err(::bebop::DeserializeError::CorruptFrame)
-            }
-            else {
-                Ok((i, de))
-            }
-        }
-
-    }
-
-    impl<'raw> ::bebop::Record<'raw> for S2CMsg {}
 
     #[derive(Clone, Debug, PartialEq)]
     pub enum LobbyMsg {
@@ -2074,4 +2936,1624 @@ pub mod owned {
 
     }
 
-    impl<'raw> ::bebop::Record<'raw> for LobbyMsg {}}
+    impl<'raw> ::bebop::Record<'raw> for LobbyMsg {}
+
+    #[derive(Clone, Debug, PartialEq)]
+    pub enum S2CMsg {
+        /// An unknown type which is likely defined in a newer version of the schema.
+        Unknown,
+
+        /// Discriminator 1
+        RegisterPeerResponse {
+            success: bool,
+        },
+
+        /// Discriminator 2
+        GetFriendPeerIdResponse {
+            /// Field 1
+            peer_id: ::core::option::Option<String>,
+        },
+
+        /// Discriminator 3
+        CreateLobbyResponse {
+            /// Field 1
+            success: ::core::option::Option<bool>,
+            /// Field 2
+            lobby_id: ::core::option::Option<::bebop::Guid>,
+        },
+
+        /// Discriminator 4
+        JoinLobbyResponse {
+            /// Field 1
+            success: ::core::option::Option<bool>,
+            /// Field 2
+            member_peer_ids: ::core::option::Option<::std::vec::Vec<String>>,
+            /// Field 3
+            member_names: ::core::option::Option<::std::vec::Vec<String>>,
+            /// Field 4
+            member_user_ids: ::core::option::Option<::std::vec::Vec<::bebop::Guid>>,
+            /// Field 5
+            host_peer_id: ::core::option::Option<String>,
+            /// Field 6
+            in_game: ::core::option::Option<bool>,
+        },
+
+        /// Discriminator 5
+        LeaveLobbyResponse {
+        },
+
+        /// Discriminator 6
+        DeleteLobbyResponse {
+            /// Field 1
+            success: ::core::option::Option<bool>,
+        },
+
+        /// Discriminator 7
+        StartGameResponse {
+            /// Field 1
+            success: ::core::option::Option<bool>,
+        },
+
+        /// Discriminator 8
+        GameEndedResponse {
+        },
+
+        /// Discriminator 9
+        LobbyHeartbeatResponse {
+        },
+
+        /// Discriminator 10
+        InviteToLobbyResponse {
+            /// Field 1
+            success: ::core::option::Option<bool>,
+        },
+
+        /// Discriminator 11
+        LobbyInvite {
+            /// Field 1
+            lobby_id: ::core::option::Option<::bebop::Guid>,
+            /// Field 2
+            host_user_id: ::core::option::Option<::bebop::Guid>,
+            /// Field 3
+            host_name: ::core::option::Option<String>,
+            /// Field 4
+            variant_id: ::core::option::Option<::bebop::Guid>,
+            /// Field 5
+            variant_version: ::core::option::Option<String>,
+            /// Field 6
+            script_url: ::core::option::Option<String>,
+        },
+
+        /// Discriminator 12
+        LobbyMemberJoined {
+            /// Field 1
+            lobby_id: ::core::option::Option<::bebop::Guid>,
+            /// Field 2
+            peer_id: ::core::option::Option<String>,
+            /// Field 3
+            user_id: ::core::option::Option<::bebop::Guid>,
+            /// Field 4
+            display_name: ::core::option::Option<String>,
+        },
+
+        /// Discriminator 13
+        LobbyMemberLeft {
+            /// Field 1
+            lobby_id: ::core::option::Option<::bebop::Guid>,
+            /// Field 2
+            peer_id: ::core::option::Option<String>,
+        },
+
+        /// Discriminator 14
+        LobbyDeleted {
+            /// Field 1
+            lobby_id: ::core::option::Option<::bebop::Guid>,
+        },
+
+        /// Discriminator 15
+        LobbyGameStarted {
+            /// Field 1
+            lobby_id: ::core::option::Option<::bebop::Guid>,
+            /// Field 2
+            peer_ids: ::core::option::Option<::std::vec::Vec<String>>,
+        },
+
+        /// Discriminator 16
+        LobbyGameEnded {
+            /// Field 1
+            lobby_id: ::core::option::Option<::bebop::Guid>,
+        },
+    }
+
+    impl<'raw> ::core::convert::From<super::S2CMsg<'raw>> for S2CMsg {
+        fn from(value: super::S2CMsg) -> Self {
+            match value {
+                super::S2CMsg::Unknown => {
+                    Self::Unknown
+                }
+                super::S2CMsg::RegisterPeerResponse {
+                    success: _success,
+                }
+                => {
+                    Self::RegisterPeerResponse {
+                        success: _success,
+                    }
+                }
+                super::S2CMsg::GetFriendPeerIdResponse {
+                    peer_id: _peer_id,
+                }
+                => {
+                    Self::GetFriendPeerIdResponse {
+                        peer_id: _peer_id.map(|value| value.into()),
+                    }
+                }
+                super::S2CMsg::CreateLobbyResponse {
+                    success: _success,
+                    lobby_id: _lobby_id,
+                }
+                => {
+                    Self::CreateLobbyResponse {
+                        success: _success,
+                        lobby_id: _lobby_id,
+                    }
+                }
+                super::S2CMsg::JoinLobbyResponse {
+                    success: _success,
+                    member_peer_ids: _member_peer_ids,
+                    member_names: _member_names,
+                    member_user_ids: _member_user_ids,
+                    host_peer_id: _host_peer_id,
+                    in_game: _in_game,
+                }
+                => {
+                    Self::JoinLobbyResponse {
+                        success: _success,
+                        member_peer_ids: _member_peer_ids.map(|value| value.into_iter().map(|value| value.into()).collect()),
+                        member_names: _member_names.map(|value| value.into_iter().map(|value| value.into()).collect()),
+                        member_user_ids: _member_user_ids.map(|value| value.iter().map(|value| value).collect()),
+                        host_peer_id: _host_peer_id.map(|value| value.into()),
+                        in_game: _in_game,
+                    }
+                }
+                super::S2CMsg::LeaveLobbyResponse {
+                }
+                => {
+                    Self::LeaveLobbyResponse {
+                    }
+                }
+                super::S2CMsg::DeleteLobbyResponse {
+                    success: _success,
+                }
+                => {
+                    Self::DeleteLobbyResponse {
+                        success: _success,
+                    }
+                }
+                super::S2CMsg::StartGameResponse {
+                    success: _success,
+                }
+                => {
+                    Self::StartGameResponse {
+                        success: _success,
+                    }
+                }
+                super::S2CMsg::GameEndedResponse {
+                }
+                => {
+                    Self::GameEndedResponse {
+                    }
+                }
+                super::S2CMsg::LobbyHeartbeatResponse {
+                }
+                => {
+                    Self::LobbyHeartbeatResponse {
+                    }
+                }
+                super::S2CMsg::InviteToLobbyResponse {
+                    success: _success,
+                }
+                => {
+                    Self::InviteToLobbyResponse {
+                        success: _success,
+                    }
+                }
+                super::S2CMsg::LobbyInvite {
+                    lobby_id: _lobby_id,
+                    host_user_id: _host_user_id,
+                    host_name: _host_name,
+                    variant_id: _variant_id,
+                    variant_version: _variant_version,
+                    script_url: _script_url,
+                }
+                => {
+                    Self::LobbyInvite {
+                        lobby_id: _lobby_id,
+                        host_user_id: _host_user_id,
+                        host_name: _host_name.map(|value| value.into()),
+                        variant_id: _variant_id,
+                        variant_version: _variant_version.map(|value| value.into()),
+                        script_url: _script_url.map(|value| value.into()),
+                    }
+                }
+                super::S2CMsg::LobbyMemberJoined {
+                    lobby_id: _lobby_id,
+                    peer_id: _peer_id,
+                    user_id: _user_id,
+                    display_name: _display_name,
+                }
+                => {
+                    Self::LobbyMemberJoined {
+                        lobby_id: _lobby_id,
+                        peer_id: _peer_id.map(|value| value.into()),
+                        user_id: _user_id,
+                        display_name: _display_name.map(|value| value.into()),
+                    }
+                }
+                super::S2CMsg::LobbyMemberLeft {
+                    lobby_id: _lobby_id,
+                    peer_id: _peer_id,
+                }
+                => {
+                    Self::LobbyMemberLeft {
+                        lobby_id: _lobby_id,
+                        peer_id: _peer_id.map(|value| value.into()),
+                    }
+                }
+                super::S2CMsg::LobbyDeleted {
+                    lobby_id: _lobby_id,
+                }
+                => {
+                    Self::LobbyDeleted {
+                        lobby_id: _lobby_id,
+                    }
+                }
+                super::S2CMsg::LobbyGameStarted {
+                    lobby_id: _lobby_id,
+                    peer_ids: _peer_ids,
+                }
+                => {
+                    Self::LobbyGameStarted {
+                        lobby_id: _lobby_id,
+                        peer_ids: _peer_ids.map(|value| value.into_iter().map(|value| value.into()).collect()),
+                    }
+                }
+                super::S2CMsg::LobbyGameEnded {
+                    lobby_id: _lobby_id,
+                }
+                => {
+                    Self::LobbyGameEnded {
+                        lobby_id: _lobby_id,
+                    }
+                }
+            }
+        }
+
+    }
+    impl<'raw> ::bebop::SubRecord<'raw> for S2CMsg {
+        const MIN_SERIALIZED_SIZE: usize = ::bebop::LEN_SIZE + 1;
+
+        fn serialized_size(&self) -> usize {
+            ::bebop::LEN_SIZE + 1 +
+            match self {
+                S2CMsg::Unknown => {
+                    0
+                }
+                Self::RegisterPeerResponse {
+                    success: ref _success,
+                }
+                => {
+                    _success.serialized_size()
+                }
+                Self::GetFriendPeerIdResponse {
+                    peer_id: ref _peer_id,
+                }
+                => {
+                    ::bebop::LEN_SIZE + 1 +
+                    _peer_id.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0)
+                }
+                Self::CreateLobbyResponse {
+                    success: ref _success,
+                    lobby_id: ref _lobby_id,
+                }
+                => {
+                    ::bebop::LEN_SIZE + 1 +
+                    _success.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
+                    _lobby_id.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0)
+                }
+                Self::JoinLobbyResponse {
+                    success: ref _success,
+                    member_peer_ids: ref _member_peer_ids,
+                    member_names: ref _member_names,
+                    member_user_ids: ref _member_user_ids,
+                    host_peer_id: ref _host_peer_id,
+                    in_game: ref _in_game,
+                }
+                => {
+                    ::bebop::LEN_SIZE + 1 +
+                    _success.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
+                    _member_peer_ids.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
+                    _member_names.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
+                    _member_user_ids.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
+                    _host_peer_id.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
+                    _in_game.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0)
+                }
+                Self::LeaveLobbyResponse {
+                }
+                => {
+                    0
+                }
+                Self::DeleteLobbyResponse {
+                    success: ref _success,
+                }
+                => {
+                    ::bebop::LEN_SIZE + 1 +
+                    _success.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0)
+                }
+                Self::StartGameResponse {
+                    success: ref _success,
+                }
+                => {
+                    ::bebop::LEN_SIZE + 1 +
+                    _success.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0)
+                }
+                Self::GameEndedResponse {
+                }
+                => {
+                    0
+                }
+                Self::LobbyHeartbeatResponse {
+                }
+                => {
+                    0
+                }
+                Self::InviteToLobbyResponse {
+                    success: ref _success,
+                }
+                => {
+                    ::bebop::LEN_SIZE + 1 +
+                    _success.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0)
+                }
+                Self::LobbyInvite {
+                    lobby_id: ref _lobby_id,
+                    host_user_id: ref _host_user_id,
+                    host_name: ref _host_name,
+                    variant_id: ref _variant_id,
+                    variant_version: ref _variant_version,
+                    script_url: ref _script_url,
+                }
+                => {
+                    ::bebop::LEN_SIZE + 1 +
+                    _lobby_id.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
+                    _host_user_id.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
+                    _host_name.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
+                    _variant_id.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
+                    _variant_version.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
+                    _script_url.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0)
+                }
+                Self::LobbyMemberJoined {
+                    lobby_id: ref _lobby_id,
+                    peer_id: ref _peer_id,
+                    user_id: ref _user_id,
+                    display_name: ref _display_name,
+                }
+                => {
+                    ::bebop::LEN_SIZE + 1 +
+                    _lobby_id.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
+                    _peer_id.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
+                    _user_id.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
+                    _display_name.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0)
+                }
+                Self::LobbyMemberLeft {
+                    lobby_id: ref _lobby_id,
+                    peer_id: ref _peer_id,
+                }
+                => {
+                    ::bebop::LEN_SIZE + 1 +
+                    _lobby_id.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
+                    _peer_id.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0)
+                }
+                Self::LobbyDeleted {
+                    lobby_id: ref _lobby_id,
+                }
+                => {
+                    ::bebop::LEN_SIZE + 1 +
+                    _lobby_id.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0)
+                }
+                Self::LobbyGameStarted {
+                    lobby_id: ref _lobby_id,
+                    peer_ids: ref _peer_ids,
+                }
+                => {
+                    ::bebop::LEN_SIZE + 1 +
+                    _lobby_id.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
+                    _peer_ids.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0)
+                }
+                Self::LobbyGameEnded {
+                    lobby_id: ref _lobby_id,
+                }
+                => {
+                    ::bebop::LEN_SIZE + 1 +
+                    _lobby_id.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0)
+                }
+            }
+        }
+
+        ::bebop::define_serialize_chained!(Self => |zelf, dest| {
+            let size = zelf.serialized_size();
+            ::bebop::write_len(dest, size - ::bebop::LEN_SIZE - 1)?;
+            match zelf {
+                Self::Unknown => {
+                    return Err(::bebop::SerializeError::CannotSerializeUnknownUnion);
+                }
+                Self::RegisterPeerResponse {
+                    success: ref _success,
+                }
+                => {
+                    1u8._serialize_chained(dest)?;
+                    _success._serialize_chained(dest)?;
+                }
+                Self::GetFriendPeerIdResponse {
+                    peer_id: ref _peer_id,
+                }
+                => {
+                    2u8._serialize_chained(dest)?;
+                    ::bebop::write_len(dest, size - ::bebop::LEN_SIZE * 2 - 1)?;
+                    if let Some(ref v) = _peer_id {
+                        1u8._serialize_chained(dest)?;
+                        v._serialize_chained(dest)?;
+                    }
+                    0u8._serialize_chained(dest)?;
+                }
+                Self::CreateLobbyResponse {
+                    success: ref _success,
+                    lobby_id: ref _lobby_id,
+                }
+                => {
+                    3u8._serialize_chained(dest)?;
+                    ::bebop::write_len(dest, size - ::bebop::LEN_SIZE * 2 - 1)?;
+                    if let Some(ref v) = _success {
+                        1u8._serialize_chained(dest)?;
+                        v._serialize_chained(dest)?;
+                    }
+                    if let Some(ref v) = _lobby_id {
+                        2u8._serialize_chained(dest)?;
+                        v._serialize_chained(dest)?;
+                    }
+                    0u8._serialize_chained(dest)?;
+                }
+                Self::JoinLobbyResponse {
+                    success: ref _success,
+                    member_peer_ids: ref _member_peer_ids,
+                    member_names: ref _member_names,
+                    member_user_ids: ref _member_user_ids,
+                    host_peer_id: ref _host_peer_id,
+                    in_game: ref _in_game,
+                }
+                => {
+                    4u8._serialize_chained(dest)?;
+                    ::bebop::write_len(dest, size - ::bebop::LEN_SIZE * 2 - 1)?;
+                    if let Some(ref v) = _success {
+                        1u8._serialize_chained(dest)?;
+                        v._serialize_chained(dest)?;
+                    }
+                    if let Some(ref v) = _member_peer_ids {
+                        2u8._serialize_chained(dest)?;
+                        v._serialize_chained(dest)?;
+                    }
+                    if let Some(ref v) = _member_names {
+                        3u8._serialize_chained(dest)?;
+                        v._serialize_chained(dest)?;
+                    }
+                    if let Some(ref v) = _member_user_ids {
+                        4u8._serialize_chained(dest)?;
+                        v._serialize_chained(dest)?;
+                    }
+                    if let Some(ref v) = _host_peer_id {
+                        5u8._serialize_chained(dest)?;
+                        v._serialize_chained(dest)?;
+                    }
+                    if let Some(ref v) = _in_game {
+                        6u8._serialize_chained(dest)?;
+                        v._serialize_chained(dest)?;
+                    }
+                    0u8._serialize_chained(dest)?;
+                }
+                Self::LeaveLobbyResponse {
+                }
+                => {
+                    5u8._serialize_chained(dest)?;
+                }
+                Self::DeleteLobbyResponse {
+                    success: ref _success,
+                }
+                => {
+                    6u8._serialize_chained(dest)?;
+                    ::bebop::write_len(dest, size - ::bebop::LEN_SIZE * 2 - 1)?;
+                    if let Some(ref v) = _success {
+                        1u8._serialize_chained(dest)?;
+                        v._serialize_chained(dest)?;
+                    }
+                    0u8._serialize_chained(dest)?;
+                }
+                Self::StartGameResponse {
+                    success: ref _success,
+                }
+                => {
+                    7u8._serialize_chained(dest)?;
+                    ::bebop::write_len(dest, size - ::bebop::LEN_SIZE * 2 - 1)?;
+                    if let Some(ref v) = _success {
+                        1u8._serialize_chained(dest)?;
+                        v._serialize_chained(dest)?;
+                    }
+                    0u8._serialize_chained(dest)?;
+                }
+                Self::GameEndedResponse {
+                }
+                => {
+                    8u8._serialize_chained(dest)?;
+                }
+                Self::LobbyHeartbeatResponse {
+                }
+                => {
+                    9u8._serialize_chained(dest)?;
+                }
+                Self::InviteToLobbyResponse {
+                    success: ref _success,
+                }
+                => {
+                    10u8._serialize_chained(dest)?;
+                    ::bebop::write_len(dest, size - ::bebop::LEN_SIZE * 2 - 1)?;
+                    if let Some(ref v) = _success {
+                        1u8._serialize_chained(dest)?;
+                        v._serialize_chained(dest)?;
+                    }
+                    0u8._serialize_chained(dest)?;
+                }
+                Self::LobbyInvite {
+                    lobby_id: ref _lobby_id,
+                    host_user_id: ref _host_user_id,
+                    host_name: ref _host_name,
+                    variant_id: ref _variant_id,
+                    variant_version: ref _variant_version,
+                    script_url: ref _script_url,
+                }
+                => {
+                    11u8._serialize_chained(dest)?;
+                    ::bebop::write_len(dest, size - ::bebop::LEN_SIZE * 2 - 1)?;
+                    if let Some(ref v) = _lobby_id {
+                        1u8._serialize_chained(dest)?;
+                        v._serialize_chained(dest)?;
+                    }
+                    if let Some(ref v) = _host_user_id {
+                        2u8._serialize_chained(dest)?;
+                        v._serialize_chained(dest)?;
+                    }
+                    if let Some(ref v) = _host_name {
+                        3u8._serialize_chained(dest)?;
+                        v._serialize_chained(dest)?;
+                    }
+                    if let Some(ref v) = _variant_id {
+                        4u8._serialize_chained(dest)?;
+                        v._serialize_chained(dest)?;
+                    }
+                    if let Some(ref v) = _variant_version {
+                        5u8._serialize_chained(dest)?;
+                        v._serialize_chained(dest)?;
+                    }
+                    if let Some(ref v) = _script_url {
+                        6u8._serialize_chained(dest)?;
+                        v._serialize_chained(dest)?;
+                    }
+                    0u8._serialize_chained(dest)?;
+                }
+                Self::LobbyMemberJoined {
+                    lobby_id: ref _lobby_id,
+                    peer_id: ref _peer_id,
+                    user_id: ref _user_id,
+                    display_name: ref _display_name,
+                }
+                => {
+                    12u8._serialize_chained(dest)?;
+                    ::bebop::write_len(dest, size - ::bebop::LEN_SIZE * 2 - 1)?;
+                    if let Some(ref v) = _lobby_id {
+                        1u8._serialize_chained(dest)?;
+                        v._serialize_chained(dest)?;
+                    }
+                    if let Some(ref v) = _peer_id {
+                        2u8._serialize_chained(dest)?;
+                        v._serialize_chained(dest)?;
+                    }
+                    if let Some(ref v) = _user_id {
+                        3u8._serialize_chained(dest)?;
+                        v._serialize_chained(dest)?;
+                    }
+                    if let Some(ref v) = _display_name {
+                        4u8._serialize_chained(dest)?;
+                        v._serialize_chained(dest)?;
+                    }
+                    0u8._serialize_chained(dest)?;
+                }
+                Self::LobbyMemberLeft {
+                    lobby_id: ref _lobby_id,
+                    peer_id: ref _peer_id,
+                }
+                => {
+                    13u8._serialize_chained(dest)?;
+                    ::bebop::write_len(dest, size - ::bebop::LEN_SIZE * 2 - 1)?;
+                    if let Some(ref v) = _lobby_id {
+                        1u8._serialize_chained(dest)?;
+                        v._serialize_chained(dest)?;
+                    }
+                    if let Some(ref v) = _peer_id {
+                        2u8._serialize_chained(dest)?;
+                        v._serialize_chained(dest)?;
+                    }
+                    0u8._serialize_chained(dest)?;
+                }
+                Self::LobbyDeleted {
+                    lobby_id: ref _lobby_id,
+                }
+                => {
+                    14u8._serialize_chained(dest)?;
+                    ::bebop::write_len(dest, size - ::bebop::LEN_SIZE * 2 - 1)?;
+                    if let Some(ref v) = _lobby_id {
+                        1u8._serialize_chained(dest)?;
+                        v._serialize_chained(dest)?;
+                    }
+                    0u8._serialize_chained(dest)?;
+                }
+                Self::LobbyGameStarted {
+                    lobby_id: ref _lobby_id,
+                    peer_ids: ref _peer_ids,
+                }
+                => {
+                    15u8._serialize_chained(dest)?;
+                    ::bebop::write_len(dest, size - ::bebop::LEN_SIZE * 2 - 1)?;
+                    if let Some(ref v) = _lobby_id {
+                        1u8._serialize_chained(dest)?;
+                        v._serialize_chained(dest)?;
+                    }
+                    if let Some(ref v) = _peer_ids {
+                        2u8._serialize_chained(dest)?;
+                        v._serialize_chained(dest)?;
+                    }
+                    0u8._serialize_chained(dest)?;
+                }
+                Self::LobbyGameEnded {
+                    lobby_id: ref _lobby_id,
+                }
+                => {
+                    16u8._serialize_chained(dest)?;
+                    ::bebop::write_len(dest, size - ::bebop::LEN_SIZE * 2 - 1)?;
+                    if let Some(ref v) = _lobby_id {
+                        1u8._serialize_chained(dest)?;
+                        v._serialize_chained(dest)?;
+                    }
+                    0u8._serialize_chained(dest)?;
+                }
+            }
+            Ok(size)
+        });
+
+        fn _deserialize_chained(raw: &'raw [u8]) -> ::bebop::DeResult<(usize, Self)> {
+            let len = ::bebop::read_len(raw)? + ::bebop::LEN_SIZE + 1;
+            let mut i = ::bebop::LEN_SIZE + 1;
+            let de = match raw[::bebop::LEN_SIZE] {
+                1 => {
+                    let (read, v0) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                    i += read;
+
+                    S2CMsg::RegisterPeerResponse {
+                        success: v0,
+                    }
+                }
+                2 => {
+                    let len = ::bebop::read_len(&raw[i..])? + i + ::bebop::LEN_SIZE;
+                    i += ::bebop::LEN_SIZE;
+
+                    #[cfg(not(feature = "unchecked"))]
+                    if len == 0 {
+                        return Err(::bebop::DeserializeError::CorruptFrame);
+                    }
+
+                    if raw.len() < len {
+                        return Err(::bebop::DeserializeError::MoreDataExpected(len - raw.len()));
+                    }
+
+                    let mut _peer_id = None;
+
+                    #[cfg(not(feature = "unchecked"))]
+                    let mut last = 0;
+
+                    while i < len {
+                        let di = raw[i];
+
+                        #[cfg(not(feature = "unchecked"))]
+                        if di != 0 {
+                            if di < last {
+                                return Err(::bebop::DeserializeError::CorruptFrame);
+                            }
+                            last = di;
+                        }
+
+                        i += 1;
+                        match di {
+                            0 => {
+                                break;
+                            }
+                            1 => {
+                                #[cfg(not(feature = "unchecked"))]
+                                if _peer_id.is_some() {
+                                    return Err(::bebop::DeserializeError::DuplicateMessageField);
+                                }
+                                let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                                i += read;
+                                _peer_id = Some(value)
+                            }
+                            _ => {
+                                i = len;
+                                break;
+                            }
+                        }
+                    }
+
+                    if i != len {
+                        debug_assert!(i > len);
+                        return Err(::bebop::DeserializeError::CorruptFrame)
+                    }
+
+                    S2CMsg::GetFriendPeerIdResponse {
+                        peer_id: _peer_id,
+                    }
+                }
+                3 => {
+                    let len = ::bebop::read_len(&raw[i..])? + i + ::bebop::LEN_SIZE;
+                    i += ::bebop::LEN_SIZE;
+
+                    #[cfg(not(feature = "unchecked"))]
+                    if len == 0 {
+                        return Err(::bebop::DeserializeError::CorruptFrame);
+                    }
+
+                    if raw.len() < len {
+                        return Err(::bebop::DeserializeError::MoreDataExpected(len - raw.len()));
+                    }
+
+                    let mut _success = None;
+                    let mut _lobby_id = None;
+
+                    #[cfg(not(feature = "unchecked"))]
+                    let mut last = 0;
+
+                    while i < len {
+                        let di = raw[i];
+
+                        #[cfg(not(feature = "unchecked"))]
+                        if di != 0 {
+                            if di < last {
+                                return Err(::bebop::DeserializeError::CorruptFrame);
+                            }
+                            last = di;
+                        }
+
+                        i += 1;
+                        match di {
+                            0 => {
+                                break;
+                            }
+                            1 => {
+                                #[cfg(not(feature = "unchecked"))]
+                                if _success.is_some() {
+                                    return Err(::bebop::DeserializeError::DuplicateMessageField);
+                                }
+                                let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                                i += read;
+                                _success = Some(value)
+                            }
+                            2 => {
+                                #[cfg(not(feature = "unchecked"))]
+                                if _lobby_id.is_some() {
+                                    return Err(::bebop::DeserializeError::DuplicateMessageField);
+                                }
+                                let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                                i += read;
+                                _lobby_id = Some(value)
+                            }
+                            _ => {
+                                i = len;
+                                break;
+                            }
+                        }
+                    }
+
+                    if i != len {
+                        debug_assert!(i > len);
+                        return Err(::bebop::DeserializeError::CorruptFrame)
+                    }
+
+                    S2CMsg::CreateLobbyResponse {
+                        success: _success,
+                        lobby_id: _lobby_id,
+                    }
+                }
+                4 => {
+                    let len = ::bebop::read_len(&raw[i..])? + i + ::bebop::LEN_SIZE;
+                    i += ::bebop::LEN_SIZE;
+
+                    #[cfg(not(feature = "unchecked"))]
+                    if len == 0 {
+                        return Err(::bebop::DeserializeError::CorruptFrame);
+                    }
+
+                    if raw.len() < len {
+                        return Err(::bebop::DeserializeError::MoreDataExpected(len - raw.len()));
+                    }
+
+                    let mut _success = None;
+                    let mut _member_peer_ids = None;
+                    let mut _member_names = None;
+                    let mut _member_user_ids = None;
+                    let mut _host_peer_id = None;
+                    let mut _in_game = None;
+
+                    #[cfg(not(feature = "unchecked"))]
+                    let mut last = 0;
+
+                    while i < len {
+                        let di = raw[i];
+
+                        #[cfg(not(feature = "unchecked"))]
+                        if di != 0 {
+                            if di < last {
+                                return Err(::bebop::DeserializeError::CorruptFrame);
+                            }
+                            last = di;
+                        }
+
+                        i += 1;
+                        match di {
+                            0 => {
+                                break;
+                            }
+                            1 => {
+                                #[cfg(not(feature = "unchecked"))]
+                                if _success.is_some() {
+                                    return Err(::bebop::DeserializeError::DuplicateMessageField);
+                                }
+                                let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                                i += read;
+                                _success = Some(value)
+                            }
+                            2 => {
+                                #[cfg(not(feature = "unchecked"))]
+                                if _member_peer_ids.is_some() {
+                                    return Err(::bebop::DeserializeError::DuplicateMessageField);
+                                }
+                                let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                                i += read;
+                                _member_peer_ids = Some(value)
+                            }
+                            3 => {
+                                #[cfg(not(feature = "unchecked"))]
+                                if _member_names.is_some() {
+                                    return Err(::bebop::DeserializeError::DuplicateMessageField);
+                                }
+                                let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                                i += read;
+                                _member_names = Some(value)
+                            }
+                            4 => {
+                                #[cfg(not(feature = "unchecked"))]
+                                if _member_user_ids.is_some() {
+                                    return Err(::bebop::DeserializeError::DuplicateMessageField);
+                                }
+                                let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                                i += read;
+                                _member_user_ids = Some(value)
+                            }
+                            5 => {
+                                #[cfg(not(feature = "unchecked"))]
+                                if _host_peer_id.is_some() {
+                                    return Err(::bebop::DeserializeError::DuplicateMessageField);
+                                }
+                                let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                                i += read;
+                                _host_peer_id = Some(value)
+                            }
+                            6 => {
+                                #[cfg(not(feature = "unchecked"))]
+                                if _in_game.is_some() {
+                                    return Err(::bebop::DeserializeError::DuplicateMessageField);
+                                }
+                                let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                                i += read;
+                                _in_game = Some(value)
+                            }
+                            _ => {
+                                i = len;
+                                break;
+                            }
+                        }
+                    }
+
+                    if i != len {
+                        debug_assert!(i > len);
+                        return Err(::bebop::DeserializeError::CorruptFrame)
+                    }
+
+                    S2CMsg::JoinLobbyResponse {
+                        success: _success,
+                        member_peer_ids: _member_peer_ids,
+                        member_names: _member_names,
+                        member_user_ids: _member_user_ids,
+                        host_peer_id: _host_peer_id,
+                        in_game: _in_game,
+                    }
+                }
+                5 => {
+                    S2CMsg::LeaveLobbyResponse {}
+                }
+                6 => {
+                    let len = ::bebop::read_len(&raw[i..])? + i + ::bebop::LEN_SIZE;
+                    i += ::bebop::LEN_SIZE;
+
+                    #[cfg(not(feature = "unchecked"))]
+                    if len == 0 {
+                        return Err(::bebop::DeserializeError::CorruptFrame);
+                    }
+
+                    if raw.len() < len {
+                        return Err(::bebop::DeserializeError::MoreDataExpected(len - raw.len()));
+                    }
+
+                    let mut _success = None;
+
+                    #[cfg(not(feature = "unchecked"))]
+                    let mut last = 0;
+
+                    while i < len {
+                        let di = raw[i];
+
+                        #[cfg(not(feature = "unchecked"))]
+                        if di != 0 {
+                            if di < last {
+                                return Err(::bebop::DeserializeError::CorruptFrame);
+                            }
+                            last = di;
+                        }
+
+                        i += 1;
+                        match di {
+                            0 => {
+                                break;
+                            }
+                            1 => {
+                                #[cfg(not(feature = "unchecked"))]
+                                if _success.is_some() {
+                                    return Err(::bebop::DeserializeError::DuplicateMessageField);
+                                }
+                                let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                                i += read;
+                                _success = Some(value)
+                            }
+                            _ => {
+                                i = len;
+                                break;
+                            }
+                        }
+                    }
+
+                    if i != len {
+                        debug_assert!(i > len);
+                        return Err(::bebop::DeserializeError::CorruptFrame)
+                    }
+
+                    S2CMsg::DeleteLobbyResponse {
+                        success: _success,
+                    }
+                }
+                7 => {
+                    let len = ::bebop::read_len(&raw[i..])? + i + ::bebop::LEN_SIZE;
+                    i += ::bebop::LEN_SIZE;
+
+                    #[cfg(not(feature = "unchecked"))]
+                    if len == 0 {
+                        return Err(::bebop::DeserializeError::CorruptFrame);
+                    }
+
+                    if raw.len() < len {
+                        return Err(::bebop::DeserializeError::MoreDataExpected(len - raw.len()));
+                    }
+
+                    let mut _success = None;
+
+                    #[cfg(not(feature = "unchecked"))]
+                    let mut last = 0;
+
+                    while i < len {
+                        let di = raw[i];
+
+                        #[cfg(not(feature = "unchecked"))]
+                        if di != 0 {
+                            if di < last {
+                                return Err(::bebop::DeserializeError::CorruptFrame);
+                            }
+                            last = di;
+                        }
+
+                        i += 1;
+                        match di {
+                            0 => {
+                                break;
+                            }
+                            1 => {
+                                #[cfg(not(feature = "unchecked"))]
+                                if _success.is_some() {
+                                    return Err(::bebop::DeserializeError::DuplicateMessageField);
+                                }
+                                let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                                i += read;
+                                _success = Some(value)
+                            }
+                            _ => {
+                                i = len;
+                                break;
+                            }
+                        }
+                    }
+
+                    if i != len {
+                        debug_assert!(i > len);
+                        return Err(::bebop::DeserializeError::CorruptFrame)
+                    }
+
+                    S2CMsg::StartGameResponse {
+                        success: _success,
+                    }
+                }
+                8 => {
+                    S2CMsg::GameEndedResponse {}
+                }
+                9 => {
+                    S2CMsg::LobbyHeartbeatResponse {}
+                }
+                10 => {
+                    let len = ::bebop::read_len(&raw[i..])? + i + ::bebop::LEN_SIZE;
+                    i += ::bebop::LEN_SIZE;
+
+                    #[cfg(not(feature = "unchecked"))]
+                    if len == 0 {
+                        return Err(::bebop::DeserializeError::CorruptFrame);
+                    }
+
+                    if raw.len() < len {
+                        return Err(::bebop::DeserializeError::MoreDataExpected(len - raw.len()));
+                    }
+
+                    let mut _success = None;
+
+                    #[cfg(not(feature = "unchecked"))]
+                    let mut last = 0;
+
+                    while i < len {
+                        let di = raw[i];
+
+                        #[cfg(not(feature = "unchecked"))]
+                        if di != 0 {
+                            if di < last {
+                                return Err(::bebop::DeserializeError::CorruptFrame);
+                            }
+                            last = di;
+                        }
+
+                        i += 1;
+                        match di {
+                            0 => {
+                                break;
+                            }
+                            1 => {
+                                #[cfg(not(feature = "unchecked"))]
+                                if _success.is_some() {
+                                    return Err(::bebop::DeserializeError::DuplicateMessageField);
+                                }
+                                let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                                i += read;
+                                _success = Some(value)
+                            }
+                            _ => {
+                                i = len;
+                                break;
+                            }
+                        }
+                    }
+
+                    if i != len {
+                        debug_assert!(i > len);
+                        return Err(::bebop::DeserializeError::CorruptFrame)
+                    }
+
+                    S2CMsg::InviteToLobbyResponse {
+                        success: _success,
+                    }
+                }
+                11 => {
+                    let len = ::bebop::read_len(&raw[i..])? + i + ::bebop::LEN_SIZE;
+                    i += ::bebop::LEN_SIZE;
+
+                    #[cfg(not(feature = "unchecked"))]
+                    if len == 0 {
+                        return Err(::bebop::DeserializeError::CorruptFrame);
+                    }
+
+                    if raw.len() < len {
+                        return Err(::bebop::DeserializeError::MoreDataExpected(len - raw.len()));
+                    }
+
+                    let mut _lobby_id = None;
+                    let mut _host_user_id = None;
+                    let mut _host_name = None;
+                    let mut _variant_id = None;
+                    let mut _variant_version = None;
+                    let mut _script_url = None;
+
+                    #[cfg(not(feature = "unchecked"))]
+                    let mut last = 0;
+
+                    while i < len {
+                        let di = raw[i];
+
+                        #[cfg(not(feature = "unchecked"))]
+                        if di != 0 {
+                            if di < last {
+                                return Err(::bebop::DeserializeError::CorruptFrame);
+                            }
+                            last = di;
+                        }
+
+                        i += 1;
+                        match di {
+                            0 => {
+                                break;
+                            }
+                            1 => {
+                                #[cfg(not(feature = "unchecked"))]
+                                if _lobby_id.is_some() {
+                                    return Err(::bebop::DeserializeError::DuplicateMessageField);
+                                }
+                                let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                                i += read;
+                                _lobby_id = Some(value)
+                            }
+                            2 => {
+                                #[cfg(not(feature = "unchecked"))]
+                                if _host_user_id.is_some() {
+                                    return Err(::bebop::DeserializeError::DuplicateMessageField);
+                                }
+                                let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                                i += read;
+                                _host_user_id = Some(value)
+                            }
+                            3 => {
+                                #[cfg(not(feature = "unchecked"))]
+                                if _host_name.is_some() {
+                                    return Err(::bebop::DeserializeError::DuplicateMessageField);
+                                }
+                                let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                                i += read;
+                                _host_name = Some(value)
+                            }
+                            4 => {
+                                #[cfg(not(feature = "unchecked"))]
+                                if _variant_id.is_some() {
+                                    return Err(::bebop::DeserializeError::DuplicateMessageField);
+                                }
+                                let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                                i += read;
+                                _variant_id = Some(value)
+                            }
+                            5 => {
+                                #[cfg(not(feature = "unchecked"))]
+                                if _variant_version.is_some() {
+                                    return Err(::bebop::DeserializeError::DuplicateMessageField);
+                                }
+                                let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                                i += read;
+                                _variant_version = Some(value)
+                            }
+                            6 => {
+                                #[cfg(not(feature = "unchecked"))]
+                                if _script_url.is_some() {
+                                    return Err(::bebop::DeserializeError::DuplicateMessageField);
+                                }
+                                let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                                i += read;
+                                _script_url = Some(value)
+                            }
+                            _ => {
+                                i = len;
+                                break;
+                            }
+                        }
+                    }
+
+                    if i != len {
+                        debug_assert!(i > len);
+                        return Err(::bebop::DeserializeError::CorruptFrame)
+                    }
+
+                    S2CMsg::LobbyInvite {
+                        lobby_id: _lobby_id,
+                        host_user_id: _host_user_id,
+                        host_name: _host_name,
+                        variant_id: _variant_id,
+                        variant_version: _variant_version,
+                        script_url: _script_url,
+                    }
+                }
+                12 => {
+                    let len = ::bebop::read_len(&raw[i..])? + i + ::bebop::LEN_SIZE;
+                    i += ::bebop::LEN_SIZE;
+
+                    #[cfg(not(feature = "unchecked"))]
+                    if len == 0 {
+                        return Err(::bebop::DeserializeError::CorruptFrame);
+                    }
+
+                    if raw.len() < len {
+                        return Err(::bebop::DeserializeError::MoreDataExpected(len - raw.len()));
+                    }
+
+                    let mut _lobby_id = None;
+                    let mut _peer_id = None;
+                    let mut _user_id = None;
+                    let mut _display_name = None;
+
+                    #[cfg(not(feature = "unchecked"))]
+                    let mut last = 0;
+
+                    while i < len {
+                        let di = raw[i];
+
+                        #[cfg(not(feature = "unchecked"))]
+                        if di != 0 {
+                            if di < last {
+                                return Err(::bebop::DeserializeError::CorruptFrame);
+                            }
+                            last = di;
+                        }
+
+                        i += 1;
+                        match di {
+                            0 => {
+                                break;
+                            }
+                            1 => {
+                                #[cfg(not(feature = "unchecked"))]
+                                if _lobby_id.is_some() {
+                                    return Err(::bebop::DeserializeError::DuplicateMessageField);
+                                }
+                                let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                                i += read;
+                                _lobby_id = Some(value)
+                            }
+                            2 => {
+                                #[cfg(not(feature = "unchecked"))]
+                                if _peer_id.is_some() {
+                                    return Err(::bebop::DeserializeError::DuplicateMessageField);
+                                }
+                                let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                                i += read;
+                                _peer_id = Some(value)
+                            }
+                            3 => {
+                                #[cfg(not(feature = "unchecked"))]
+                                if _user_id.is_some() {
+                                    return Err(::bebop::DeserializeError::DuplicateMessageField);
+                                }
+                                let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                                i += read;
+                                _user_id = Some(value)
+                            }
+                            4 => {
+                                #[cfg(not(feature = "unchecked"))]
+                                if _display_name.is_some() {
+                                    return Err(::bebop::DeserializeError::DuplicateMessageField);
+                                }
+                                let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                                i += read;
+                                _display_name = Some(value)
+                            }
+                            _ => {
+                                i = len;
+                                break;
+                            }
+                        }
+                    }
+
+                    if i != len {
+                        debug_assert!(i > len);
+                        return Err(::bebop::DeserializeError::CorruptFrame)
+                    }
+
+                    S2CMsg::LobbyMemberJoined {
+                        lobby_id: _lobby_id,
+                        peer_id: _peer_id,
+                        user_id: _user_id,
+                        display_name: _display_name,
+                    }
+                }
+                13 => {
+                    let len = ::bebop::read_len(&raw[i..])? + i + ::bebop::LEN_SIZE;
+                    i += ::bebop::LEN_SIZE;
+
+                    #[cfg(not(feature = "unchecked"))]
+                    if len == 0 {
+                        return Err(::bebop::DeserializeError::CorruptFrame);
+                    }
+
+                    if raw.len() < len {
+                        return Err(::bebop::DeserializeError::MoreDataExpected(len - raw.len()));
+                    }
+
+                    let mut _lobby_id = None;
+                    let mut _peer_id = None;
+
+                    #[cfg(not(feature = "unchecked"))]
+                    let mut last = 0;
+
+                    while i < len {
+                        let di = raw[i];
+
+                        #[cfg(not(feature = "unchecked"))]
+                        if di != 0 {
+                            if di < last {
+                                return Err(::bebop::DeserializeError::CorruptFrame);
+                            }
+                            last = di;
+                        }
+
+                        i += 1;
+                        match di {
+                            0 => {
+                                break;
+                            }
+                            1 => {
+                                #[cfg(not(feature = "unchecked"))]
+                                if _lobby_id.is_some() {
+                                    return Err(::bebop::DeserializeError::DuplicateMessageField);
+                                }
+                                let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                                i += read;
+                                _lobby_id = Some(value)
+                            }
+                            2 => {
+                                #[cfg(not(feature = "unchecked"))]
+                                if _peer_id.is_some() {
+                                    return Err(::bebop::DeserializeError::DuplicateMessageField);
+                                }
+                                let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                                i += read;
+                                _peer_id = Some(value)
+                            }
+                            _ => {
+                                i = len;
+                                break;
+                            }
+                        }
+                    }
+
+                    if i != len {
+                        debug_assert!(i > len);
+                        return Err(::bebop::DeserializeError::CorruptFrame)
+                    }
+
+                    S2CMsg::LobbyMemberLeft {
+                        lobby_id: _lobby_id,
+                        peer_id: _peer_id,
+                    }
+                }
+                14 => {
+                    let len = ::bebop::read_len(&raw[i..])? + i + ::bebop::LEN_SIZE;
+                    i += ::bebop::LEN_SIZE;
+
+                    #[cfg(not(feature = "unchecked"))]
+                    if len == 0 {
+                        return Err(::bebop::DeserializeError::CorruptFrame);
+                    }
+
+                    if raw.len() < len {
+                        return Err(::bebop::DeserializeError::MoreDataExpected(len - raw.len()));
+                    }
+
+                    let mut _lobby_id = None;
+
+                    #[cfg(not(feature = "unchecked"))]
+                    let mut last = 0;
+
+                    while i < len {
+                        let di = raw[i];
+
+                        #[cfg(not(feature = "unchecked"))]
+                        if di != 0 {
+                            if di < last {
+                                return Err(::bebop::DeserializeError::CorruptFrame);
+                            }
+                            last = di;
+                        }
+
+                        i += 1;
+                        match di {
+                            0 => {
+                                break;
+                            }
+                            1 => {
+                                #[cfg(not(feature = "unchecked"))]
+                                if _lobby_id.is_some() {
+                                    return Err(::bebop::DeserializeError::DuplicateMessageField);
+                                }
+                                let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                                i += read;
+                                _lobby_id = Some(value)
+                            }
+                            _ => {
+                                i = len;
+                                break;
+                            }
+                        }
+                    }
+
+                    if i != len {
+                        debug_assert!(i > len);
+                        return Err(::bebop::DeserializeError::CorruptFrame)
+                    }
+
+                    S2CMsg::LobbyDeleted {
+                        lobby_id: _lobby_id,
+                    }
+                }
+                15 => {
+                    let len = ::bebop::read_len(&raw[i..])? + i + ::bebop::LEN_SIZE;
+                    i += ::bebop::LEN_SIZE;
+
+                    #[cfg(not(feature = "unchecked"))]
+                    if len == 0 {
+                        return Err(::bebop::DeserializeError::CorruptFrame);
+                    }
+
+                    if raw.len() < len {
+                        return Err(::bebop::DeserializeError::MoreDataExpected(len - raw.len()));
+                    }
+
+                    let mut _lobby_id = None;
+                    let mut _peer_ids = None;
+
+                    #[cfg(not(feature = "unchecked"))]
+                    let mut last = 0;
+
+                    while i < len {
+                        let di = raw[i];
+
+                        #[cfg(not(feature = "unchecked"))]
+                        if di != 0 {
+                            if di < last {
+                                return Err(::bebop::DeserializeError::CorruptFrame);
+                            }
+                            last = di;
+                        }
+
+                        i += 1;
+                        match di {
+                            0 => {
+                                break;
+                            }
+                            1 => {
+                                #[cfg(not(feature = "unchecked"))]
+                                if _lobby_id.is_some() {
+                                    return Err(::bebop::DeserializeError::DuplicateMessageField);
+                                }
+                                let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                                i += read;
+                                _lobby_id = Some(value)
+                            }
+                            2 => {
+                                #[cfg(not(feature = "unchecked"))]
+                                if _peer_ids.is_some() {
+                                    return Err(::bebop::DeserializeError::DuplicateMessageField);
+                                }
+                                let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                                i += read;
+                                _peer_ids = Some(value)
+                            }
+                            _ => {
+                                i = len;
+                                break;
+                            }
+                        }
+                    }
+
+                    if i != len {
+                        debug_assert!(i > len);
+                        return Err(::bebop::DeserializeError::CorruptFrame)
+                    }
+
+                    S2CMsg::LobbyGameStarted {
+                        lobby_id: _lobby_id,
+                        peer_ids: _peer_ids,
+                    }
+                }
+                16 => {
+                    let len = ::bebop::read_len(&raw[i..])? + i + ::bebop::LEN_SIZE;
+                    i += ::bebop::LEN_SIZE;
+
+                    #[cfg(not(feature = "unchecked"))]
+                    if len == 0 {
+                        return Err(::bebop::DeserializeError::CorruptFrame);
+                    }
+
+                    if raw.len() < len {
+                        return Err(::bebop::DeserializeError::MoreDataExpected(len - raw.len()));
+                    }
+
+                    let mut _lobby_id = None;
+
+                    #[cfg(not(feature = "unchecked"))]
+                    let mut last = 0;
+
+                    while i < len {
+                        let di = raw[i];
+
+                        #[cfg(not(feature = "unchecked"))]
+                        if di != 0 {
+                            if di < last {
+                                return Err(::bebop::DeserializeError::CorruptFrame);
+                            }
+                            last = di;
+                        }
+
+                        i += 1;
+                        match di {
+                            0 => {
+                                break;
+                            }
+                            1 => {
+                                #[cfg(not(feature = "unchecked"))]
+                                if _lobby_id.is_some() {
+                                    return Err(::bebop::DeserializeError::DuplicateMessageField);
+                                }
+                                let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
+                                i += read;
+                                _lobby_id = Some(value)
+                            }
+                            _ => {
+                                i = len;
+                                break;
+                            }
+                        }
+                    }
+
+                    if i != len {
+                        debug_assert!(i > len);
+                        return Err(::bebop::DeserializeError::CorruptFrame)
+                    }
+
+                    S2CMsg::LobbyGameEnded {
+                        lobby_id: _lobby_id,
+                    }
+                }
+                _ => {
+                    i = len;
+                    S2CMsg::Unknown
+                }
+            };
+            if !cfg!(feature = "unchecked") && i != len {
+                debug_assert!(i > len);
+                Err(::bebop::DeserializeError::CorruptFrame)
+            }
+            else {
+                Ok((i, de))
+            }
+        }
+
+    }
+
+    impl<'raw> ::bebop::Record<'raw> for S2CMsg {}}

@@ -104,9 +104,8 @@ mod tests {
     }
 
     #[test]
-    fn c2s_new_game_round_trip() {
-        let msg = C2sMsg::NewGame {
-            receiver_user_id: some_guid(),
+    fn c2s_create_lobby_round_trip() {
+        let msg = C2sMsg::CreateLobby {
             variant_id: some_guid(),
             variant_version: "1.0.0".into(),
             script_url: "https://raw.githubusercontent.com/example/repo/abc123/variants/chess.rhai".into(),
@@ -116,15 +115,18 @@ mod tests {
     }
 
     #[test]
-    fn c2s_new_game_answer_accepted_round_trip() {
-        let msg = C2sMsg::NewGameAnswer { accepted: true };
+    fn c2s_invite_to_lobby_round_trip() {
+        let msg = C2sMsg::InviteToLobby {
+            lobby_id: some_guid(),
+            friend_user_ids: vec![some_guid(), some_guid()],
+        };
         let bytes = msg.serialize();
         assert_eq!(C2sMsg::deserialize(&bytes).unwrap(), msg);
     }
 
     #[test]
-    fn c2s_new_game_answer_rejected_round_trip() {
-        let msg = C2sMsg::NewGameAnswer { accepted: false };
+    fn c2s_lobby_event_ack_round_trip() {
+        let msg = C2sMsg::LobbyEventAck {};
         let bytes = msg.serialize();
         assert_eq!(C2sMsg::deserialize(&bytes).unwrap(), msg);
     }
@@ -160,31 +162,27 @@ mod tests {
     }
 
     #[test]
-    fn s2c_new_game_response_accepted_round_trip() {
-        let msg = S2cMsg::NewGameResponse {
-            accepted: Some(true),
-            receiver_peer_id: Some("peer-abc".into()),
+    fn s2c_join_lobby_response_round_trip() {
+        let msg = S2cMsg::JoinLobbyResponse {
+            success: Some(true),
+            member_peer_ids: Some(vec!["peer-1".into(), "peer-2".into()]),
+            member_names: Some(vec!["alice".into(), "bob".into()]),
+            member_user_ids: Some(vec![some_guid(), some_guid()]),
+            host_peer_id: Some("peer-1".into()),
+            in_game: Some(false),
         };
         let bytes = msg.serialize();
         assert_eq!(S2cMsg::deserialize(&bytes).unwrap(), msg);
     }
 
     #[test]
-    fn s2c_new_game_response_declined_round_trip() {
-        let msg = S2cMsg::NewGameResponse { accepted: Some(false), receiver_peer_id: None };
-        let bytes = msg.serialize();
-        assert_eq!(S2cMsg::deserialize(&bytes).unwrap(), msg);
-    }
-
-    #[test]
-    fn s2c_new_game_event_round_trip() {
-        let msg = S2cMsg::NewGameEvent {
-            sender_user_id: Some(some_guid()),
-            sender_user_name: Some("alice".into()),
+    fn s2c_lobby_invite_round_trip() {
+        let msg = S2cMsg::LobbyInvite {
+            lobby_id: Some(some_guid()),
+            host_user_id: Some(some_guid()),
+            host_name: Some("alice".into()),
             variant_id: Some(some_guid()),
             variant_version: Some("2.1.0".into()),
-            timeout_secs: Some(60),
-            sender_peer_id: Some("12D3KooWAbCdEf".into()),
             script_url: Some("https://raw.githubusercontent.com/example/repo/abc123/variants/chess.rhai".into()),
         };
         let bytes = msg.serialize();
@@ -192,15 +190,10 @@ mod tests {
     }
 
     #[test]
-    fn s2c_new_game_event_without_peer_id_round_trip() {
-        let msg = S2cMsg::NewGameEvent {
-            sender_user_id: Some(some_guid()),
-            sender_user_name: Some("bob".into()),
-            variant_id: Some(some_guid()),
-            variant_version: Some("1.0.0".into()),
-            timeout_secs: Some(30),
-            sender_peer_id: None,
-            script_url: Some("https://raw.githubusercontent.com/example/repo/def456/variants/bughouse.rhai".into()),
+    fn s2c_lobby_game_started_round_trip() {
+        let msg = S2cMsg::LobbyGameStarted {
+            lobby_id: Some(some_guid()),
+            peer_ids: Some(vec!["peer-1".into(), "peer-2".into()]),
         };
         let bytes = msg.serialize();
         assert_eq!(S2cMsg::deserialize(&bytes).unwrap(), msg);

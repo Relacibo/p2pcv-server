@@ -5,7 +5,7 @@ use std::{
     io,
     net::Ipv4Addr,
     str::FromStr,
-    time::Duration,
+    time::{Duration, Instant},
 };
 
 use async_trait::async_trait;
@@ -18,7 +18,7 @@ use libp2p::{
     identity::Keypair,
     multiaddr::Protocol,
     ping, relay,
-    request_response::{self, Codec, OutboundRequestId, ProtocolSupport, ResponseChannel},
+    request_response::{self, Codec, ProtocolSupport, ResponseChannel},
     swarm::{NetworkBehaviour, SwarmEvent},
     Multiaddr, PeerId, Swarm, SwarmBuilder, Transport, TransportError,
 };
@@ -111,17 +111,24 @@ pub async fn init(db: DbPool, jwt_config: JwtConfig, cert: Certificate) -> Resul
     swarm.listen_on(address_webrtc)?;
 
     let registry = PeerRegistry::default();
-    let mut pending: HashMap<OutboundRequestId, PendingNewGame> = HashMap::new();
+    let mut lobbies: LobbyRegistry = HashMap::new();
+    let mut heartbeat_check = tokio::time::interval(Duration::from_secs(10));
+    // Skip the first immediate tick.
+    heartbeat_check.tick().await;
 
     loop {
-        let event = tokio::select! {
-            event = swarm.select_next_some() => event,
+        tokio::select! {
+            event = swarm.select_next_some() => {
+                if let Err(err) =
+                    handle_swarm_event(&mut swarm, &db, &jwt_config, &registry, &mut lobbies, event).await
+                {
+                    log::error!("p2p event error: {err}");
+                }
+            }
+            _ = heartbeat_check.tick() => {
+                check_lobby_heartbeats(&mut swarm, &registry, &mut lobbies);
+            }
             _ = tokio::signal::ctrl_c() => break,
-        };
-        if let Err(err) =
-            handle_swarm_event(&mut swarm, &db, &jwt_config, &registry, &mut pending, event).await
-        {
-            log::error!("p2p event error: {err}");
         }
     }
 
@@ -133,16 +140,16 @@ async fn handle_swarm_event(
     db: &DbPool,
     jwt_config: &JwtConfig,
     registry: &PeerRegistry,
-    pending: &mut HashMap<OutboundRequestId, PendingNewGame>,
+    lobbies: &mut LobbyRegistry,
     event: SwarmEvent<BehaviourEvent>,
 ) -> Result<(), P2pError> {
     log::debug!("{:?}", event);
     match event {
         SwarmEvent::Behaviour(BehaviourEvent::C2s(ev)) => {
-            handle_c2s_event(swarm, db, jwt_config, registry, pending, ev).await?;
+            handle_c2s_event(swarm, db, jwt_config, registry, lobbies, ev).await?;
         }
         SwarmEvent::Behaviour(BehaviourEvent::S2c(ev)) => {
-            handle_s2c_event(swarm, registry, pending, ev).await?;
+            handle_s2c_event(ev);
         }
         SwarmEvent::Behaviour(BehaviourEvent::Relay(ev)) => {
             log::debug!("Relay event: {:?}", ev);
@@ -159,6 +166,7 @@ async fn handle_swarm_event(
         SwarmEvent::ConnectionClosed { peer_id, cause, .. } => {
             log::debug!("Connection closed: {peer_id} ({cause:?})");
             registry.remove_peer(&peer_id);
+            peer_left_all_lobbies(swarm, lobbies, &peer_id);
         }
         _ => {}
     }
@@ -170,7 +178,7 @@ async fn handle_c2s_event(
     db: &DbPool,
     jwt_config: &JwtConfig,
     registry: &PeerRegistry,
-    pending: &mut HashMap<OutboundRequestId, PendingNewGame>,
+    lobbies: &mut LobbyRegistry,
     event: request_response::Event<C2sMsg, S2cMsg>,
 ) -> Result<(), P2pError> {
     use request_response::{Event, Message};
@@ -182,56 +190,51 @@ async fn handle_c2s_event(
             },
             ..
         } => {
-            let Some(c2s) = Some(request) else {
-                log::warn!("Received empty c2s message from {peer}");
-                return Ok(());
-            };
-            match c2s {
+            match request {
                 C2sMsg::RegisterPeer { auth_token } => {
-                    handle_register_peer(swarm, jwt_config, registry, peer, auth_token, channel)
+                    handle_register_peer(swarm, db, jwt_config, registry, peer, auth_token, channel)
                         .await;
                 }
                 C2sMsg::GetFriendPeerId { friend_user_id } => {
                     handle_get_friend_peer_id(swarm, db, registry, peer, friend_user_id, channel)
                         .await;
                 }
-                C2sMsg::NewGame { receiver_user_id, variant_id, variant_version, script_url } => {
-                    handle_new_game(
-                        swarm,
-                        db,
-                        registry,
-                        pending,
-                        peer,
-                        receiver_user_id,
-                        variant_id,
-                        variant_version,
-                        script_url,
-                        channel,
-                    )
-                    .await;
+                C2sMsg::CreateLobby { variant_id, variant_version, script_url } => {
+                    handle_create_lobby(swarm, registry, lobbies, peer, variant_id, variant_version, script_url, channel).await;
                 }
-                C2sMsg::NewGameAnswer { .. } => {
-                    log::warn!("Unexpected NewGameAnswer via c2s from {peer}; ignoring");
+                C2sMsg::InviteToLobby { lobby_id, friend_user_ids } => {
+                    handle_invite_to_lobby(swarm, db, registry, lobbies, peer, lobby_id, friend_user_ids, channel).await;
+                }
+                C2sMsg::JoinLobby { lobby_id } => {
+                    handle_join_lobby(swarm, registry, lobbies, peer, lobby_id, channel).await;
+                }
+                C2sMsg::LeaveLobby { lobby_id } => {
+                    handle_leave_lobby(swarm, lobbies, peer, lobby_id, channel).await;
+                }
+                C2sMsg::DeleteLobby { lobby_id } => {
+                    handle_delete_lobby(swarm, lobbies, peer, lobby_id, channel).await;
+                }
+                C2sMsg::StartGame { lobby_id } => {
+                    handle_start_game(swarm, lobbies, peer, lobby_id, channel).await;
+                }
+                C2sMsg::GameEnded { lobby_id } => {
+                    handle_game_ended(swarm, lobbies, peer, lobby_id, channel).await;
+                }
+                C2sMsg::LobbyHeartbeat { lobby_id } => {
+                    handle_lobby_heartbeat(swarm, lobbies, peer, lobby_id, channel).await;
+                }
+                C2sMsg::LobbyEventAck {} => {
+                    // Ack for a server-pushed lobby event; nothing to do.
                 }
                 C2sMsg::Unknown => {
                     log::warn!("Received unknown C2S message variant from {peer}; ignoring");
                 }
             }
         }
-        Event::OutboundFailure {
-            peer,
-            request_id,
-            error,
-            ..
-        } => {
+        Event::OutboundFailure { peer, request_id, error, .. } => {
             log::warn!("c2s outbound failure to {peer}: {error:?} (id={request_id:?})");
         }
-        Event::InboundFailure {
-            peer,
-            request_id,
-            error,
-            ..
-        } => {
+        Event::InboundFailure { peer, request_id, error, .. } => {
             log::warn!("c2s inbound failure from {peer}: {error:?} (id={request_id:?})");
         }
         _ => {}
@@ -241,6 +244,7 @@ async fn handle_c2s_event(
 
 async fn handle_register_peer(
     swarm: &mut Swarm<Behaviour>,
+    db: &DbPool,
     jwt_config: &JwtConfig,
     registry: &PeerRegistry,
     peer: PeerId,
@@ -250,7 +254,11 @@ async fn handle_register_peer(
     let resp = match validate_jwt(jwt_config, &auth_token) {
         Ok(claims) => {
             let user_id = claims.sub;
-            registry.register(user_id, peer);
+            let display_name = User::get(db, user_id)
+                .await
+                .map(|u| u.user_name)
+                .unwrap_or_default();
+            registry.register(user_id, peer, display_name);
             log::info!("Registered peer {peer} for user {user_id}");
             S2cMsg::RegisterPeerResponse { success: true }
         }
@@ -306,155 +314,376 @@ async fn handle_get_friend_peer_id(
     }
 }
 
-async fn handle_new_game(
+// ── Lobby handlers ───────────────────────────────────────────────────────────
+
+async fn handle_create_lobby(
     swarm: &mut Swarm<Behaviour>,
-    db: &DbPool,
     registry: &PeerRegistry,
-    pending: &mut HashMap<OutboundRequestId, PendingNewGame>,
+    lobbies: &mut LobbyRegistry,
     peer: PeerId,
-    receiver_user_id: Guid,
     variant_id: Guid,
     variant_version: String,
     script_url: String,
     channel: ResponseChannel<S2cMsg>,
 ) {
-    let result: Result<(PeerId, Uuid, S2cMsg), ()> = async {
-        let sender_user_id = registry.user_id_for_peer(&peer).ok_or(())?;
+    let Some(host_user_id) = registry.user_id_for_peer(&peer) else {
+        log::warn!("CreateLobby from unregistered peer {peer}; ignoring");
+        send_response(swarm, channel, S2cMsg::CreateLobbyResponse { success: Some(false), lobby_id: None }, &peer);
+        return;
+    };
+    let display_name = registry.display_name_for_peer(&peer).unwrap_or_default();
+    let lobby_id = Uuid::new_v4();
+    let member = LobbyMember {
+        user_id: host_user_id,
+        display_name,
+        last_heartbeat: Instant::now(),
+    };
+    let mut members = HashMap::new();
+    members.insert(peer, member);
+    lobbies.insert(
+        lobby_id,
+        Lobby {
+            host_peer_id: peer,
+            host_user_id,
+            status: LobbyStatus::Waiting,
+            variant_id,
+            variant_version,
+            script_url,
+            members,
+        },
+    );
+    log::info!("Lobby {lobby_id} created by {peer}");
+    send_response(swarm, channel, S2cMsg::CreateLobbyResponse { success: Some(true), lobby_id: Some(lobby_id.to_guid()) }, &peer);
+}
 
-        let receiver_user_id: Uuid = receiver_user_id.to_uuid();
-        if receiver_user_id.is_nil() {
+async fn handle_invite_to_lobby(
+    swarm: &mut Swarm<Behaviour>,
+    db: &DbPool,
+    registry: &PeerRegistry,
+    lobbies: &mut LobbyRegistry,
+    peer: PeerId,
+    lobby_id: Guid,
+    friend_user_ids: Vec<Guid>,
+    channel: ResponseChannel<S2cMsg>,
+) {
+    let result: Result<(), ()> = async {
+        let lobby_id = lobby_id.to_uuid();
+        let lobby = lobbies.get(&lobby_id).ok_or(())?;
+        if lobby.host_peer_id != peer {
             return Err(());
         }
+        let requester_user_id = registry.user_id_for_peer(&peer).ok_or(())?;
+        let host_name = registry.display_name_for_peer(&peer).unwrap_or_default();
 
-        let is_friends = User::is_friends_with(db, sender_user_id, receiver_user_id)
-            .await
-            .map_err(|_| ())?;
-        if !is_friends {
-            return Err(());
+        for friend_user_id_guid in &friend_user_ids {
+            let friend_user_id = friend_user_id_guid.to_uuid();
+            if friend_user_id.is_nil() {
+                continue;
+            }
+            let is_friends = User::is_friends_with(db, requester_user_id, friend_user_id)
+                .await
+                .unwrap_or(false);
+            if !is_friends {
+                continue;
+            }
+            let Some(friend_peer) = registry.peer_id_for_user(&friend_user_id) else {
+                continue;
+            };
+            let invite = S2cMsg::LobbyInvite {
+                lobby_id: Some(lobby_id.to_guid()),
+                host_user_id: Some(requester_user_id.to_guid()),
+                host_name: Some(host_name.clone()),
+                variant_id: Some(lobby.variant_id),
+                variant_version: Some(lobby.variant_version.clone()),
+                script_url: Some(lobby.script_url.clone()),
+            };
+            swarm.behaviour_mut().s2c.send_request(&friend_peer, invite);
         }
+        Ok(())
+    }.await;
 
-        let receiver_peer = registry.peer_id_for_user(&receiver_user_id).ok_or(())?;
+    let success = result.is_ok();
+    send_response(swarm, channel, S2cMsg::InviteToLobbyResponse { success: Some(success) }, &peer);
+}
 
-        let sender_user = User::get(db, sender_user_id).await.map_err(|_| ())?;
-
-        let event = S2cMsg::NewGameEvent {
-            sender_user_id: Some(sender_user_id.to_guid()),
-            sender_user_name: Some(sender_user.user_name),
-            variant_id: Some(variant_id),
-            variant_version: Some(variant_version),
-            timeout_secs: Some(60),
-            sender_peer_id: Some(peer.to_string()),
-            script_url: Some(script_url),
+async fn handle_join_lobby(
+    swarm: &mut Swarm<Behaviour>,
+    registry: &PeerRegistry,
+    lobbies: &mut LobbyRegistry,
+    peer: PeerId,
+    lobby_id: Guid,
+    channel: ResponseChannel<S2cMsg>,
+) {
+    let lobby_id = lobby_id.to_uuid();
+    let result: Result<S2cMsg, ()> = async {
+        let Some(user_id) = registry.user_id_for_peer(&peer) else {
+            return Err(());
         };
-        Ok((receiver_peer, sender_user_id, event))
-    }
-    .await;
+        let display_name = registry.display_name_for_peer(&peer).unwrap_or_default();
+        let lobby = lobbies.get_mut(&lobby_id).ok_or(())?;
+
+        let member = LobbyMember {
+            user_id,
+            display_name: display_name.clone(),
+            last_heartbeat: Instant::now(),
+        };
+        lobby.members.insert(peer, member);
+
+        let member_peer_ids: Vec<String> = lobby.members.keys().map(|p| p.to_string()).collect();
+        let member_names: Vec<String> = lobby.members.values().map(|m| m.display_name.clone()).collect();
+        let member_user_ids: Vec<Guid> = lobby.members.values().map(|m| m.user_id.to_guid()).collect();
+        let host_peer_id = lobby.host_peer_id.to_string();
+        let in_game = lobby.status == LobbyStatus::InGame;
+
+        Ok(S2cMsg::JoinLobbyResponse {
+            success: Some(true),
+            member_peer_ids: Some(member_peer_ids),
+            member_names: Some(member_names),
+            member_user_ids: Some(member_user_ids),
+            host_peer_id: Some(host_peer_id),
+            in_game: Some(in_game),
+        })
+    }.await;
 
     match result {
-        Ok((receiver_peer, sender_user_id, event)) => {
-            let request_id = swarm.behaviour_mut().s2c.send_request(&receiver_peer, event);
-            pending.insert(
-                request_id,
-                PendingNewGame {
-                    channel,
-                    sender_user_id,
-                    receiver_peer_id: receiver_peer,
-                },
-            );
-            log::debug!("NewGame forwarded to {receiver_peer} (req_id={request_id:?})");
+        Ok(resp) => {
+            // Notify existing members about the new joiner.
+            let join_event = S2cMsg::LobbyMemberJoined {
+                lobby_id: Some(lobby_id.to_guid()),
+                peer_id: Some(peer.to_string()),
+                user_id: Some(registry.user_id_for_peer(&peer).unwrap_or_default().to_guid()),
+                display_name: Some(registry.display_name_for_peer(&peer).unwrap_or_default()),
+            };
+            push_to_lobby_members(swarm, lobbies, lobby_id, join_event, Some(&peer));
+            send_response(swarm, channel, resp, &peer);
         }
         Err(()) => {
-            let decline = S2cMsg::NewGameResponse {
-                accepted: Some(false),
-                receiver_peer_id: None,
-            };
-            if swarm
-                .behaviour_mut()
-                .c2s
-                .send_response(channel, decline)
-                .is_err()
-            {
-                log::warn!("Could not send NewGameResponse (decline) to {peer}: channel closed");
-            }
+            send_response(swarm, channel, S2cMsg::JoinLobbyResponse {
+                success: Some(false),
+                member_peer_ids: None,
+                member_names: None,
+                member_user_ids: None,
+                host_peer_id: None,
+                in_game: None,
+            }, &peer);
         }
     }
 }
 
-async fn handle_s2c_event(
+async fn handle_leave_lobby(
     swarm: &mut Swarm<Behaviour>,
-    _registry: &PeerRegistry,
-    pending: &mut HashMap<OutboundRequestId, PendingNewGame>,
-    event: request_response::Event<S2cMsg, C2sMsg>,
-) -> Result<(), P2pError> {
-    use request_response::{Event, Message};
-    match event {
-        Event::Message {
-            peer: _,
-            message:
-                Message::Response {
-                    request_id,
-                    response,
-                },
-            ..
-        } => {
-            let Some(pending_game) = pending.remove(&request_id) else {
-                log::warn!("Received s2c response for unknown request_id {request_id:?}");
-                return Ok(());
-            };
-            let accepted = match response {
-                C2sMsg::NewGameAnswer { accepted } => accepted,
-                _ => false,
-            };
+    lobbies: &mut LobbyRegistry,
+    peer: PeerId,
+    lobby_id: Guid,
+    channel: ResponseChannel<S2cMsg>,
+) {
+    let lobby_id = lobby_id.to_uuid();
+    remove_peer_from_lobby(swarm, lobbies, lobby_id, &peer);
+    send_response(swarm, channel, S2cMsg::LeaveLobbyResponse {}, &peer);
+}
 
-            let receiver_peer_id = if accepted {
-                Some(pending_game.receiver_peer_id.to_string())
-            } else {
-                None
-            };
-            let resp = S2cMsg::NewGameResponse { accepted: Some(accepted), receiver_peer_id };
-            if swarm
-                .behaviour_mut()
-                .c2s
-                .send_response(pending_game.channel, resp)
-                .is_err()
-            {
-                log::warn!("Could not forward NewGameResponse to original requester");
-            }
+async fn handle_delete_lobby(
+    swarm: &mut Swarm<Behaviour>,
+    lobbies: &mut LobbyRegistry,
+    peer: PeerId,
+    lobby_id: Guid,
+    channel: ResponseChannel<S2cMsg>,
+) {
+    let lobby_id = lobby_id.to_uuid();
+    let success = lobbies
+        .get(&lobby_id)
+        .map(|l| l.host_peer_id == peer)
+        .unwrap_or(false);
+
+    if success {
+        let deleted = S2cMsg::LobbyDeleted { lobby_id: Some(lobby_id.to_guid()) };
+        push_to_lobby_members(swarm, lobbies, lobby_id, deleted, None);
+        lobbies.remove(&lobby_id);
+        log::info!("Lobby {lobby_id} deleted by host {peer}");
+    } else {
+        log::warn!("DeleteLobby for {lobby_id} denied or not found (peer={peer})");
+    }
+    send_response(swarm, channel, S2cMsg::DeleteLobbyResponse { success: Some(success) }, &peer);
+}
+
+async fn handle_start_game(
+    swarm: &mut Swarm<Behaviour>,
+    lobbies: &mut LobbyRegistry,
+    peer: PeerId,
+    lobby_id: Guid,
+    channel: ResponseChannel<S2cMsg>,
+) {
+    let lobby_id = lobby_id.to_uuid();
+    let success = lobbies
+        .get(&lobby_id)
+        .map(|l| l.host_peer_id == peer)
+        .unwrap_or(false);
+
+    if success {
+        let peer_ids: Vec<String> = lobbies[&lobby_id].members.keys().map(|p| p.to_string()).collect();
+        if let Some(lobby) = lobbies.get_mut(&lobby_id) {
+            lobby.status = LobbyStatus::InGame;
         }
-        Event::OutboundFailure {
-            peer,
-            request_id,
-            error,
-            ..
-        } => {
+        let started = S2cMsg::LobbyGameStarted {
+            lobby_id: Some(lobby_id.to_guid()),
+            peer_ids: Some(peer_ids),
+        };
+        push_to_lobby_members(swarm, lobbies, lobby_id, started, None);
+        log::info!("Lobby {lobby_id} game started by {peer}");
+    } else {
+        log::warn!("StartGame for {lobby_id} denied or not found (peer={peer})");
+    }
+    send_response(swarm, channel, S2cMsg::StartGameResponse { success: Some(success) }, &peer);
+}
+
+async fn handle_game_ended(
+    swarm: &mut Swarm<Behaviour>,
+    lobbies: &mut LobbyRegistry,
+    peer: PeerId,
+    lobby_id: Guid,
+    channel: ResponseChannel<S2cMsg>,
+) {
+    let lobby_id = lobby_id.to_uuid();
+    if let Some(lobby) = lobbies.get_mut(&lobby_id) {
+        if lobby.members.contains_key(&peer) {
+            lobby.status = LobbyStatus::Waiting;
+            let ended = S2cMsg::LobbyGameEnded { lobby_id: Some(lobby_id.to_guid()) };
+            push_to_lobby_members(swarm, lobbies, lobby_id, ended, None);
+            log::info!("Lobby {lobby_id} game ended (reported by {peer})");
+        }
+    }
+    send_response(swarm, channel, S2cMsg::GameEndedResponse {}, &peer);
+}
+
+async fn handle_lobby_heartbeat(
+    swarm: &mut Swarm<Behaviour>,
+    lobbies: &mut LobbyRegistry,
+    peer: PeerId,
+    lobby_id: Guid,
+    channel: ResponseChannel<S2cMsg>,
+) {
+    let lobby_id = lobby_id.to_uuid();
+    if let Some(lobby) = lobbies.get_mut(&lobby_id) {
+        if let Some(member) = lobby.members.get_mut(&peer) {
+            member.last_heartbeat = Instant::now();
+        }
+    }
+    send_response(swarm, channel, S2cMsg::LobbyHeartbeatResponse {}, &peer);
+}
+
+fn handle_s2c_event(event: request_response::Event<S2cMsg, C2sMsg>) {
+    use request_response::Event;
+    match event {
+        Event::OutboundFailure { peer, request_id, error, .. } => {
             log::warn!("s2c outbound failure to {peer}: {error:?} (id={request_id:?})");
-            // Receiver disconnected or timed out — decline the original requester.
-            if let Some(pending_game) = pending.remove(&request_id) {
-                let decline = S2cMsg::NewGameResponse {
-                    accepted: Some(false),
-                    receiver_peer_id: None,
-                };
-                if swarm
-                    .behaviour_mut()
-                    .c2s
-                    .send_response(pending_game.channel, decline)
-                    .is_err()
-                {
-                    log::warn!("Could not send NewGameResponse (outbound failure) to requester");
-                }
-            }
         }
-        Event::InboundFailure {
-            peer,
-            request_id,
-            error,
-            ..
-        } => {
+        Event::InboundFailure { peer, request_id, error, .. } => {
             log::warn!("s2c inbound failure from {peer}: {error:?} (id={request_id:?})");
         }
         _ => {}
     }
-    Ok(())
+}
+
+// ── Lobby helpers ─────────────────────────────────────────────────────────────
+
+fn push_to_lobby_members(
+    swarm: &mut Swarm<Behaviour>,
+    lobbies: &LobbyRegistry,
+    lobby_id: Uuid,
+    msg: S2cMsg,
+    exclude: Option<&PeerId>,
+) {
+    let Some(lobby) = lobbies.get(&lobby_id) else { return };
+    let peers: Vec<PeerId> = lobby
+        .members
+        .keys()
+        .filter(|p| exclude.map_or(true, |ex| *p != ex))
+        .copied()
+        .collect();
+    for peer_id in peers {
+        swarm.behaviour_mut().s2c.send_request(&peer_id, msg.clone());
+    }
+}
+
+fn send_response(swarm: &mut Swarm<Behaviour>, channel: ResponseChannel<S2cMsg>, msg: S2cMsg, peer: &PeerId) {
+    if swarm.behaviour_mut().c2s.send_response(channel, msg).is_err() {
+        log::warn!("Could not send response to {peer}: channel closed");
+    }
+}
+
+/// Called when a peer disconnects: removes them from every lobby they were in.
+fn peer_left_all_lobbies(swarm: &mut Swarm<Behaviour>, lobbies: &mut LobbyRegistry, peer: &PeerId) {
+    let lobby_ids: Vec<Uuid> = lobbies
+        .iter()
+        .filter(|(_, l)| l.members.contains_key(peer))
+        .map(|(id, _)| *id)
+        .collect();
+    for lobby_id in lobby_ids {
+        remove_peer_from_lobby(swarm, lobbies, lobby_id, peer);
+    }
+}
+
+/// Removes a peer from a lobby, notifies remaining members, and deletes the lobby if empty.
+fn remove_peer_from_lobby(
+    swarm: &mut Swarm<Behaviour>,
+    lobbies: &mut LobbyRegistry,
+    lobby_id: Uuid,
+    peer: &PeerId,
+) {
+    let Some(lobby) = lobbies.get_mut(&lobby_id) else { return };
+    if lobby.members.remove(peer).is_none() {
+        return;
+    }
+    log::debug!("Peer {peer} left lobby {lobby_id}");
+
+    if lobby.members.is_empty() {
+        lobbies.remove(&lobby_id);
+        log::info!("Lobby {lobby_id} auto-deleted (empty)");
+        return;
+    }
+
+    // Notify remaining members.
+    let left = S2cMsg::LobbyMemberLeft {
+        lobby_id: Some(lobby_id.to_guid()),
+        peer_id: Some(peer.to_string()),
+    };
+    push_to_lobby_members(swarm, lobbies, lobby_id, left, None);
+
+    // If the host left, reassign to first remaining member.
+    let lobby = lobbies.get_mut(&lobby_id).unwrap();
+    if lobby.host_peer_id == *peer {
+        if let Some((&new_host, _)) = lobby.members.iter().next() {
+            lobby.host_peer_id = new_host;
+            log::info!("Lobby {lobby_id} host reassigned to {new_host}");
+        }
+    }
+}
+
+/// Periodic heartbeat cleanup: remove members who haven't sent a heartbeat recently.
+fn check_lobby_heartbeats(
+    swarm: &mut Swarm<Behaviour>,
+    _registry: &PeerRegistry,
+    lobbies: &mut LobbyRegistry,
+) {
+    let timeout = Duration::from_secs(30);
+    let now = Instant::now();
+    let lobby_ids: Vec<Uuid> = lobbies.keys().copied().collect();
+    for lobby_id in lobby_ids {
+        let stale: Vec<PeerId> = lobbies
+            .get(&lobby_id)
+            .map(|l| {
+                l.members
+                    .iter()
+                    .filter(|(_, m)| now.duration_since(m.last_heartbeat) > timeout)
+                    .map(|(p, _)| *p)
+                    .collect()
+            })
+            .unwrap_or_default();
+        for peer in stale {
+            log::info!("Lobby {lobby_id}: removing {peer} due to heartbeat timeout");
+            remove_peer_from_lobby(swarm, lobbies, lobby_id, &peer);
+        }
+    }
 }
 
 fn validate_jwt(config: &JwtConfig, token: &str) -> Result<Claims, P2pError> {
@@ -473,22 +702,26 @@ fn validate_jwt(config: &JwtConfig, token: &str) -> Result<Claims, P2pError> {
 struct PeerRegistry {
     user_to_peer: DashMap<Uuid, PeerId>,
     peer_to_user: DashMap<PeerId, Uuid>,
+    peer_to_name: DashMap<PeerId, String>,
 }
 
 impl PeerRegistry {
-    fn register(&self, user_id: Uuid, peer_id: PeerId) {
+    fn register(&self, user_id: Uuid, peer_id: PeerId, display_name: String) {
         // Remove any stale mapping for this user.
         if let Some((_, old_peer)) = self.user_to_peer.remove(&user_id) {
             self.peer_to_user.remove(&old_peer);
+            self.peer_to_name.remove(&old_peer);
         }
         self.user_to_peer.insert(user_id, peer_id);
         self.peer_to_user.insert(peer_id, user_id);
+        self.peer_to_name.insert(peer_id, display_name);
     }
 
     fn remove_peer(&self, peer_id: &PeerId) {
         if let Some((_, user_id)) = self.peer_to_user.remove(peer_id) {
             self.user_to_peer.remove(&user_id);
         }
+        self.peer_to_name.remove(peer_id);
     }
 
     fn peer_id_for_user(&self, user_id: &Uuid) -> Option<PeerId> {
@@ -498,16 +731,37 @@ impl PeerRegistry {
     fn user_id_for_peer(&self, peer_id: &PeerId) -> Option<Uuid> {
         self.peer_to_user.get(peer_id).map(|r| *r)
     }
+
+    fn display_name_for_peer(&self, peer_id: &PeerId) -> Option<String> {
+        self.peer_to_name.get(peer_id).map(|r| r.clone())
+    }
 }
 
-// ── Pending new-game requests ────────────────────────────────────────────────
+// ── Lobby data structures ────────────────────────────────────────────────────
 
-struct PendingNewGame {
-    /// Channel to reply to the original NewGame requester (c2s behaviour).
-    channel: ResponseChannel<S2cMsg>,
-    sender_user_id: Uuid,
-    receiver_peer_id: PeerId,
+#[derive(Debug, PartialEq)]
+enum LobbyStatus {
+    Waiting,
+    InGame,
 }
+
+struct LobbyMember {
+    user_id: Uuid,
+    display_name: String,
+    last_heartbeat: Instant,
+}
+
+struct Lobby {
+    host_peer_id: PeerId,
+    host_user_id: Uuid,
+    status: LobbyStatus,
+    variant_id: Guid,
+    variant_version: String,
+    script_url: String,
+    members: HashMap<PeerId, LobbyMember>,
+}
+
+type LobbyRegistry = HashMap<Uuid, Lobby>;
 
 // ── Codecs ───────────────────────────────────────────────────────────────────
 
@@ -653,7 +907,7 @@ struct Behaviour {
     ping: ping::Behaviour,
     /// Client-initiated requests: client sends Msg, server replies with Msg.
     c2s: request_response::Behaviour<C2sCodec>,
-    /// Server-initiated push: server sends NewGameEvent, client replies.
+    /// Server-initiated push: server sends lobby events, client replies.
     s2c: request_response::Behaviour<S2cCodec>,
     /// Circuit relay server: allows clients to use the server as a relay for NAT traversal.
     relay: relay::Behaviour,
@@ -791,7 +1045,7 @@ mod tests {
         let user_id = Uuid::new_v4();
         let peer_id = make_peer_id();
 
-        registry.register(user_id, peer_id);
+        registry.register(user_id, peer_id, String::new());
 
         assert_eq!(registry.peer_id_for_user(&user_id), Some(peer_id));
         assert_eq!(registry.user_id_for_peer(&peer_id), Some(user_id));
@@ -804,8 +1058,8 @@ mod tests {
         let old_peer = make_peer_id();
         let new_peer = make_peer_id();
 
-        registry.register(user_id, old_peer);
-        registry.register(user_id, new_peer);
+        registry.register(user_id, old_peer, String::new());
+        registry.register(user_id, new_peer, String::new());
 
         // New peer is authoritative.
         assert_eq!(registry.peer_id_for_user(&user_id), Some(new_peer));
@@ -820,7 +1074,7 @@ mod tests {
         let user_id = Uuid::new_v4();
         let peer_id = make_peer_id();
 
-        registry.register(user_id, peer_id);
+        registry.register(user_id, peer_id, String::new());
         registry.remove_peer(&peer_id);
 
         assert_eq!(registry.peer_id_for_user(&user_id), None);
