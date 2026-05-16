@@ -1,8 +1,17 @@
-use std::{fs, path::Path};
+use std::{fs, path::Path, process::Command};
 
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
-    println!("cargo:rerun-if-changed=generated");
+    println!("cargo:rerun-if-changed=bebop.json");
+    println!("cargo:rerun-if-changed=schemas");
+
+    // Regenerate from .bop schemas if bebopc is available.
+    let status = Command::new("bebopc").args(["-c", "bebop.json"]).status();
+    match status {
+        Ok(s) if s.success() => {}
+        Ok(s) => panic!("bebopc exited with status {s}"),
+        Err(e) => eprintln!("cargo:warning=bebopc not found, using pre-generated file ({e})"),
+    }
 
     let src_dir = Path::new("src/generated");
     fs::create_dir_all(src_dir).expect("generated output dir should exist");
