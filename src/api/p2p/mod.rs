@@ -14,10 +14,10 @@ use dashmap::DashMap;
 use futures::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, StreamExt};
 use libp2p::{
     core::muxing::StreamMuxerBox,
-    gossipsub,
+    gossipsub, identify,
     identity::Keypair,
     multiaddr::Protocol,
-    ping,
+    ping, relay,
     request_response::{self, Codec, OutboundRequestId, ProtocolSupport, ResponseChannel},
     swarm::{NetworkBehaviour, SwarmEvent},
     Multiaddr, PeerId, Swarm, SwarmBuilder, Transport, TransportError,
@@ -32,6 +32,36 @@ use crate::{
     db::{db_conn::DbPool, users::User},
 };
 
+pub struct P2pInfo {
+    pub peer_id: PeerId,
+    pub multiaddr: Multiaddr,
+}
+
+fn read_keypair() -> Keypair {
+    let private_token = crate::secret::read_secret("P2P_PRIVATE_KEY_ED25519");
+    let mut private_key = BASE64_STANDARD
+        .decode(private_token)
+        .expect("P2P_PRIVATE_KEY_ED25519 is invalid base64");
+    private_key = private_key.into_iter().rev().take(32).rev().collect::<Vec<_>>();
+    Keypair::ed25519_from_bytes(private_key).expect("P2P_PRIVATE_KEY_ED25519 is not a private key")
+}
+
+pub fn p2p_info() -> P2pInfo {
+    let keypair = read_keypair();
+    let peer_id = keypair.public().to_peer_id();
+    let host = env::var("P2P_HOST").expect("P2P_HOST needed!");
+    let address = Ipv4Addr::from_str(&host).expect("Invalid P2P_HOST address");
+    let port: u16 = env::var("P2P_PORT")
+        .expect("P2P_PORT needed!")
+        .parse()
+        .expect("P2P_PORT not a number");
+    let multiaddr = Multiaddr::from(address)
+        .with(Protocol::Udp(port))
+        .with(Protocol::WebRTCDirect)
+        .with(Protocol::P2p(peer_id));
+    P2pInfo { peer_id, multiaddr }
+}
+
 pub async fn init(db: DbPool, jwt_config: JwtConfig) -> Result<(), P2pError> {
     let timeout_secs = env::var("P2P_TIMEOUT_SECS")
         .ok()
@@ -43,25 +73,14 @@ pub async fn init(db: DbPool, jwt_config: JwtConfig) -> Result<(), P2pError> {
         .expect("P2P_PORT needed!")
         .parse()
         .expect("P2P_PORT not a number");
-    let private_token = crate::secret::read_secret("P2P_PRIVATE_KEY_ED25519");
-    let mut private_key = BASE64_STANDARD
-        .decode(private_token)
-        .expect("P2P_PRIVATE_KEY_ED25519 is invalid base64");
-    // Only the 32 last bytes are the actual key
-    private_key = private_key
-        .into_iter()
-        .rev()
-        .take(32)
-        .rev()
-        .collect::<Vec<_>>();
 
-    let keypair = Keypair::ed25519_from_bytes(private_key)
-        .expect("P2P_PRIVATE_KEY_ED25519 is not a private key");
+    let keypair = read_keypair();
 
     let cert = Certificate::generate(&mut rand::thread_rng())
         .expect("Failed to generate WebRTC certificate");
 
-    let mut swarm = SwarmBuilder::with_existing_identity(keypair)
+    let local_peer_id = keypair.public().to_peer_id();
+    let mut swarm = SwarmBuilder::with_existing_identity(keypair.clone())
         .with_tokio()
         .with_other_transport(|id_keys| {
             let transport = libp2p_webrtc::tokio::Transport::new(
@@ -72,7 +91,7 @@ pub async fn init(db: DbPool, jwt_config: JwtConfig) -> Result<(), P2pError> {
             Ok(res)
         })
         .expect("Could not add WebRTC transport")
-        .with_behaviour(Behaviour::create)
+        .with_behaviour(|key| Behaviour::create(key, local_peer_id))
         .map_err(|_| P2pError::InitP2p)?
         .with_swarm_config(|cfg| cfg.with_idle_connection_timeout(Duration::from_secs(timeout_secs)))
         .build();
@@ -116,6 +135,12 @@ async fn handle_swarm_event(
         }
         SwarmEvent::Behaviour(BehaviourEvent::S2c(ev)) => {
             handle_s2c_event(swarm, registry, pending, ev).await?;
+        }
+        SwarmEvent::Behaviour(BehaviourEvent::Relay(ev)) => {
+            log::debug!("Relay event: {:?}", ev);
+        }
+        SwarmEvent::Behaviour(BehaviourEvent::Identify(ev)) => {
+            log::debug!("Identify event: {:?}", ev);
         }
         SwarmEvent::NewListenAddr { address, .. } => {
             log::info!("Listening on {address}");
@@ -303,11 +328,12 @@ async fn handle_new_game(
         let sender_user = User::get(db, sender_user_id).await.map_err(|_| ())?;
 
         let event = S2cMsg::NewGameEvent {
-            sender_user_id: sender_user_id.to_guid(),
-            sender_user_name: sender_user.user_name,
-            variant_id,
-            variant_version,
-            timeout_secs: 60,
+            sender_user_id: Some(sender_user_id.to_guid()),
+            sender_user_name: Some(sender_user.user_name),
+            variant_id: Some(variant_id),
+            variant_version: Some(variant_version),
+            timeout_secs: Some(60),
+            sender_peer_id: Some(peer.to_string()),
         };
         Ok((receiver_peer, sender_user_id, event))
     }
@@ -480,7 +506,7 @@ struct C2sProtocol;
 
 impl AsRef<str> for C2sProtocol {
     fn as_ref(&self) -> &str {
-        "c2s/v1"
+        "/c2s/v1"
     }
 }
 
@@ -490,7 +516,7 @@ struct S2cProtocol;
 
 impl AsRef<str> for S2cProtocol {
     fn as_ref(&self) -> &str {
-        "s2c/v1"
+        "/s2c/v1"
     }
 }
 
@@ -618,10 +644,14 @@ struct Behaviour {
     c2s: request_response::Behaviour<C2sCodec>,
     /// Server-initiated push: server sends NewGameEvent, client replies.
     s2c: request_response::Behaviour<S2cCodec>,
+    /// Circuit relay server: allows clients to use the server as a relay for NAT traversal.
+    relay: relay::Behaviour,
+    /// Identify protocol: needed for circuit relay to work correctly.
+    identify: identify::Behaviour,
 }
 
 impl Behaviour {
-    fn create(key: &Keypair) -> Self {
+    fn create(key: &Keypair, local_peer_id: PeerId) -> Self {
         let mut builder = gossipsub::ConfigBuilder::default();
         builder
             .validation_mode(gossipsub::ValidationMode::Strict)
@@ -652,6 +682,10 @@ impl Behaviour {
                 [(S2cProtocol, ProtocolSupport::Full)],
                 request_response::Config::default(),
             ),
+            relay: relay::Behaviour::new(local_peer_id, relay::Config::default()),
+            identify: identify::Behaviour::new(
+                identify::Config::new("/p2pcv/1.0.0".into(), key.public()),
+            ),
         }
     }
 }
@@ -676,6 +710,28 @@ impl From<P2pError> for io::Error {
     fn from(value: P2pError) -> Self {
         io::Error::new(io::ErrorKind::Other, value)
     }
+}
+
+// ── REST API ──────────────────────────────────────────────────────────────────
+
+use axum::{extract::State, routing::get, Json, Router};
+use std::sync::Arc;
+
+#[derive(serde::Serialize)]
+pub struct P2pInfoResponse {
+    pub peer_id: String,
+    pub multiaddr: String,
+}
+
+pub fn router() -> Router<Arc<crate::AppState>> {
+    Router::new().route("/info", get(get_p2p_info))
+}
+
+async fn get_p2p_info(State(state): State<Arc<crate::AppState>>) -> Json<P2pInfoResponse> {
+    Json(P2pInfoResponse {
+        peer_id: state.p2p_info.peer_id.to_string(),
+        multiaddr: state.p2p_info.multiaddr.to_string(),
+    })
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────

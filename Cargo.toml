@@ -46,6 +46,8 @@ libp2p = { version = "0.56.0", features = [
   "tokio",
   "ping",
   "request-response",
+  "relay",
+  "identify",
 ] }
 libp2p-webrtc = { version = "0.9.0-alpha.1", features = [
   "tokio",

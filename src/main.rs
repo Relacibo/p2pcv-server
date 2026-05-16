@@ -53,6 +53,7 @@ async fn main() -> io::Result<()> {
     ));
     let lichess_config = api::auth::providers::lichess::config::Config::from_env();
     let reqwest_client = reqwest::Client::new();
+    let p2p_info = api::p2p::p2p_info();
 
     let state = Arc::new(AppState {
         db: db.clone(),
@@ -61,6 +62,7 @@ async fn main() -> io::Result<()> {
         google_config,
         google_keystore,
         lichess_config,
+        p2p_info,
     });
 
     let app = Router::new()

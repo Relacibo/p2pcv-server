@@ -11,11 +11,12 @@ union S2cMsg {
         1 -> bool Accepted;
         2 -> string ReceiverPeerId;
     }
-    4 -> struct NewGameEvent {
-        guid SenderUserId;
-        string SenderUserName;
-        guid VariantId;
-        string VariantVersion;
-        uint32 TimeoutSecs;
+    4 -> message NewGameEvent {
+        1 -> guid SenderUserId;
+        2 -> string SenderUserName;
+        3 -> guid VariantId;
+        4 -> string VariantVersion;
+        5 -> uint32 TimeoutSecs;
+        6 -> string SenderPeerId;
     }
 }

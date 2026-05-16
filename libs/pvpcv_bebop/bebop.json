@@ -1,0 +1,8 @@
+{
+  "generators": {
+    "rust": {
+      "outFile": "generated/mod.rs"
+    }
+  },
+  "include": ["schemas/*.bop"]
+}

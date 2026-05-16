@@ -12,4 +12,5 @@ pub fn router() -> Router<Arc<crate::AppState>> {
         .nest("/auth", auth::router())
         .nest("/users", users::router())
         .nest("/games", games::router())
+        .nest("/p2p", p2p::router())
 }

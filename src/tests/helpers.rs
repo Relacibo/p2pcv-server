@@ -12,10 +12,13 @@ use uuid::Uuid;
 
 use crate::{
     api,
-    api::auth::{
-        providers::{google, lichess},
-        public_key_storage::KeyStore,
-        session::{self, claims::Claims},
+    api::{
+        auth::{
+            providers::{google, lichess},
+            public_key_storage::KeyStore,
+            session::{self, claims::Claims},
+        },
+        p2p::P2pInfo,
     },
     db::users::{NewUser, User},
     AppState,
@@ -65,6 +68,12 @@ pub fn test_app(db: DatabaseConnection) -> Router {
             token_endpoint_path: "/token".into(),
             email_endpoint_path: "/email".into(),
             account_endpoint_path: "/account".into(),
+        },
+        p2p_info: P2pInfo {
+            peer_id: libp2p::PeerId::from(
+                libp2p::identity::Keypair::generate_ed25519().public(),
+            ),
+            multiaddr: "/ip4/127.0.0.1/udp/9000/webrtc-direct".parse().unwrap(),
         },
     });
     api::router().with_state(state)

@@ -2,10 +2,13 @@ use std::sync::Arc;
 
 use sea_orm::DatabaseConnection;
 
-use crate::api::auth::{
-    providers::{google, lichess},
-    public_key_storage::KeyStore,
-    session,
+use crate::api::{
+    auth::{
+        providers::{google, lichess},
+        public_key_storage::KeyStore,
+        session,
+    },
+    p2p::P2pInfo,
 };
 
 pub struct AppState {
@@ -15,4 +18,5 @@ pub struct AppState {
     pub google_config: google::config::Config,
     pub google_keystore: Arc<KeyStore>,
     pub lichess_config: lichess::config::Config,
+    pub p2p_info: P2pInfo,
 }

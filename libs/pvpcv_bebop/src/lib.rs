@@ -6,8 +6,8 @@
 mod generated;
 
 pub use bebop::Guid;
-pub use generated::c2s::owned::C2SMsg as C2sMsg;
-pub use generated::s2c::owned::S2CMsg as S2cMsg;
+pub use generated::owned::C2SMsg as C2sMsg;
+pub use generated::owned::S2CMsg as S2cMsg;
 
 use std::io;
 
@@ -53,7 +53,7 @@ fn from_bytes<T: for<'r> bebop::Record<'r>>(raw: &[u8]) -> io::Result<T> {
 
 // ── Inherent serialize / deserialize on message types ───────────────────────
 
-impl generated::c2s::owned::C2SMsg {
+impl generated::owned::C2SMsg {
     pub fn serialize(&self) -> Vec<u8> {
         to_vec(self)
     }
@@ -62,7 +62,7 @@ impl generated::c2s::owned::C2SMsg {
     }
 }
 
-impl generated::s2c::owned::S2CMsg {
+impl generated::owned::S2CMsg {
     pub fn serialize(&self) -> Vec<u8> {
         to_vec(self)
     }
@@ -178,11 +178,26 @@ mod tests {
     #[test]
     fn s2c_new_game_event_round_trip() {
         let msg = S2cMsg::NewGameEvent {
-            sender_user_id: some_guid(),
-            sender_user_name: "alice".into(),
-            variant_id: some_guid(),
-            variant_version: "2.1.0".into(),
-            timeout_secs: 60,
+            sender_user_id: Some(some_guid()),
+            sender_user_name: Some("alice".into()),
+            variant_id: Some(some_guid()),
+            variant_version: Some("2.1.0".into()),
+            timeout_secs: Some(60),
+            sender_peer_id: Some("12D3KooWAbCdEf".into()),
+        };
+        let bytes = msg.serialize();
+        assert_eq!(S2cMsg::deserialize(&bytes).unwrap(), msg);
+    }
+
+    #[test]
+    fn s2c_new_game_event_without_peer_id_round_trip() {
+        let msg = S2cMsg::NewGameEvent {
+            sender_user_id: Some(some_guid()),
+            sender_user_name: Some("bob".into()),
+            variant_id: Some(some_guid()),
+            variant_version: Some("1.0.0".into()),
+            timeout_secs: Some(30),
+            sender_peer_id: None,
         };
         let bytes = msg.serialize();
         assert_eq!(S2cMsg::deserialize(&bytes).unwrap(), msg);
