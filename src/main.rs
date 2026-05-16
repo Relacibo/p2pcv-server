@@ -101,7 +101,26 @@ fn cors_layer() -> CorsLayer {
     }
     #[cfg(not(debug_assertions))]
     {
+        use tower_http::cors::AllowOrigin;
+        let origins = env::var("ALLOWED_ORIGINS")
+            .unwrap_or_default()
+            .split(',')
+            .filter(|s| !s.is_empty())
+            .filter_map(|s| s.trim().parse().ok())
+            .collect::<Vec<_>>();
         CorsLayer::new()
+            .allow_origin(AllowOrigin::list(origins))
+            .allow_methods([
+                http::Method::GET,
+                http::Method::POST,
+                http::Method::PUT,
+                http::Method::DELETE,
+                http::Method::OPTIONS,
+            ])
+            .allow_headers([
+                http::header::AUTHORIZATION,
+                http::header::CONTENT_TYPE,
+            ])
     }
 }
 
