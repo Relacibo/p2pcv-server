@@ -49,13 +49,18 @@ fn read_keypair() -> Keypair {
 pub fn p2p_info() -> P2pInfo {
     let keypair = read_keypair();
     let peer_id = keypair.public().to_peer_id();
-    let host = env::var("P2P_HOST").expect("P2P_HOST needed!");
-    let address = Ipv4Addr::from_str(&host).expect("Invalid P2P_HOST address");
+    // P2P_EXTERNAL_IP is the public IP advertised to clients.
+    // Falls back to P2P_HOST if not set (useful for local dev).
+    let external_host = env::var("P2P_EXTERNAL_IP")
+        .or_else(|_| env::var("P2P_HOST"))
+        .expect("P2P_HOST needed!");
+    let external_address = Ipv4Addr::from_str(&external_host)
+        .expect("Invalid P2P_EXTERNAL_IP / P2P_HOST address");
     let port: u16 = env::var("P2P_PORT")
         .expect("P2P_PORT needed!")
         .parse()
         .expect("P2P_PORT not a number");
-    let multiaddr = Multiaddr::from(address)
+    let multiaddr = Multiaddr::from(external_address)
         .with(Protocol::Udp(port))
         .with(Protocol::WebRTCDirect)
         .with(Protocol::P2p(peer_id));
