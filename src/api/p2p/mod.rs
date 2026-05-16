@@ -187,7 +187,7 @@ async fn handle_c2s_event(
                     handle_get_friend_peer_id(swarm, db, registry, peer, friend_user_id, channel)
                         .await;
                 }
-                C2sMsg::NewGame { receiver_user_id, variant_id, variant_version } => {
+                C2sMsg::NewGame { receiver_user_id, variant_id, variant_version, script_url } => {
                     handle_new_game(
                         swarm,
                         db,
@@ -197,6 +197,7 @@ async fn handle_c2s_event(
                         receiver_user_id,
                         variant_id,
                         variant_version,
+                        script_url,
                         channel,
                     )
                     .await;
@@ -306,6 +307,7 @@ async fn handle_new_game(
     receiver_user_id: Guid,
     variant_id: Guid,
     variant_version: String,
+    script_url: String,
     channel: ResponseChannel<S2cMsg>,
 ) {
     let result: Result<(PeerId, Uuid, S2cMsg), ()> = async {
@@ -334,6 +336,7 @@ async fn handle_new_game(
             variant_version: Some(variant_version),
             timeout_secs: Some(60),
             sender_peer_id: Some(peer.to_string()),
+            script_url: Some(script_url),
         };
         Ok((receiver_peer, sender_user_id, event))
     }

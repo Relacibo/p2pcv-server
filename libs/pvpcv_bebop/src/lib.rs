@@ -109,6 +109,7 @@ mod tests {
             receiver_user_id: some_guid(),
             variant_id: some_guid(),
             variant_version: "1.0.0".into(),
+            script_url: "https://raw.githubusercontent.com/example/repo/abc123/variants/chess.rhai".into(),
         };
         let bytes = msg.serialize();
         assert_eq!(C2sMsg::deserialize(&bytes).unwrap(), msg);
@@ -184,6 +185,7 @@ mod tests {
             variant_version: Some("2.1.0".into()),
             timeout_secs: Some(60),
             sender_peer_id: Some("12D3KooWAbCdEf".into()),
+            script_url: Some("https://raw.githubusercontent.com/example/repo/abc123/variants/chess.rhai".into()),
         };
         let bytes = msg.serialize();
         assert_eq!(S2cMsg::deserialize(&bytes).unwrap(), msg);
@@ -198,6 +200,7 @@ mod tests {
             variant_version: Some("1.0.0".into()),
             timeout_secs: Some(30),
             sender_peer_id: None,
+            script_url: Some("https://raw.githubusercontent.com/example/repo/def456/variants/bughouse.rhai".into()),
         };
         let bytes = msg.serialize();
         assert_eq!(S2cMsg::deserialize(&bytes).unwrap(), msg);
