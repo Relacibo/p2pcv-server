@@ -53,7 +53,7 @@ async fn main() -> io::Result<()> {
     ));
     let lichess_config = api::auth::providers::lichess::config::Config::from_env();
     let reqwest_client = reqwest::Client::new();
-    let p2p_info = api::p2p::p2p_info();
+    let (p2p_info, p2p_cert) = api::p2p::p2p_info();
 
     let state = Arc::new(AppState {
         db: db.clone(),
@@ -88,7 +88,7 @@ async fn main() -> io::Result<()> {
         .into_future()
         .map_err(io::Error::from);
     let p2p = async move {
-        api::p2p::init(db, jwt_config)
+        api::p2p::init(db, jwt_config, p2p_cert)
             .await
             .map_err(io::Error::from)
     };

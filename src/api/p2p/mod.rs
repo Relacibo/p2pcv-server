@@ -46,7 +46,9 @@ fn read_keypair() -> Keypair {
     Keypair::ed25519_from_bytes(private_key).expect("P2P_PRIVATE_KEY_ED25519 is not a private key")
 }
 
-pub fn p2p_info() -> P2pInfo {
+/// Returns the P2P node info (multiaddr with certhash) and the WebRTC certificate.
+/// The certificate must be passed to `init()` so both share the same cert/certhash.
+pub fn p2p_info() -> (P2pInfo, Certificate) {
     let keypair = read_keypair();
     let peer_id = keypair.public().to_peer_id();
     // P2P_EXTERNAL_IP is the public IP advertised to clients.
@@ -60,14 +62,18 @@ pub fn p2p_info() -> P2pInfo {
         .expect("P2P_PORT needed!")
         .parse()
         .expect("P2P_PORT not a number");
+    let cert = Certificate::generate(&mut rand::thread_rng())
+        .expect("Failed to generate WebRTC certificate");
+    let certhash = cert.fingerprint().to_multihash();
     let multiaddr = Multiaddr::from(external_address)
         .with(Protocol::Udp(port))
         .with(Protocol::WebRTCDirect)
+        .with(Protocol::Certhash(certhash))
         .with(Protocol::P2p(peer_id));
-    P2pInfo { peer_id, multiaddr }
+    (P2pInfo { peer_id, multiaddr }, cert)
 }
 
-pub async fn init(db: DbPool, jwt_config: JwtConfig) -> Result<(), P2pError> {
+pub async fn init(db: DbPool, jwt_config: JwtConfig, cert: Certificate) -> Result<(), P2pError> {
     let timeout_secs = env::var("P2P_TIMEOUT_SECS")
         .ok()
         .and_then(|s| s.parse::<u64>().ok())
@@ -80,9 +86,6 @@ pub async fn init(db: DbPool, jwt_config: JwtConfig) -> Result<(), P2pError> {
         .expect("P2P_PORT not a number");
 
     let keypair = read_keypair();
-
-    let cert = Certificate::generate(&mut rand::thread_rng())
-        .expect("Failed to generate WebRTC certificate");
 
     let local_peer_id = keypair.public().to_peer_id();
     let mut swarm = SwarmBuilder::with_existing_identity(keypair.clone())
