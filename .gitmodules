@@ -1,0 +1,4 @@
+[submodule "libs/pvpcv_bebop/schemas/protocols"]
+	path = libs/pvpcv_bebop/schemas/protocols
+	url = https://github.com/Relacibo/p2pcv-protocols.git
+	shallow = true
