@@ -43,7 +43,7 @@ jobs:
         run: cargo test -p p2pcv-bebop
       
       - name: Run unit tests
-        run: cargo test --lib --exclude p2pcv-server
+        run: cargo test --workspace --lib --exclude p2pcv-server
 
   build-and-deploy:
     name: Build & Deploy
