@@ -709,7 +709,7 @@ pub enum S2CMsg<'raw> {
         /// Field 4
         member_user_ids: ::core::option::Option<::bebop::SliceWrapper<'raw, ::bebop::Guid>>,
         /// Field 5
-        host_peer_id: ::core::option::Option<&'raw str>,
+        host_user_id: ::core::option::Option<::bebop::Guid>,
         /// Field 6
         in_game: ::core::option::Option<bool>,
     },
@@ -777,7 +777,7 @@ pub enum S2CMsg<'raw> {
         /// Field 1
         lobby_id: ::core::option::Option<::bebop::Guid>,
         /// Field 2
-        peer_id: ::core::option::Option<&'raw str>,
+        user_id: ::core::option::Option<::bebop::Guid>,
     },
 
     /// Discriminator 14
@@ -837,7 +837,7 @@ impl<'raw> ::bebop::SubRecord<'raw> for S2CMsg<'raw> {
                 member_peer_ids: ref _member_peer_ids,
                 member_names: ref _member_names,
                 member_user_ids: ref _member_user_ids,
-                host_peer_id: ref _host_peer_id,
+                host_user_id: ref _host_user_id,
                 in_game: ref _in_game,
             }
             => {
@@ -846,7 +846,7 @@ impl<'raw> ::bebop::SubRecord<'raw> for S2CMsg<'raw> {
                 _member_peer_ids.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
                 _member_names.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
                 _member_user_ids.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
-                _host_peer_id.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
+                _host_user_id.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
                 _in_game.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0)
             }
             Self::LeaveLobbyResponse {
@@ -917,12 +917,12 @@ impl<'raw> ::bebop::SubRecord<'raw> for S2CMsg<'raw> {
             }
             Self::LobbyMemberLeft {
                 lobby_id: ref _lobby_id,
-                peer_id: ref _peer_id,
+                user_id: ref _user_id,
             }
             => {
                 ::bebop::LEN_SIZE + 1 +
                 _lobby_id.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
-                _peer_id.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0)
+                _user_id.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0)
             }
             Self::LobbyDeleted {
                 lobby_id: ref _lobby_id,
@@ -998,7 +998,7 @@ impl<'raw> ::bebop::SubRecord<'raw> for S2CMsg<'raw> {
                 member_peer_ids: ref _member_peer_ids,
                 member_names: ref _member_names,
                 member_user_ids: ref _member_user_ids,
-                host_peer_id: ref _host_peer_id,
+                host_user_id: ref _host_user_id,
                 in_game: ref _in_game,
             }
             => {
@@ -1020,7 +1020,7 @@ impl<'raw> ::bebop::SubRecord<'raw> for S2CMsg<'raw> {
                     4u8._serialize_chained(dest)?;
                     v._serialize_chained(dest)?;
                 }
-                if let Some(ref v) = _host_peer_id {
+                if let Some(ref v) = _host_user_id {
                     5u8._serialize_chained(dest)?;
                     v._serialize_chained(dest)?;
                 }
@@ -1147,7 +1147,7 @@ impl<'raw> ::bebop::SubRecord<'raw> for S2CMsg<'raw> {
             }
             Self::LobbyMemberLeft {
                 lobby_id: ref _lobby_id,
-                peer_id: ref _peer_id,
+                user_id: ref _user_id,
             }
             => {
                 13u8._serialize_chained(dest)?;
@@ -1156,7 +1156,7 @@ impl<'raw> ::bebop::SubRecord<'raw> for S2CMsg<'raw> {
                     1u8._serialize_chained(dest)?;
                     v._serialize_chained(dest)?;
                 }
-                if let Some(ref v) = _peer_id {
+                if let Some(ref v) = _user_id {
                     2u8._serialize_chained(dest)?;
                     v._serialize_chained(dest)?;
                 }
@@ -1365,7 +1365,7 @@ impl<'raw> ::bebop::SubRecord<'raw> for S2CMsg<'raw> {
                 let mut _member_peer_ids = None;
                 let mut _member_names = None;
                 let mut _member_user_ids = None;
-                let mut _host_peer_id = None;
+                let mut _host_user_id = None;
                 let mut _in_game = None;
 
                 #[cfg(not(feature = "unchecked"))]
@@ -1425,12 +1425,12 @@ impl<'raw> ::bebop::SubRecord<'raw> for S2CMsg<'raw> {
                         }
                         5 => {
                             #[cfg(not(feature = "unchecked"))]
-                            if _host_peer_id.is_some() {
+                            if _host_user_id.is_some() {
                                 return Err(::bebop::DeserializeError::DuplicateMessageField);
                             }
                             let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
                             i += read;
-                            _host_peer_id = Some(value)
+                            _host_user_id = Some(value)
                         }
                         6 => {
                             #[cfg(not(feature = "unchecked"))]
@@ -1458,7 +1458,7 @@ impl<'raw> ::bebop::SubRecord<'raw> for S2CMsg<'raw> {
                     member_peer_ids: _member_peer_ids,
                     member_names: _member_names,
                     member_user_ids: _member_user_ids,
-                    host_peer_id: _host_peer_id,
+                    host_user_id: _host_user_id,
                     in_game: _in_game,
                 }
             }
@@ -1868,7 +1868,7 @@ impl<'raw> ::bebop::SubRecord<'raw> for S2CMsg<'raw> {
                 }
 
                 let mut _lobby_id = None;
-                let mut _peer_id = None;
+                let mut _user_id = None;
 
                 #[cfg(not(feature = "unchecked"))]
                 let mut last = 0;
@@ -1900,12 +1900,12 @@ impl<'raw> ::bebop::SubRecord<'raw> for S2CMsg<'raw> {
                         }
                         2 => {
                             #[cfg(not(feature = "unchecked"))]
-                            if _peer_id.is_some() {
+                            if _user_id.is_some() {
                                 return Err(::bebop::DeserializeError::DuplicateMessageField);
                             }
                             let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
                             i += read;
-                            _peer_id = Some(value)
+                            _user_id = Some(value)
                         }
                         _ => {
                             i = len;
@@ -1921,7 +1921,7 @@ impl<'raw> ::bebop::SubRecord<'raw> for S2CMsg<'raw> {
 
                 S2CMsg::LobbyMemberLeft {
                     lobby_id: _lobby_id,
-                    peer_id: _peer_id,
+                    user_id: _user_id,
                 }
             }
             14 => {
@@ -2973,7 +2973,7 @@ pub mod owned {
             /// Field 4
             member_user_ids: ::core::option::Option<::std::vec::Vec<::bebop::Guid>>,
             /// Field 5
-            host_peer_id: ::core::option::Option<String>,
+            host_user_id: ::core::option::Option<::bebop::Guid>,
             /// Field 6
             in_game: ::core::option::Option<bool>,
         },
@@ -3041,7 +3041,7 @@ pub mod owned {
             /// Field 1
             lobby_id: ::core::option::Option<::bebop::Guid>,
             /// Field 2
-            peer_id: ::core::option::Option<String>,
+            user_id: ::core::option::Option<::bebop::Guid>,
         },
 
         /// Discriminator 14
@@ -3102,7 +3102,7 @@ pub mod owned {
                     member_peer_ids: _member_peer_ids,
                     member_names: _member_names,
                     member_user_ids: _member_user_ids,
-                    host_peer_id: _host_peer_id,
+                    host_user_id: _host_user_id,
                     in_game: _in_game,
                 }
                 => {
@@ -3111,7 +3111,7 @@ pub mod owned {
                         member_peer_ids: _member_peer_ids.map(|value| value.into_iter().map(|value| value.into()).collect()),
                         member_names: _member_names.map(|value| value.into_iter().map(|value| value.into()).collect()),
                         member_user_ids: _member_user_ids.map(|value| value.iter().map(|value| value).collect()),
-                        host_peer_id: _host_peer_id.map(|value| value.into()),
+                        host_user_id: _host_user_id,
                         in_game: _in_game,
                     }
                 }
@@ -3191,12 +3191,12 @@ pub mod owned {
                 }
                 super::S2CMsg::LobbyMemberLeft {
                     lobby_id: _lobby_id,
-                    peer_id: _peer_id,
+                    user_id: _user_id,
                 }
                 => {
                     Self::LobbyMemberLeft {
                         lobby_id: _lobby_id,
-                        peer_id: _peer_id.map(|value| value.into()),
+                        user_id: _user_id,
                     }
                 }
                 super::S2CMsg::LobbyDeleted {
@@ -3265,7 +3265,7 @@ pub mod owned {
                     member_peer_ids: ref _member_peer_ids,
                     member_names: ref _member_names,
                     member_user_ids: ref _member_user_ids,
-                    host_peer_id: ref _host_peer_id,
+                    host_user_id: ref _host_user_id,
                     in_game: ref _in_game,
                 }
                 => {
@@ -3274,7 +3274,7 @@ pub mod owned {
                     _member_peer_ids.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
                     _member_names.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
                     _member_user_ids.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
-                    _host_peer_id.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
+                    _host_user_id.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
                     _in_game.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0)
                 }
                 Self::LeaveLobbyResponse {
@@ -3345,12 +3345,12 @@ pub mod owned {
                 }
                 Self::LobbyMemberLeft {
                     lobby_id: ref _lobby_id,
-                    peer_id: ref _peer_id,
+                    user_id: ref _user_id,
                 }
                 => {
                     ::bebop::LEN_SIZE + 1 +
                     _lobby_id.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0) +
-                    _peer_id.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0)
+                    _user_id.as_ref().map(|v| v.serialized_size() + 1).unwrap_or(0)
                 }
                 Self::LobbyDeleted {
                     lobby_id: ref _lobby_id,
@@ -3426,7 +3426,7 @@ pub mod owned {
                     member_peer_ids: ref _member_peer_ids,
                     member_names: ref _member_names,
                     member_user_ids: ref _member_user_ids,
-                    host_peer_id: ref _host_peer_id,
+                    host_user_id: ref _host_user_id,
                     in_game: ref _in_game,
                 }
                 => {
@@ -3448,7 +3448,7 @@ pub mod owned {
                         4u8._serialize_chained(dest)?;
                         v._serialize_chained(dest)?;
                     }
-                    if let Some(ref v) = _host_peer_id {
+                    if let Some(ref v) = _host_user_id {
                         5u8._serialize_chained(dest)?;
                         v._serialize_chained(dest)?;
                     }
@@ -3575,7 +3575,7 @@ pub mod owned {
                 }
                 Self::LobbyMemberLeft {
                     lobby_id: ref _lobby_id,
-                    peer_id: ref _peer_id,
+                    user_id: ref _user_id,
                 }
                 => {
                     13u8._serialize_chained(dest)?;
@@ -3584,7 +3584,7 @@ pub mod owned {
                         1u8._serialize_chained(dest)?;
                         v._serialize_chained(dest)?;
                     }
-                    if let Some(ref v) = _peer_id {
+                    if let Some(ref v) = _user_id {
                         2u8._serialize_chained(dest)?;
                         v._serialize_chained(dest)?;
                     }
@@ -3793,7 +3793,7 @@ pub mod owned {
                     let mut _member_peer_ids = None;
                     let mut _member_names = None;
                     let mut _member_user_ids = None;
-                    let mut _host_peer_id = None;
+                    let mut _host_user_id = None;
                     let mut _in_game = None;
 
                     #[cfg(not(feature = "unchecked"))]
@@ -3853,12 +3853,12 @@ pub mod owned {
                             }
                             5 => {
                                 #[cfg(not(feature = "unchecked"))]
-                                if _host_peer_id.is_some() {
+                                if _host_user_id.is_some() {
                                     return Err(::bebop::DeserializeError::DuplicateMessageField);
                                 }
                                 let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
                                 i += read;
-                                _host_peer_id = Some(value)
+                                _host_user_id = Some(value)
                             }
                             6 => {
                                 #[cfg(not(feature = "unchecked"))]
@@ -3886,7 +3886,7 @@ pub mod owned {
                         member_peer_ids: _member_peer_ids,
                         member_names: _member_names,
                         member_user_ids: _member_user_ids,
-                        host_peer_id: _host_peer_id,
+                        host_user_id: _host_user_id,
                         in_game: _in_game,
                     }
                 }
@@ -4296,7 +4296,7 @@ pub mod owned {
                     }
 
                     let mut _lobby_id = None;
-                    let mut _peer_id = None;
+                    let mut _user_id = None;
 
                     #[cfg(not(feature = "unchecked"))]
                     let mut last = 0;
@@ -4328,12 +4328,12 @@ pub mod owned {
                             }
                             2 => {
                                 #[cfg(not(feature = "unchecked"))]
-                                if _peer_id.is_some() {
+                                if _user_id.is_some() {
                                     return Err(::bebop::DeserializeError::DuplicateMessageField);
                                 }
                                 let (read, value) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
                                 i += read;
-                                _peer_id = Some(value)
+                                _user_id = Some(value)
                             }
                             _ => {
                                 i = len;
@@ -4349,7 +4349,7 @@ pub mod owned {
 
                     S2CMsg::LobbyMemberLeft {
                         lobby_id: _lobby_id,
-                        peer_id: _peer_id,
+                        user_id: _user_id,
                     }
                 }
                 14 => {
