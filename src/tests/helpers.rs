@@ -21,15 +21,22 @@ use crate::{
     AppState,
 };
 
+use migration::{Migrator, MigratorTrait};
+
 /// Creates a fresh connection pool per test so that each test's pool lives
 /// entirely within its own Tokio runtime. Sharing a pool across runtimes
 /// causes `ConnectionAcquire(Timeout)` once the initialising runtime is dropped.
+/// Migrations are run automatically so the schema is always up-to-date.
 pub async fn test_db() -> DatabaseConnection {
     dotenvy::dotenv().ok();
     let url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set for tests");
-    Database::connect(&url)
+    let db = Database::connect(&url)
         .await
-        .expect("failed to connect to test DB")
+        .expect("failed to connect to test DB");
+    Migrator::up(&db, None)
+        .await
+        .expect("failed to run migrations");
+    db
 }
 
 pub fn test_jwt_config() -> session::config::Config {
