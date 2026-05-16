@@ -11,7 +11,7 @@ pub struct Config {
 
 impl Config {
     pub fn from_env() -> Self {
-        let jwt_secret = std::env::var("JWT_SECRET").expect("JWT_SECRET needs to be set!");
+        let jwt_secret = crate::secret::read_secret("JWT_SECRET");
         let jwt_issuers = std::env::var("JWT_ISSUER").expect("JWT_ISSUER needs to be set!");
         let jwt_issuers_vec = jwt_issuers
             .split(',')

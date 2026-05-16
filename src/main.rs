@@ -19,6 +19,7 @@ mod api;
 mod app_result;
 mod db;
 mod error;
+mod secret;
 mod state;
 
 pub use state::AppState;
@@ -37,7 +38,7 @@ async fn main() -> io::Result<()> {
         return run_migrations().await;
     }
 
-    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL not set!");
+    let database_url = crate::secret::read_secret("DATABASE_URL");
     let host = env::var("ACTIX_HOST").expect("ACTIX_HOST not set!");
     let port = env::var("ACTIX_PORT").expect("ACTIX_PORT not set!");
 
@@ -105,7 +106,7 @@ fn cors_layer() -> CorsLayer {
 }
 
 async fn run_migrations() -> io::Result<()> {
-    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL not set!");
+    let database_url = crate::secret::read_secret("DATABASE_URL");
     let db = Database::connect(&database_url)
         .await
         .expect("DB connection failed");

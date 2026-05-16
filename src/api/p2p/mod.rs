@@ -43,8 +43,7 @@ pub async fn init(db: DbPool, jwt_config: JwtConfig) -> Result<(), P2pError> {
         .expect("P2P_PORT needed!")
         .parse()
         .expect("P2P_PORT not a number");
-    let private_token =
-        env::var("P2P_PRIVATE_KEY_ED25519").expect("P2P_PRIVATE_KEY_ED25519 needed!");
+    let private_token = crate::secret::read_secret("P2P_PRIVATE_KEY_ED25519");
     let mut private_key = BASE64_STANDARD
         .decode(private_token)
         .expect("P2P_PRIVATE_KEY_ED25519 is invalid base64");
@@ -59,8 +58,7 @@ pub async fn init(db: DbPool, jwt_config: JwtConfig) -> Result<(), P2pError> {
     let keypair = Keypair::ed25519_from_bytes(private_key)
         .expect("P2P_PRIVATE_KEY_ED25519 is not a private key");
 
-    let cert = env::var("P2P_TRANSPORT_CERT_PEM")
-        .expect("P2P_TRANSPORT_CERT_PEM needed!")
+    let cert = crate::secret::read_secret("P2P_TRANSPORT_CERT_PEM")
         .replace("$", "\n");
 
     let mut swarm = SwarmBuilder::with_existing_identity(keypair)
