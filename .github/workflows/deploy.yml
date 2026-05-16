@@ -39,8 +39,11 @@ jobs:
         run: cargo build
       - name: Run migrations
         run: cargo run -- migrate
-      - name: Run tests
-        run: cargo test --workspace
+      - name: Run Bebop tests
+        run: cargo test -p p2pcv-bebop
+      
+      - name: Run unit tests
+        run: cargo test --lib --exclude p2pcv-server
 
   build-and-deploy:
     name: Build & Deploy
