@@ -1,9 +1,9 @@
 use std::{env, io, sync::Arc};
 
-use axum::{routing::get, Router};
-use futures::TryFutureExt;
+use axum::{Router, routing::get};
 use dotenvy::dotenv;
 use env_logger::Env;
+use futures::TryFutureExt;
 use migration::{Migrator, MigratorTrait};
 use sea_orm::Database;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
@@ -53,7 +53,7 @@ async fn main() -> io::Result<()> {
     ));
     let lichess_config = api::auth::providers::lichess::config::Config::from_env();
     let reqwest_client = reqwest::Client::new();
-    let (p2p_info, p2p_cert) = api::p2p::p2p_info();
+    let (p2p_info, p2p_cert) = api::p2p::p2p_info().await;
 
     let state = Arc::new(AppState {
         db: db.clone(),
@@ -119,10 +119,7 @@ fn cors_layer() -> CorsLayer {
                 http::Method::DELETE,
                 http::Method::OPTIONS,
             ])
-            .allow_headers([
-                http::header::AUTHORIZATION,
-                http::header::CONTENT_TYPE,
-            ])
+            .allow_headers([http::header::AUTHORIZATION, http::header::CONTENT_TYPE])
     }
 }
 
@@ -133,7 +130,7 @@ async fn run_migrations() -> io::Result<()> {
         .expect("DB connection failed");
     Migrator::up(&db, None)
         .await
-        .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+        .map_err(|e| io::Error::other(e.to_string()))?;
     log::info!("Migrations complete");
     Ok(())
 }
