@@ -1,7 +1,7 @@
 use sea_orm::{
     ActiveModelTrait, ActiveValue::Set, ColumnTrait, Condition, DatabaseConnection, DbBackend,
     DbErr, EntityTrait, FromQueryResult, PaginatorTrait, QueryFilter, QueryOrder, Statement,
-    TransactionTrait,
+    TransactionTrait, sea_query::{Expr, extension::postgres::PgExpr},
 };
 use uuid::Uuid;
 
@@ -107,11 +107,13 @@ impl user::Model {
         Ok(())
     }
 
-    pub async fn list(db: &DatabaseConnection) -> AppResult<Vec<PublicUser>> {
-        let users = user::Entity::find()
-            .order_by_asc(user::Column::UserName)
-            .all(db)
-            .await?;
+    pub async fn list(db: &DatabaseConnection, q: Option<&str>) -> AppResult<Vec<PublicUser>> {
+        let mut query = user::Entity::find().order_by_asc(user::Column::UserName);
+        if let Some(q) = q.filter(|s| !s.is_empty()) {
+            let pattern = format!("{}%", q.replace('%', "\\%").replace('_', "\\_"));
+            query = query.filter(Expr::col(user::Column::UserName).ilike(pattern));
+        }
+        let users = query.all(db).await?;
         Ok(users.into_iter().map(Into::into).collect())
     }
 

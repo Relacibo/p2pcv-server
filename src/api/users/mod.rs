@@ -1,11 +1,12 @@
 use std::sync::Arc;
 
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::StatusCode,
     routing::get,
     Json, Router,
 };
+use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::{
@@ -27,8 +28,16 @@ pub fn router() -> Router<Arc<AppState>> {
         .merge(friends::router())
 }
 
-pub async fn list(State(state): State<Arc<AppState>>) -> EndpointResult<Vec<PublicUser>> {
-    Ok(Json(User::list(&state.db).await?))
+#[derive(Deserialize)]
+pub struct ListParams {
+    q: Option<String>,
+}
+
+pub async fn list(
+    State(state): State<Arc<AppState>>,
+    Query(params): Query<ListParams>,
+) -> EndpointResult<Vec<PublicUser>> {
+    Ok(Json(User::list(&state.db, params.q.as_deref()).await?))
 }
 
 pub async fn delete_user(
