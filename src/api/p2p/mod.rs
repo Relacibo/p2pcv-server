@@ -58,18 +58,17 @@ pub async fn p2p_info() -> (P2pInfo, Certificate) {
     let peer_id = keypair.public().to_peer_id();
     // 1. Versuche P2P_EXTERNAL_IP aus ENV zu lesen
     // 2. Falls nicht da, versuche sie live zu fetchen
-    // 3. Fallback auf P2P_HOST
     let external_host = if let Ok(ip) = env::var("P2P_EXTERNAL_IP") {
         ip
     } else if let Some(ip) = fetch_public_ip().await {
         log::info!("Detected public IP: {}", ip);
         ip
     } else {
-        env::var("P2P_HOST").expect("P2P_HOST needed as fallback!")
+        env::var("DOMAIN_NAME").expect("Could not fetch external ip")
     };
 
     let external_address =
-        Ipv4Addr::from_str(&external_host).expect("Invalid P2P_EXTERNAL_IP / P2P_HOST address");
+        Ipv4Addr::from_str(external_host.trim()).expect("Invalid P2P_EXTERNAL_IP address");
     let port: u16 = env::var("P2P_PORT")
         .expect("P2P_PORT needed!")
         .parse()
