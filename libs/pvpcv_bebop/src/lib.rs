@@ -168,7 +168,7 @@ mod tests {
             member_peer_ids: Some(vec!["peer-1".into(), "peer-2".into()]),
             member_names: Some(vec!["alice".into(), "bob".into()]),
             member_user_ids: Some(vec![some_guid(), some_guid()]),
-            host_peer_id: Some("peer-1".into()),
+            host_user_id: Some(some_guid()),
             in_game: Some(false),
         };
         let bytes = msg.serialize();
