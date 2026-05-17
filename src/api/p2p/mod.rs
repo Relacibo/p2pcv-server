@@ -90,7 +90,7 @@ async fn fetch_public_ip() -> Option<String> {
         .build()
         .ok()?;
     client
-        .get("https://ifconfig.me")
+        .get("https://ifconfig.me/ip")
         .send()
         .await
         .ok()?
