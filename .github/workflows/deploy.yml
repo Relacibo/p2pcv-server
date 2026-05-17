@@ -93,6 +93,7 @@ jobs:
           username: reinhard
           key: ${{ secrets.SSH_DEPLOY_KEY }}
           script: |
+            set -e
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
             cd ~/docker
             docker compose pull p2pcv
