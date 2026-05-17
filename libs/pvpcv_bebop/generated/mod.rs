@@ -373,7 +373,7 @@ impl<'raw> ::bebop::SubRecord<'raw> for C2SMsg<'raw> {
 impl<'raw> ::bebop::Record<'raw> for C2SMsg<'raw> {}
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum LobbyMsg<'raw> {
+pub enum P2pMsg<'raw> {
     /// An unknown type which is likely defined in a newer version of the schema.
     Unknown,
 
@@ -403,13 +403,13 @@ pub enum LobbyMsg<'raw> {
     },
 }
 
-impl<'raw> ::bebop::SubRecord<'raw> for LobbyMsg<'raw> {
+impl<'raw> ::bebop::SubRecord<'raw> for P2pMsg<'raw> {
     const MIN_SERIALIZED_SIZE: usize = ::bebop::LEN_SIZE + 1;
 
     fn serialized_size(&self) -> usize {
         ::bebop::LEN_SIZE + 1 +
         match self {
-            LobbyMsg::Unknown => {
+            P2pMsg::Unknown => {
                 0
             }
             Self::LobbyJoin {
@@ -570,7 +570,7 @@ impl<'raw> ::bebop::SubRecord<'raw> for LobbyMsg<'raw> {
                     return Err(::bebop::DeserializeError::CorruptFrame)
                 }
 
-                LobbyMsg::LobbyJoin {
+                P2pMsg::LobbyJoin {
                     peer_id: _peer_id,
                     display_name: _display_name,
                 }
@@ -640,7 +640,7 @@ impl<'raw> ::bebop::SubRecord<'raw> for LobbyMsg<'raw> {
                     return Err(::bebop::DeserializeError::CorruptFrame)
                 }
 
-                LobbyMsg::LobbyPlayerList {
+                P2pMsg::LobbyPlayerList {
                     peer_ids: _peer_ids,
                     display_names: _display_names,
                 }
@@ -649,16 +649,16 @@ impl<'raw> ::bebop::SubRecord<'raw> for LobbyMsg<'raw> {
                 let (read, v0) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
                 i += read;
 
-                LobbyMsg::LobbyStart {
+                P2pMsg::LobbyStart {
                     script_url: v0,
                 }
             }
             4 => {
-                LobbyMsg::LobbyLeave {}
+                P2pMsg::LobbyLeave {}
             }
             _ => {
                 i = len;
-                LobbyMsg::Unknown
+                P2pMsg::Unknown
             }
         };
         if !cfg!(feature = "unchecked") && i != len {
@@ -672,7 +672,7 @@ impl<'raw> ::bebop::SubRecord<'raw> for LobbyMsg<'raw> {
 
 }
 
-impl<'raw> ::bebop::Record<'raw> for LobbyMsg<'raw> {}
+impl<'raw> ::bebop::Record<'raw> for P2pMsg<'raw> {}
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum S2CMsg<'raw> {
@@ -2593,7 +2593,7 @@ pub mod owned {
     impl<'raw> ::bebop::Record<'raw> for C2SMsg {}
 
     #[derive(Clone, Debug, PartialEq)]
-    pub enum LobbyMsg {
+    pub enum P2pMsg {
         /// An unknown type which is likely defined in a newer version of the schema.
         Unknown,
 
@@ -2623,13 +2623,13 @@ pub mod owned {
         },
     }
 
-    impl<'raw> ::core::convert::From<super::LobbyMsg<'raw>> for LobbyMsg {
-        fn from(value: super::LobbyMsg) -> Self {
+    impl<'raw> ::core::convert::From<super::P2pMsg<'raw>> for P2pMsg {
+        fn from(value: super::P2pMsg) -> Self {
             match value {
-                super::LobbyMsg::Unknown => {
+                super::P2pMsg::Unknown => {
                     Self::Unknown
                 }
-                super::LobbyMsg::LobbyJoin {
+                super::P2pMsg::LobbyJoin {
                     peer_id: _peer_id,
                     display_name: _display_name,
                 }
@@ -2639,7 +2639,7 @@ pub mod owned {
                         display_name: _display_name.map(|value| value.into()),
                     }
                 }
-                super::LobbyMsg::LobbyPlayerList {
+                super::P2pMsg::LobbyPlayerList {
                     peer_ids: _peer_ids,
                     display_names: _display_names,
                 }
@@ -2649,7 +2649,7 @@ pub mod owned {
                         display_names: _display_names.map(|value| value.into_iter().map(|value| value.into()).collect()),
                     }
                 }
-                super::LobbyMsg::LobbyStart {
+                super::P2pMsg::LobbyStart {
                     script_url: _script_url,
                 }
                 => {
@@ -2657,7 +2657,7 @@ pub mod owned {
                         script_url: _script_url.into(),
                     }
                 }
-                super::LobbyMsg::LobbyLeave {
+                super::P2pMsg::LobbyLeave {
                 }
                 => {
                     Self::LobbyLeave {
@@ -2667,13 +2667,13 @@ pub mod owned {
         }
 
     }
-    impl<'raw> ::bebop::SubRecord<'raw> for LobbyMsg {
+    impl<'raw> ::bebop::SubRecord<'raw> for P2pMsg {
         const MIN_SERIALIZED_SIZE: usize = ::bebop::LEN_SIZE + 1;
 
         fn serialized_size(&self) -> usize {
             ::bebop::LEN_SIZE + 1 +
             match self {
-                LobbyMsg::Unknown => {
+                P2pMsg::Unknown => {
                     0
                 }
                 Self::LobbyJoin {
@@ -2834,7 +2834,7 @@ pub mod owned {
                         return Err(::bebop::DeserializeError::CorruptFrame)
                     }
 
-                    LobbyMsg::LobbyJoin {
+                    P2pMsg::LobbyJoin {
                         peer_id: _peer_id,
                         display_name: _display_name,
                     }
@@ -2904,7 +2904,7 @@ pub mod owned {
                         return Err(::bebop::DeserializeError::CorruptFrame)
                     }
 
-                    LobbyMsg::LobbyPlayerList {
+                    P2pMsg::LobbyPlayerList {
                         peer_ids: _peer_ids,
                         display_names: _display_names,
                     }
@@ -2913,16 +2913,16 @@ pub mod owned {
                     let (read, v0) = ::bebop::SubRecord::_deserialize_chained(&raw[i..])?;
                     i += read;
 
-                    LobbyMsg::LobbyStart {
+                    P2pMsg::LobbyStart {
                         script_url: v0,
                     }
                 }
                 4 => {
-                    LobbyMsg::LobbyLeave {}
+                    P2pMsg::LobbyLeave {}
                 }
                 _ => {
                     i = len;
-                    LobbyMsg::Unknown
+                    P2pMsg::Unknown
                 }
             };
             if !cfg!(feature = "unchecked") && i != len {
@@ -2936,7 +2936,7 @@ pub mod owned {
 
     }
 
-    impl<'raw> ::bebop::Record<'raw> for LobbyMsg {}
+    impl<'raw> ::bebop::Record<'raw> for P2pMsg {}
 
     #[derive(Clone, Debug, PartialEq)]
     pub enum S2CMsg {

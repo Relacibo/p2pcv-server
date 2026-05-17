@@ -2,16 +2,12 @@ use std::{fs, path::Path, process::Command};
 
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
-    println!("cargo:rerun-if-changed=bebop.json");
-    println!("cargo:rerun-if-changed=schemas");
+    println!("cargo:rerun-if-changed=generated/mod.rs");
 
-    // Regenerate from .bop schemas if bebopc is available.
-    let status = Command::new("bebopc").args(["-c", "bebop.json"]).status();
-    match status {
-        Ok(s) if s.success() => {}
-        Ok(s) => panic!("bebopc exited with status {s}"),
-        Err(e) => eprintln!("cargo:warning=bebopc not found, using pre-generated file ({e})"),
-    }
+    // NOTE: bebopc v3.2.3 does not write to outFile automatically.
+    // Run `bebopc -c bebop.json` manually after schema changes, then commit generated/mod.rs.
+    // If bebopc is available we still try, in case a future version fixes this.
+    let _ = Command::new("bebopc").args(["-c", "bebop.json"]).status();
 
     let src_dir = Path::new("src/generated");
     fs::create_dir_all(src_dir).expect("generated output dir should exist");
