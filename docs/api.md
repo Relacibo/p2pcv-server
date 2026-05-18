@@ -596,3 +596,39 @@ type SignalPayload = {
 
 **Response `204`**  
 **Response `404`** – lobby not found
+
+
+---
+
+# WebRTC
+
+## Get TURN Credentials
+
+```
+GET /turn-credentials
+```
+
+Authentication required. Returns short-lived TURN server credentials for WebRTC peer connections, using coturn's [HMAC secret mechanism](https://github.com/coturn/coturn/wiki/turnserver#turn-rest-api).
+
+**Response `200`**
+
+```typescript
+type TurnCredentials = {
+  urls: string[]        // TURN server URIs, e.g. "turn:example.com:3478"
+  username: string      // "{expiry_unix_timestamp}:{userId}"
+  credential: string    // base64(HMAC-SHA1(secret, username))
+  ttl: number           // Lifetime in seconds (86400 = 24 h)
+}
+```
+
+```json
+{
+  "urls": ["turn:ovilava.rcbnetwork.de:3478"],
+  "username": "1747609200:f47ac10b-58cc-4372-a567-0e02b2c3d479",
+  "credential": "Wr0opBf2N3q9G7MkJ2X4Lz5eHKA=",
+  "ttl": 86400
+}
+```
+
+**Response `401`** – not authenticated  
+**Response `503`** – TURN server not configured on this instance
