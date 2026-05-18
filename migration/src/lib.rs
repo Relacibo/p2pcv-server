@@ -1,4 +1,3 @@
-pub use m20220101_000007_create_auth_providers::Migration as M7;
 pub use sea_orm_migration::prelude::*;
 
 mod m20220101_000001_create_users;
@@ -8,6 +7,7 @@ mod m20220101_000004_create_friends_func;
 mod m20220101_000005_create_lichess;
 mod m20220101_000006_create_refresh_tokens;
 mod m20220101_000007_create_auth_providers;
+mod m20220101_000008_drop_lichess_access_tokens;
 
 pub struct Migrator;
 
@@ -21,7 +21,8 @@ impl MigratorTrait for Migrator {
             Box::new(m20220101_000004_create_friends_func::Migration),
             Box::new(m20220101_000005_create_lichess::Migration),
             Box::new(m20220101_000006_create_refresh_tokens::Migration),
-            Box::new(M7),
+            Box::new(m20220101_000007_create_auth_providers::Migration),
+            Box::new(m20220101_000008_drop_lichess_access_tokens::Migration),
         ]
     }
 }

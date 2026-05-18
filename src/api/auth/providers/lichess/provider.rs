@@ -5,10 +5,7 @@ use crate::{
     AppState,
     api::auth::providers::provider::{Provider, ProviderError},
     app_result::AppResult,
-    db::{
-        lichess::{LichessAccessToken, NewLichessAccessToken},
-        users::User,
-    },
+    db::users::User,
     error::AppError,
 };
 
@@ -53,7 +50,6 @@ impl LichessProvider {
             &state.lichess_config,
             code,
             code_verifier,
-            &state.db,
         )
         .await?;
         Ok(Self { claims })
@@ -65,7 +61,6 @@ async fn request_lichess_claims(
     config: &Config,
     code: String,
     code_verifier: String,
-    db: &DatabaseConnection,
 ) -> AppResult<LichessClaims> {
     let Config {
         api_uri,
@@ -76,40 +71,25 @@ async fn request_lichess_claims(
         account_endpoint_path,
     } = config;
 
-    let access_token = LichessAccessToken::get(db, code_verifier.clone()).await?;
-
-    let access_token = if let Some(LichessAccessToken { access_token, .. }) = access_token {
-        access_token
-    } else {
-        let token_endpoint = format!("{api_uri}{token_endpoint_path}");
-        let token_request = LichessTokenRequest {
-            grant_type: "authorization_code".to_string(),
-            code,
-            code_verifier: code_verifier.clone(),
-            redirect_uri: redirect_uri.clone(),
-            client_id: client_id.clone(),
-        };
-
-        let LichessTokenResponse {
-            access_token,
-            expires_in,
-            ..
-        } = reqwest
-            .post(token_endpoint)
-            .form(&token_request)
-            .send()
-            .await?
-            .json()
-            .await?;
-
-        let token = NewLichessAccessToken {
-            id: code_verifier.clone(),
-            access_token: access_token.clone(),
-            expires: expires_in as i64,
-        };
-        LichessAccessToken::insert(db, token).await?;
-        access_token
+    let token_endpoint = format!("{api_uri}{token_endpoint_path}");
+    let token_request = LichessTokenRequest {
+        grant_type: "authorization_code".to_string(),
+        code,
+        code_verifier,
+        redirect_uri: redirect_uri.clone(),
+        client_id: client_id.clone(),
     };
+
+    let LichessTokenResponse {
+        access_token,
+        ..
+    } = reqwest
+        .post(token_endpoint)
+        .form(&token_request)
+        .send()
+        .await?
+        .json()
+        .await?;
 
     let endpoint_path = format!("{api_uri}{account_endpoint_path}");
     let LichessAccountResponse { id, username } = reqwest
