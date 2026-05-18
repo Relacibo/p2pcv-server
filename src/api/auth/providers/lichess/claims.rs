@@ -1,4 +1,4 @@
-use crate::db::users::{NewLichessUser, NewUserWithId, UpdateLichessUser};
+use crate::db::users::NewUser;
 
 #[derive(Debug, Clone)]
 pub struct LichessClaims {
@@ -8,36 +8,14 @@ pub struct LichessClaims {
 }
 
 impl LichessClaims {
-    pub fn to_db_users(self, user_name: String) -> (NewLichessUser, NewUserWithId) {
-        let user_id = uuid::Uuid::new_v4();
-        let Self {
-            email,
-            id,
-            username,
-        } = self;
-        let lichess_user = NewLichessUser {
-            id,
-            username: username.clone(),
-            user_id,
-        };
-        let user = NewUserWithId {
-            id: user_id,
+    pub fn to_db_user(self, user_name: String) -> NewUser {
+        let Self { email, .. } = self;
+        NewUser {
             user_name: user_name.clone(),
             display_name: user_name,
             email,
             locale: None,
             verified_email: false,
-        };
-        (lichess_user, user)
-    }
-}
-
-impl From<LichessClaims> for UpdateLichessUser {
-    fn from(value: LichessClaims) -> Self {
-        let LichessClaims { username, .. } = value;
-
-        Self {
-            username: Some(username.clone()),
         }
     }
 }

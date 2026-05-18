@@ -2,14 +2,14 @@ use async_trait::async_trait;
 use sea_orm::DatabaseConnection;
 
 use crate::{
+    AppState,
     api::auth::providers::provider::{Provider, ProviderError},
     app_result::AppResult,
     db::users::{NewUser, User},
     error::AppError,
-    AppState,
 };
 
-use super::claims::{extract_google_claims, GoogleClaims};
+use super::claims::{GoogleClaims, extract_google_claims};
 
 #[derive(Clone, Debug)]
 pub struct GoogleProvider {
@@ -44,7 +44,7 @@ impl Provider for GoogleProvider {
     ) -> Result<User, ProviderError> {
         let GoogleClaims { sub, .. } = &self.claims;
         let new_user: NewUser = self.claims.clone().to_db_user(username.to_string());
-        let insert_result = User::insert_with_google_id(db, new_user, sub).await;
+        let insert_result = User::insert_with_provider(db, new_user, "google", sub, None).await;
         let user = match insert_result {
             Ok(user) => user,
             Err(AppError::UsernameAlreadyExists) => Err(ProviderError::UserAlreadyExists {
@@ -55,7 +55,11 @@ impl Provider for GoogleProvider {
         Ok(user)
     }
 
-    async fn link_to_user(&self, db: &DatabaseConnection, user_id: uuid::Uuid) -> Result<(), ProviderError> {
+    async fn link_to_user(
+        &self,
+        db: &DatabaseConnection,
+        user_id: uuid::Uuid,
+    ) -> Result<(), ProviderError> {
         let GoogleClaims { sub, .. } = &self.claims;
         User::link_google(db, user_id, sub).await?;
         Ok(())

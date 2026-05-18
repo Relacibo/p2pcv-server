@@ -1,22 +1,21 @@
+use chrono::Utc;
 use sea_orm::{
-    ActiveModelTrait, ActiveValue::Set, ColumnTrait, Condition, DatabaseConnection, DbBackend,
-    DbErr, EntityTrait, FromQueryResult, PaginatorTrait, QueryFilter, QueryOrder, Statement,
-    TransactionTrait, sea_query::{Expr, extension::postgres::PgExpr},
+    ActiveModelTrait,
+    ActiveValue::Set,
+    ColumnTrait, Condition, DatabaseConnection, DbBackend, DbErr, EntityTrait, FromQueryResult,
+    PaginatorTrait, QueryFilter, QueryOrder, Statement, TransactionTrait,
+    sea_query::{Expr, extension::postgres::PgExpr},
 };
 use uuid::Uuid;
 
 use crate::{app_result::AppResult, error::AppError};
 
 use super::{
-    entities::{
-        google_users as google_user, lichess_users as lichess_user,
-        refresh_tokens as refresh_token, users as user,
-    },
+    entities::{auth_providers as auth_provider, refresh_tokens as refresh_token, users as user},
     refresh_tokens::NewRefreshToken,
 };
 
 pub type User = user::Model;
-pub type LichessUser = lichess_user::Model;
 
 #[derive(Clone, Debug, Serialize, FromQueryResult)]
 #[serde(rename_all = "camelCase")]
@@ -43,18 +42,6 @@ pub struct NewUserWithId {
     pub email: String,
     pub locale: Option<String>,
     pub verified_email: bool,
-}
-
-#[derive(Clone, Debug)]
-pub struct NewLichessUser {
-    pub id: String,
-    pub username: String,
-    pub user_id: Uuid,
-}
-
-#[derive(Clone, Debug)]
-pub struct UpdateLichessUser {
-    pub username: Option<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -85,21 +72,12 @@ impl user::Model {
     pub async fn delete(db: &DatabaseConnection, query_uuid: Uuid) -> AppResult<()> {
         db.transaction::<_, _, crate::error::AppError>(|txn| {
             Box::pin(async move {
-                super::entities::google_users::Entity::delete_many()
-                    .filter(google_user::Column::UserId.eq(query_uuid))
-                    .exec(txn)
-                    .await?;
-                super::entities::lichess_users::Entity::delete_many()
-                    .filter(lichess_user::Column::UserId.eq(query_uuid))
-                    .exec(txn)
-                    .await?;
                 super::entities::friend_requests::Entity::delete_many()
                     .filter(
                         Condition::any()
                             .add(super::entities::friend_requests::Column::SenderId.eq(query_uuid))
                             .add(
-                                super::entities::friend_requests::Column::ReceiverId
-                                    .eq(query_uuid),
+                                super::entities::friend_requests::Column::ReceiverId.eq(query_uuid),
                             ),
                     )
                     .exec(txn)
@@ -156,24 +134,32 @@ impl user::Model {
             .map_err(Into::into)
     }
 
-    pub async fn insert_with_google_id(
+    pub async fn insert_with_provider(
         db: &DatabaseConnection,
         new_user: NewUser,
-        google_id: &str,
+        provider: &str,
+        provider_user_id: &str,
+        display_name: Option<&str>,
     ) -> AppResult<user::Model> {
-        let google_id = google_id.to_string();
         let user_id = Uuid::new_v4();
         let user = new_user.with_id(user_id);
+        let provider = provider.to_string();
+        let provider_user_id = provider_user_id.to_string();
+        let display_name = display_name.map(ToOwned::to_owned);
         let inserted = db
             .transaction::<_, _, crate::error::AppError>(|txn| {
                 Box::pin(async move {
                     let user = user::Entity::insert(user.into_active_model())
                         .exec_with_returning(txn)
                         .await?;
-                    google_user::Entity::insert(google_user::ActiveModel {
-                        id: Set(google_id),
+                    auth_provider::Entity::insert(auth_provider::ActiveModel {
+                        id: Set(Uuid::new_v4()),
                         user_id: Set(user_id),
+                        provider: Set(provider),
+                        provider_user_id: Set(provider_user_id),
+                        display_name: Set(display_name),
                         created_at: Default::default(),
+                        updated_at: Default::default(),
                     })
                     .exec(txn)
                     .await?;
@@ -184,118 +170,75 @@ impl user::Model {
         Ok(inserted)
     }
 
-    pub async fn insert_lichess_user(
+    pub async fn insert_with_google_id(
         db: &DatabaseConnection,
-        new_user: NewUserWithId,
-        new_lichess_user: NewLichessUser,
-    ) -> AppResult<(lichess_user::Model, user::Model)> {
-        let inserted = db
-            .transaction::<_, _, crate::error::AppError>(|txn| {
-                Box::pin(async move {
-                    let user = user::Entity::insert(new_user.into_active_model())
-                        .exec_with_returning(txn)
-                        .await?;
-                    let lichess_user = lichess_user::Entity::insert(lichess_user::ActiveModel {
-                        id: Set(new_lichess_user.id),
-                        username: Set(new_lichess_user.username),
-                        user_id: Set(new_lichess_user.user_id),
-                        created_at: Default::default(),
-                        updated_at: Default::default(),
-                    })
-                    .exec_with_returning(txn)
-                    .await?;
-                    Ok((lichess_user, user))
-                })
-            })
+        new_user: NewUser,
+        google_id: &str,
+    ) -> AppResult<user::Model> {
+        Self::insert_with_provider(db, new_user, "google", google_id, None).await
+    }
+
+    pub async fn get_with_provider(
+        db: &DatabaseConnection,
+        provider: &str,
+        provider_user_id: &str,
+    ) -> AppResult<Option<user::Model>> {
+        let record = auth_provider::Entity::find()
+            .filter(auth_provider::Column::Provider.eq(provider))
+            .filter(auth_provider::Column::ProviderUserId.eq(provider_user_id))
+            .one(db)
             .await?;
-        Ok(inserted)
+        match record {
+            Some(record) => Ok(Some(Self::get(db, record.user_id).await?)),
+            None => Ok(None),
+        }
     }
 
     pub async fn get_with_google_id(
         db: &DatabaseConnection,
         google_id: &str,
     ) -> AppResult<Option<user::Model>> {
-        let user_id = Self::get_id_with_google_id(db, google_id).await?;
-        match user_id {
-            Some(user_id) => Ok(Some(Self::get(db, user_id).await?)),
-            None => Ok(None),
-        }
-    }
-
-    pub async fn link_google(db: &DatabaseConnection, user_id: Uuid, google_id: &str) -> AppResult<()> {
-        let existing = google_user::Entity::find_by_id(google_id.to_string())
-            .one(db)
-            .await?;
-        if let Some(record) = existing {
-            if record.user_id == user_id {
-                return Ok(());
-            }
-            return Err(AppError::ProviderAlreadyLinked);
-        }
-        google_user::Entity::insert(google_user::ActiveModel {
-            id: Set(google_id.to_string()),
-            user_id: Set(user_id),
-            created_at: Default::default(),
-        })
-        .exec(db)
-        .await?;
-        Ok(())
-    }
-
-    pub async fn unlink_google(db: &DatabaseConnection, user_id: Uuid) -> AppResult<()> {
-        google_user::Entity::delete_many()
-            .filter(google_user::Column::UserId.eq(user_id))
-            .exec(db)
-            .await?;
-        Ok(())
-    }
-
-    pub async fn get_id_with_google_id(
-        db: &DatabaseConnection,
-        google_id: &str,
-    ) -> AppResult<Option<Uuid>> {
-        let link = google_user::Entity::find_by_id(google_id.to_string())
-            .one(db)
-            .await?;
-        Ok(link.map(|link| link.user_id))
+        Self::get_with_provider(db, "google", google_id).await
     }
 
     pub async fn get_with_lichess_id(
         db: &DatabaseConnection,
         lichess_id: &str,
     ) -> AppResult<Option<user::Model>> {
-        let link = lichess_user::Entity::find_by_id(lichess_id.to_string())
-            .one(db)
-            .await?;
-        match link {
-            Some(link) => Ok(Some(Self::get(db, link.user_id).await?)),
-            None => Ok(None),
-        }
+        Self::get_with_provider(db, "lichess", lichess_id).await
     }
 
-    pub async fn update_lichess_user(
-        db: &DatabaseConnection,
-        lichess_id: &str,
-        lichess_user_update: UpdateLichessUser,
-    ) -> AppResult<lichess_user::Model> {
-        let model = lichess_user::Entity::find_by_id(lichess_id.to_string())
-            .one(db)
-            .await?
-            .ok_or_else(|| DbErr::RecordNotFound(format!("lichess_user {lichess_id}")))?;
-        let mut active_model: lichess_user::ActiveModel = model.into();
-        if let Some(username) = lichess_user_update.username {
-            active_model.username = Set(username);
-        }
-        Ok(active_model.update(db).await?)
-    }
-
-    pub async fn link_lichess(
+    pub async fn update_provider_display_name(
         db: &DatabaseConnection,
         user_id: Uuid,
-        lichess_id: &str,
-        username: &str,
+        provider: &str,
+        display_name: &str,
     ) -> AppResult<()> {
-        let existing = lichess_user::Entity::find_by_id(lichess_id.to_string())
+        let record = auth_provider::Entity::find()
+            .filter(auth_provider::Column::UserId.eq(user_id))
+            .filter(auth_provider::Column::Provider.eq(provider))
+            .one(db)
+            .await?
+            .ok_or_else(|| {
+                DbErr::RecordNotFound(format!("{provider} provider for user {user_id}"))
+            })?;
+        let mut active: auth_provider::ActiveModel = record.into();
+        active.display_name = Set(Some(display_name.to_string()));
+        active.updated_at = Set(Utc::now().into());
+        active.update(db).await?;
+        Ok(())
+    }
+
+    pub async fn link_provider_account(
+        db: &DatabaseConnection,
+        user_id: Uuid,
+        provider: &str,
+        provider_user_id: &str,
+        display_name: Option<&str>,
+    ) -> AppResult<()> {
+        let existing = auth_provider::Entity::find()
+            .filter(auth_provider::Column::Provider.eq(provider))
+            .filter(auth_provider::Column::ProviderUserId.eq(provider_user_id))
             .one(db)
             .await?;
         if let Some(record) = existing {
@@ -304,10 +247,12 @@ impl user::Model {
             }
             return Err(AppError::ProviderAlreadyLinked);
         }
-        lichess_user::Entity::insert(lichess_user::ActiveModel {
-            id: Set(lichess_id.to_string()),
-            username: Set(username.to_string()),
+        auth_provider::Entity::insert(auth_provider::ActiveModel {
+            id: Set(Uuid::new_v4()),
             user_id: Set(user_id),
+            provider: Set(provider.to_string()),
+            provider_user_id: Set(provider_user_id.to_string()),
+            display_name: Set(display_name.map(ToOwned::to_owned)),
             created_at: Default::default(),
             updated_at: Default::default(),
         })
@@ -316,37 +261,61 @@ impl user::Model {
         Ok(())
     }
 
-    pub async fn unlink_lichess(db: &DatabaseConnection, user_id: Uuid) -> AppResult<()> {
-        lichess_user::Entity::delete_many()
-            .filter(lichess_user::Column::UserId.eq(user_id))
+    pub async fn link_google(
+        db: &DatabaseConnection,
+        user_id: Uuid,
+        google_id: &str,
+    ) -> AppResult<()> {
+        Self::link_provider_account(db, user_id, "google", google_id, None).await
+    }
+
+    pub async fn unlink_provider_account(
+        db: &DatabaseConnection,
+        user_id: Uuid,
+        provider: &str,
+    ) -> AppResult<()> {
+        auth_provider::Entity::delete_many()
+            .filter(auth_provider::Column::UserId.eq(user_id))
+            .filter(auth_provider::Column::Provider.eq(provider))
             .exec(db)
             .await?;
         Ok(())
     }
 
-    pub async fn count_connections(db: &DatabaseConnection, user_id: Uuid) -> AppResult<u64> {
-        let google_count = google_user::Entity::find()
-            .filter(google_user::Column::UserId.eq(user_id))
-            .count(db)
-            .await?;
-        let lichess_count = lichess_user::Entity::find()
-            .filter(lichess_user::Column::UserId.eq(user_id))
-            .count(db)
-            .await?;
-        Ok(google_count + lichess_count)
+    pub async fn unlink_google(db: &DatabaseConnection, user_id: Uuid) -> AppResult<()> {
+        Self::unlink_provider_account(db, user_id, "google").await
     }
 
-    pub async fn get_connections(db: &DatabaseConnection, user_id: Uuid) -> AppResult<UserConnections> {
-        let google = google_user::Entity::find()
-            .filter(google_user::Column::UserId.eq(user_id))
+    pub async fn link_lichess(
+        db: &DatabaseConnection,
+        user_id: Uuid,
+        lichess_id: &str,
+        username: &str,
+    ) -> AppResult<()> {
+        Self::link_provider_account(db, user_id, "lichess", lichess_id, Some(username)).await
+    }
+
+    pub async fn unlink_lichess(db: &DatabaseConnection, user_id: Uuid) -> AppResult<()> {
+        Self::unlink_provider_account(db, user_id, "lichess").await
+    }
+
+    pub async fn count_connections(db: &DatabaseConnection, user_id: Uuid) -> AppResult<u64> {
+        Ok(auth_provider::Entity::find()
+            .filter(auth_provider::Column::UserId.eq(user_id))
             .count(db)
-            .await?
-            > 0;
-        let lichess = lichess_user::Entity::find()
-            .filter(lichess_user::Column::UserId.eq(user_id))
-            .count(db)
-            .await?
-            > 0;
+            .await?)
+    }
+
+    pub async fn get_connections(
+        db: &DatabaseConnection,
+        user_id: Uuid,
+    ) -> AppResult<UserConnections> {
+        let records = auth_provider::Entity::find()
+            .filter(auth_provider::Column::UserId.eq(user_id))
+            .all(db)
+            .await?;
+        let google = records.iter().any(|record| record.provider == "google");
+        let lichess = records.iter().any(|record| record.provider == "lichess");
         Ok(UserConnections { google, lichess })
     }
 

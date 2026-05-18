@@ -2,14 +2,14 @@ use async_trait::async_trait;
 use sea_orm::DatabaseConnection;
 
 use crate::{
+    AppState,
     api::auth::providers::provider::{Provider, ProviderError},
     app_result::AppResult,
     db::{
         lichess::{LichessAccessToken, NewLichessAccessToken},
-        users::{UpdateLichessUser, User},
+        users::User,
     },
     error::AppError,
-    AppState,
 };
 
 use super::{claims::LichessClaims, config::Config};
@@ -140,13 +140,12 @@ async fn request_lichess_claims(
 impl Provider for LichessProvider {
     async fn get_updated_user(&self, db: &DatabaseConnection) -> Result<User, ProviderError> {
         let LichessClaims { id, username, .. } = &self.claims;
-        let update_lichess_user: UpdateLichessUser = self.claims.clone().into();
         let user = User::get_with_lichess_id(db, id).await?.ok_or_else(|| {
             ProviderError::UserNotFound {
                 user_name: username.clone(),
             }
         })?;
-        User::update_lichess_user(db, id, update_lichess_user).await?;
+        User::update_provider_display_name(db, user.id, "lichess", username).await?;
         Ok(user)
     }
 
@@ -155,9 +154,15 @@ impl Provider for LichessProvider {
         db: &DatabaseConnection,
         username: &str,
     ) -> Result<User, ProviderError> {
-        let (new_lichess_user, new_user) = self.claims.clone().to_db_users(username.to_string());
-        let insert_result = User::insert_lichess_user(db, new_user, new_lichess_user).await;
-        let (_, user) = match insert_result {
+        let LichessClaims {
+            id,
+            username: lichess_username,
+            ..
+        } = &self.claims;
+        let new_user = self.claims.clone().to_db_user(username.to_string());
+        let insert_result =
+            User::insert_with_provider(db, new_user, "lichess", id, Some(lichess_username)).await;
+        let user = match insert_result {
             Ok(user) => user,
             Err(AppError::UsernameAlreadyExists) => Err(ProviderError::UserAlreadyExists {
                 user_name: username.to_string(),
@@ -167,7 +172,11 @@ impl Provider for LichessProvider {
         Ok(user)
     }
 
-    async fn link_to_user(&self, db: &DatabaseConnection, user_id: uuid::Uuid) -> Result<(), ProviderError> {
+    async fn link_to_user(
+        &self,
+        db: &DatabaseConnection,
+        user_id: uuid::Uuid,
+    ) -> Result<(), ProviderError> {
         let LichessClaims { id, username, .. } = &self.claims;
         User::link_lichess(db, user_id, id, username).await?;
         Ok(())
