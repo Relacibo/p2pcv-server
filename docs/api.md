@@ -58,7 +58,7 @@ GET /users?ids=f47ac10b-58cc-4372-a567-0e02b2c3d479,6ba7b810-9dad-11d1-80b4-00c0
   {
     "id": "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
     "userName": "bob",
-    "avatarHash": "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3",
+    "avatarHash": null,
     "createdAt": "2024-04-01T18:00:00Z"
   }
 ]

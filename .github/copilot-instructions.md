@@ -50,5 +50,6 @@ Each endpoint has a **Schema** (TypeScript types) and an **Example** (concrete J
 - IDs must be real UUIDs in examples, e.g. `"f47ac10b-58cc-4372-a567-0e02b2c3d479"`
 - Timestamps as ISO 8601: `"2024-03-15T09:12:34Z"`
 - `avatarHash` is a SHA-256 hex string (64 characters)
-- **Never use `null`** in examples – show a meaningful value instead
+- **Never use `null`** in examples for a single-object response – show a meaningful value instead
+- For array responses, if a field is nullable, the **first object** shows a real value; the **second object** may use `null` to demonstrate the nullable case
 - **Never use `...`** or placeholders like `"string"` / `"uuid"` in examples
