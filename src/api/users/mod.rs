@@ -11,7 +11,7 @@ use uuid::Uuid;
 
 use crate::{
     AppState,
-    api::auth::session::auth::Auth,
+    api::auth::{payloads::UserResponse, session::auth::Auth},
     app_result::EndpointResult,
     db::users::{PublicUser, User},
     error::AppError,
@@ -54,7 +54,7 @@ pub async fn get_user(
     State(state): State<Arc<AppState>>,
     auth: Auth,
     Path(user_id): Path<Uuid>,
-) -> EndpointResult<User> {
+) -> EndpointResult<UserResponse> {
     auth.should_be_user(user_id)?;
-    Ok(Json(User::get(&state.db, user_id).await?))
+    Ok(Json(UserResponse::from(User::get(&state.db, user_id).await?)))
 }
