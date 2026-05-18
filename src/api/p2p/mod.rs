@@ -3,7 +3,7 @@ use std::{
     env,
     hash::{DefaultHasher, Hash, Hasher},
     io,
-    net::Ipv4Addr,
+    net::IpAddr,
     str::FromStr,
     time::{Duration, Instant},
 };
@@ -68,7 +68,7 @@ pub async fn p2p_info() -> (P2pInfo, Certificate) {
     };
 
     let external_address =
-        Ipv4Addr::from_str(external_host.trim()).expect("Invalid P2P_EXTERNAL_IP address");
+        IpAddr::from_str(external_host.trim()).expect("Invalid P2P_EXTERNAL_IP address");
     let port: u16 = env::var("P2P_PORT")
         .expect("P2P_PORT needed!")
         .parse()
@@ -106,7 +106,7 @@ pub async fn init(db: DbPool, jwt_config: JwtConfig, cert: Certificate) -> Resul
         .and_then(|s| s.parse::<u64>().ok())
         .unwrap_or(60);
     let host = env::var("P2P_HOST").expect("P2P_HOST needed!");
-    let address = Ipv4Addr::from_str(&host).expect("Invalid P2P_HOST address");
+    let address = IpAddr::from_str(&host).expect("Invalid P2P_HOST address");
     let port: u16 = env::var("P2P_PORT")
         .expect("P2P_PORT needed!")
         .parse()
