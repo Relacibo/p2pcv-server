@@ -48,6 +48,12 @@ pub struct SignupPayload {
     pub oauth_data: OauthData,
 }
 
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GuestLoginPayload {
+    pub display_name: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 pub enum ProviderType {

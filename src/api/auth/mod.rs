@@ -1,3 +1,4 @@
+use uuid::Uuid;
 use std::sync::Arc;
 
 use axum::{
@@ -14,7 +15,7 @@ use crate::{
     api::auth::{
         payloads::{
             ConnectionsResponse, LinkPayload, LoginResponse, ProviderType, SigninPayload,
-            SignupPayload, UnlinkPayload,
+            SignupPayload, UnlinkPayload, GuestLoginPayload, LoginResponseSuccess,
         },
         providers::{ProviderFactory, provider::ProviderError},
         session::auth::Auth,
@@ -36,6 +37,7 @@ pub mod util;
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/signin", post(signin))
+        .route("/guest", post(guest_login))
         .route("/signup", post(signup))
         .route("/refresh", post(refresh))
         .route("/logout", post(logout))
@@ -91,6 +93,22 @@ async fn signin(
     };
 
     issue_tokens(state, user).await
+}
+
+async fn guest_login(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<GuestLoginPayload>,
+) -> Result<impl IntoResponse, AppError> {
+    let guest_id = Uuid::new_v4();
+    let access_token = generate_access_token(&state.jwt_config, guest_id)?;
+    
+    let mut dummy_user = User { id: guest_id, user_name: format!("Guest {}", payload.display_name), display_name: payload.display_name.clone(), email: "".into(), locale: "en".into(), verified_email: false, created_at: chrono::Utc::now().into(), updated_at: chrono::Utc::now().into() };
+    
+    
+    
+    
+    // Return only the access token (no refresh token for guests)
+    Ok(Json(LoginResponse::success(access_token, dummy_user)).into_response())
 }
 
 async fn signup(

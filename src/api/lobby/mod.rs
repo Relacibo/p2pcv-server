@@ -19,6 +19,7 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/{id}", delete(delete_lobby))
         .route("/{id}/heartbeat", post(heartbeat))
         .route("/{id}/host", post(update_host))
+        .route("/{id}/settings", post(update_settings))
         .route("/{id}/signal", post(relay_signal_in_lobby))
 }
 
@@ -28,6 +29,8 @@ pub fn router() -> Router<Arc<AppState>> {
 #[serde(rename_all = "camelCase")]
 pub struct CreateLobbyPayload {
     pub script_url: String,
+    #[serde(default)]
+    pub allow_guests: bool,
 }
 
 #[derive(Serialize)]
@@ -42,12 +45,19 @@ pub struct LobbyResponse {
     pub id: Uuid,
     pub host_user_id: Uuid,
     pub script_url: String,
+    pub allow_guests: bool,
 }
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateHostPayload {
     pub new_host_user_id: Uuid,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateSettingsPayload {
+    pub allow_guests: bool,
 }
 
 #[derive(Deserialize)]
@@ -82,7 +92,7 @@ async fn create_lobby(
 ) -> Result<impl IntoResponse, AppError> {
     let lobby = state
         .lobby_registry
-        .create(auth.user_id, payload.script_url);
+        .create(auth.user_id, payload.script_url, payload.allow_guests);
     Ok((
         StatusCode::CREATED,
         Json(CreateLobbyResponse { lobby_id: lobby.id }),
@@ -101,6 +111,7 @@ async fn get_lobby(
         id: lobby.id,
         host_user_id: lobby.host_user_id,
         script_url: lobby.script_url,
+        allow_guests: lobby.allow_guests,
     }))
 }
 
@@ -148,6 +159,23 @@ async fn update_host(
     {
         return Err(AppError::LobbyNotFound);
     }
+    Ok(StatusCode::NO_CONTENT)
+}
+
+async fn update_settings(
+    State(state): State<Arc<AppState>>,
+    Path(lobby_id): Path<Uuid>,
+    auth: Auth,
+    Json(payload): Json<UpdateSettingsPayload>,
+) -> Result<impl IntoResponse, AppError> {
+    let lobby = state
+        .lobby_registry
+        .get(&lobby_id)
+        .ok_or(AppError::LobbyNotFound)?;
+    if lobby.host_user_id != auth.user_id {
+        return Err(AppError::Unauthorized);
+    }
+    state.lobby_registry.update_settings(&lobby_id, payload.allow_guests);
     Ok(StatusCode::NO_CONTENT)
 }
 
