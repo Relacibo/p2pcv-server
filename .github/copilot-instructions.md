@@ -35,16 +35,20 @@ Enum variants stored as text in PostgreSQL and serialized in JSON request/respon
 
 ## API Documentation
 
-Die gesamte API ist in `docs/api.md` dokumentiert. Bei Änderungen an Endpoints diese Datei aktualisieren.
+The complete API is documented in `docs/api.md`. Update this file when adding or changing endpoints.
 
-### Dokumentationsformat
+### Language
 
-Jeder Endpoint hat ein **Schema** (TypeScript-Typen) und ein **Example** (konkretes JSON). Regeln:
+All code comments, `docs/api.md`, and other developer documentation must be written in **English**.
 
-- Typen werden als TypeScript geschrieben, z.B. `string | null`, `"waiting" | "in-game" | "finished"`
-- Bei Enums **alle** Varianten auflisten
-- IDs sind echte UUIDs im Beispiel, z.B. `"f47ac10b-58cc-4372-a567-0e02b2c3d479"`
-- Timestamps als ISO 8601: `"2024-03-15T09:12:34Z"`
-- `avatarHash` ist ein SHA-256 Hex-String (64 Zeichen)
-- Im Example **niemals `null`** verwenden – stattdessen einen sinnvollen Wert zeigen
-- Im Example **niemals `...`** oder Platzhalter wie `"string"` / `"uuid"` verwenden
+### Documentation format
+
+Each endpoint has a **Schema** (TypeScript types) and an **Example** (concrete JSON). Rules:
+
+- Types are written as TypeScript, e.g. `string | null`, `"waiting" | "in-game" | "finished"`
+- For enums, list **all** variants
+- IDs must be real UUIDs in examples, e.g. `"f47ac10b-58cc-4372-a567-0e02b2c3d479"`
+- Timestamps as ISO 8601: `"2024-03-15T09:12:34Z"`
+- `avatarHash` is a SHA-256 hex string (64 characters)
+- **Never use `null`** in examples – show a meaningful value instead
+- **Never use `...`** or placeholders like `"string"` / `"uuid"` in examples

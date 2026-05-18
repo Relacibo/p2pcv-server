@@ -1,6 +1,6 @@
 # API Reference
 
-Alle Endpoints sind relativ zur API-Base-URL. Authentifizierung erfolgt via JWT Bearer Token im `Authorization: Bearer <token>` Header.
+All endpoints are relative to the API base URL. Authentication uses a JWT Bearer token in the `Authorization: Bearer <token>` header.
 
 ---
 
@@ -14,7 +14,7 @@ type Sha256 = string                // 64-char hex string
 type PublicUser = {
   id: Uuid
   userName: string
-  avatarHash: Sha256 | null         // null wenn kein Gravatar konfiguriert
+  avatarHash: Sha256 | null         // null if no Gravatar configured
   createdAt: Timestamp
 }
 ```
@@ -29,14 +29,14 @@ type PublicUser = {
 GET /users
 ```
 
-Öffentlich.
+Public.
 
 **Query Parameters**
 
-| Parameter | Typ    | Beschreibung                                                                             |
-|-----------|--------|------------------------------------------------------------------------------------------|
-| `q`       | string | Filtert nach Nutzernamen (Prefix-Match, case-insensitive)                                |
-| `ids`     | string | Kommagetrennte UUIDs – gibt genau diese Nutzer zurück. Ungültige UUIDs werden ignoriert. |
+| Parameter | Type   | Description                                                                       |
+|-----------|--------|-----------------------------------------------------------------------------------|
+| `q`       | string | Filter by username (prefix match, case-insensitive)                               |
+| `ids`     | string | Comma-separated UUIDs – returns exactly these users. Invalid UUIDs are ignored.   |
 
 **Response `200`** – `PublicUser[]`
 
@@ -65,10 +65,10 @@ GET /users
 GET /users/:id
 ```
 
-Authentifizierung erforderlich. Nur der eigene Account.
+Authentication required. Own account only.
 
-**Response `200`** – vollständiges User-Objekt  
-**Response `401`** – nicht autorisiert
+**Response `200`** – full user object  
+**Response `401`** – unauthorized
 
 ---
 
@@ -79,14 +79,14 @@ PUT /users/:id
 PUT /users/me
 ```
 
-Authentifizierung erforderlich.
+Authentication required.
 
 **Schema**
 
 ```typescript
 type UpdateUserPayload = {
   useGravatar: boolean
-  customGravatarEmail?: string      // Leer-String setzt den Custom-Hash zurück
+  customGravatarEmail?: string      // empty string resets the custom hash
 }
 ```
 
@@ -99,7 +99,7 @@ type UpdateUserPayload = {
 }
 ```
 
-**Response `200`** – aktualisiertes User-Objekt
+**Response `200`** – updated user object
 
 ---
 
@@ -109,10 +109,10 @@ type UpdateUserPayload = {
 DELETE /users/:id
 ```
 
-Authentifizierung erforderlich. Löscht den eigenen Account inkl. aller verknüpften Daten.
+Authentication required. Deletes the own account including all associated data.
 
 **Response `200`**  
-**Response `401`** – nicht autorisiert
+**Response `401`** – unauthorized
 
 ---
 
@@ -122,7 +122,7 @@ Authentifizierung erforderlich. Löscht den eigenen Account inkl. aller verknüp
 GET /users/:userId/friends
 ```
 
-Authentifizierung erforderlich.
+Authentication required.
 
 **Response `200`**
 
@@ -159,7 +159,7 @@ type ListFriendsResponse = {
 DELETE /users/:userId/friends/:friendUserId
 ```
 
-Authentifizierung erforderlich.
+Authentication required.
 
 **Response `200`**
 
@@ -171,7 +171,7 @@ Authentifizierung erforderlich.
 GET /users/:userId/friend-requests/incoming
 ```
 
-Authentifizierung erforderlich.
+Authentication required.
 
 **Response `200`**
 
@@ -191,7 +191,7 @@ type IncomingFriendRequestsResponse = {
   "receiverId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
   "friendRequests": [
     {
-      "message": "Hey, lass uns spielen!",
+      "message": "Hey, let's play!",
       "createdAt": "2024-07-10T08:30:00Z",
       "sender": {
         "id": "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
@@ -212,7 +212,7 @@ type IncomingFriendRequestsResponse = {
 GET /users/:userId/friend-requests/outgoing
 ```
 
-Authentifizierung erforderlich.
+Authentication required.
 
 **Response `200`**
 
@@ -232,7 +232,7 @@ type OutgoingFriendRequestsResponse = {
   "senderId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
   "friendRequests": [
     {
-      "message": "Kenn ich dich von Discord?",
+      "message": "Do I know you from Discord?",
       "createdAt": "2024-07-11T14:22:00Z",
       "receiver": {
         "id": "550e8400-e29b-41d4-a716-446655440000",
@@ -253,7 +253,7 @@ type OutgoingFriendRequestsResponse = {
 POST /users/:userId/friend-requests/send-to/:receiverId
 ```
 
-Authentifizierung erforderlich.
+Authentication required.
 
 **Schema**
 
@@ -266,11 +266,11 @@ type SendFriendRequestPayload = {
 **Example**
 
 ```json
-{ "message": "Hey, lass uns spielen!" }
+{ "message": "Hey, let's play!" }
 ```
 
 **Response `200`**  
-**Response `400`** – bereits befreundet, oder Anfrage existiert in Gegenrichtung
+**Response `400`** – already friends, or a request already exists in the opposite direction
 
 ---
 
@@ -281,7 +281,7 @@ DELETE /users/:userId/friend-requests/by-sender/:senderId
 DELETE /users/:userId/friend-requests/by-receiver/:receiverId
 ```
 
-Authentifizierung erforderlich.
+Authentication required.
 
 **Response `200`**
 
@@ -293,10 +293,10 @@ Authentifizierung erforderlich.
 POST /users/:userId/friend-requests/by-sender/:senderId/accept
 ```
 
-Authentifizierung erforderlich.
+Authentication required.
 
 **Response `200`**  
-**Response `400`** – Anfrage existiert nicht
+**Response `400`** – request does not exist
 
 ---
 
@@ -328,17 +328,17 @@ type Lobby = {
 GET /lobby
 ```
 
-Öffentlich. Paginierte Liste aktiver Lobbies.
+Public. Paginated list of active lobbies.
 
 **Query Parameters**
 
-| Parameter     | Typ     | Default | Beschreibung                                          |
-|---------------|---------|---------|-------------------------------------------------------|
-| `page`        | integer | `0`     | Seitennummer (0-basiert)                              |
-| `limit`       | integer | `20`    | Einträge pro Seite (max. 100)                         |
-| `allowGuests` | boolean | –       | Filtert nach `allowGuests`                            |
-| `status`      | string  | –       | `"waiting"` \| `"in-game"` \| `"finished"`           |
-| `scriptUrl`   | string  | –       | Filtert nach exakter Script-URL                       |
+| Parameter     | Type    | Default | Description                                      |
+|---------------|---------|---------|--------------------------------------------------|
+| `page`        | integer | `0`     | Page number (0-based)                            |
+| `limit`       | integer | `20`    | Items per page (max. 100)                        |
+| `allowGuests` | boolean | –       | Filter by `allowGuests`                          |
+| `status`      | string  | –       | `"waiting"` \| `"in-game"` \| `"finished"`      |
+| `scriptUrl`   | string  | –       | Filter by exact script URL                       |
 
 **Response `200`**
 
@@ -380,7 +380,7 @@ type ListLobbiesResponse = {
 POST /lobby
 ```
 
-Authentifizierung erforderlich.
+Authentication required.
 
 **Schema**
 
@@ -414,7 +414,7 @@ type CreateLobbyPayload = {
 GET /lobby/:id
 ```
 
-Öffentlich.
+Public.
 
 **Response `200`** – `Lobby`
 
@@ -432,7 +432,7 @@ GET /lobby/:id
 }
 ```
 
-**Response `404`** – nicht gefunden
+**Response `404`** – not found
 
 ---
 
@@ -442,7 +442,7 @@ GET /lobby/:id
 PATCH /lobby/:id
 ```
 
-Authentifizierung erforderlich. Nur der Host. Alle Felder optional.
+Authentication required. Host only. All fields optional.
 
 **Schema**
 
@@ -468,8 +468,8 @@ type PatchLobbyPayload = {
 ```
 
 **Response `204`**  
-**Response `401`** – nicht der Host  
-**Response `404`** – nicht gefunden
+**Response `401`** – not the host  
+**Response `404`** – not found
 
 ---
 
@@ -479,11 +479,11 @@ type PatchLobbyPayload = {
 DELETE /lobby/:id
 ```
 
-Authentifizierung erforderlich. Nur der Host.
+Authentication required. Host only.
 
 **Response `204`**  
-**Response `401`** – nicht der Host  
-**Response `404`** – nicht gefunden
+**Response `401`** – not the host  
+**Response `404`** – not found
 
 ---
 
@@ -493,10 +493,10 @@ Authentifizierung erforderlich. Nur der Host.
 POST /lobby/:id/heartbeat
 ```
 
-Authentifizierung erforderlich. Muss vom Host regelmäßig gesendet werden. Lobbies ohne Heartbeat innerhalb von **300 Sekunden** werden automatisch gelöscht.
+Authentication required. Must be sent by the host regularly. Lobbies without a heartbeat within **300 seconds** are automatically deleted.
 
 **Response `204`**  
-**Response `404`** – nicht gefunden oder nicht Host
+**Response `404`** – not found or not host
 
 ---
 
@@ -506,7 +506,7 @@ Authentifizierung erforderlich. Muss vom Host regelmäßig gesendet werden. Lobb
 POST /lobby/:id/signal
 ```
 
-Authentifizierung erforderlich. Leitet ein WebRTC-Signal via SSE an einen anderen User weiter.
+Authentication required. Forwards a WebRTC signal via SSE to another user.
 
 **Schema**
 
@@ -527,4 +527,4 @@ type SignalPayload = {
 ```
 
 **Response `204`**  
-**Response `404`** – Lobby nicht gefunden
+**Response `404`** – lobby not found
