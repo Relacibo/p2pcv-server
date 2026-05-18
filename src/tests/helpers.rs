@@ -12,15 +12,14 @@ use uuid::Uuid;
 
 use crate::{
     AppState, api,
-    api::{
-        auth::{
-            providers::{google, lichess},
-            public_key_storage::KeyStore,
-            session::{self, claims::Claims},
-        },
-        p2p::P2pInfo,
+    api::auth::{
+        providers::{google, lichess},
+        public_key_storage::KeyStore,
+        session::{self, claims::Claims},
     },
     db::users::{NewUser, User},
+    lobby::LobbyRegistry,
+    sse::SseRegistry,
 };
 
 /// Creates a fresh connection pool per test so that each test's pool lives
@@ -68,10 +67,8 @@ pub fn test_app(db: DatabaseConnection) -> Router {
             email_endpoint_path: "/email".into(),
             account_endpoint_path: "/account".into(),
         },
-        p2p_info: P2pInfo {
-            peer_id: libp2p::PeerId::from(libp2p::identity::Keypair::generate_ed25519().public()),
-            multiaddr: "/ip4/127.0.0.1/udp/9000/webrtc-direct".parse().unwrap(),
-        },
+        sse_registry: SseRegistry::default(),
+        lobby_registry: LobbyRegistry::default(),
     });
     api::router().with_state(state)
 }

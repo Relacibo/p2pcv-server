@@ -8,8 +8,6 @@ use axum::{
 use sea_orm::{DbErr, SqlErr, TransactionError};
 use thiserror::Error;
 
-use crate::api::p2p::P2pError;
-
 #[derive(Error, Debug)]
 pub enum AppError {
     #[error("database")]
@@ -40,8 +38,14 @@ pub enum AppError {
     CannotUnlinkLastProvider,
     #[error("validate")]
     Validate(#[from] validator::ValidationErrors),
-    #[error("p2p-{0}")]
-    P2p(#[from] P2pError),
+    #[error("lobby-not-found")]
+    LobbyNotFound,
+    #[error("lobby-game-already-started")]
+    LobbyGameAlreadyStarted,
+    #[error("lobby-not-member")]
+    LobbyNotMember,
+    #[error("lobby-not-enough-players")]
+    LobbyNotEnoughPlayers,
 }
 
 impl From<DbErr> for AppError {
@@ -79,17 +83,20 @@ impl IntoResponse for AppError {
             },
             AppError::Reqwest(_)
             | AppError::Unexpected
-            | AppError::SerdeJson(_)
-            | AppError::P2p(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            | AppError::SerdeJson(_) => StatusCode::INTERNAL_SERVER_ERROR,
             AppError::Jwt(_) | AppError::OpenId | AppError::Unauthorized => {
                 StatusCode::UNAUTHORIZED
             }
             AppError::ProviderAlreadyLinked => StatusCode::CONFLICT,
+            AppError::LobbyNotFound => StatusCode::NOT_FOUND,
+            AppError::LobbyNotMember => StatusCode::FORBIDDEN,
             AppError::CannotUnlinkLastProvider
             | AppError::AlreadyFriends
             | AppError::FriendRequestDoesntExist
             | AppError::FriendRequestExistsInOtherDirection
             | AppError::UsernameAlreadyExists
+            | AppError::LobbyGameAlreadyStarted
+            | AppError::LobbyNotEnoughPlayers
             | AppError::Validate(_) => StatusCode::BAD_REQUEST,
         };
         (

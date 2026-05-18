@@ -3,7 +3,6 @@ use std::{env, io, sync::Arc};
 use axum::{Router, routing::get};
 use dotenvy::dotenv;
 use env_logger::Env;
-use futures::TryFutureExt;
 use migration::{Migrator, MigratorTrait};
 use sea_orm::Database;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
@@ -19,7 +18,9 @@ mod api;
 mod app_result;
 mod db;
 mod error;
+mod lobby;
 mod secret;
+mod sse;
 mod state;
 
 pub use state::AppState;
@@ -32,9 +33,6 @@ async fn main() -> io::Result<()> {
     #[cfg(debug_assertions)]
     dotenv().ok();
     env_logger::init_from_env(Env::default().default_filter_or("debug"));
-    rustls::crypto::ring::default_provider()
-        .install_default()
-        .expect("Failed to install rustls crypto provider");
 
     let args: Vec<String> = std::env::args().collect();
     if args.get(1).map(String::as_str) == Some("migrate") {
@@ -56,22 +54,22 @@ async fn main() -> io::Result<()> {
     ));
     let lichess_config = api::auth::providers::lichess::config::Config::from_env();
     let reqwest_client = reqwest::Client::new();
-    let (p2p_info, p2p_cert) = api::p2p::p2p_info().await;
 
     let state = Arc::new(AppState {
-        db: db.clone(),
-        jwt_config: jwt_config.clone(),
+        db,
+        jwt_config,
         reqwest_client,
         google_config,
         google_keystore,
         lichess_config,
-        p2p_info,
+        sse_registry: sse::SseRegistry::default(),
+        lobby_registry: lobby::LobbyRegistry::default(),
     });
 
     let app = Router::new()
         .route("/", get(|| async { "OK" }))
         .merge(api::router())
-        .with_state(state.clone())
+        .with_state(state)
         .layer(TraceLayer::new_for_http())
         .layer(cors_layer());
 
@@ -86,17 +84,10 @@ async fn main() -> io::Result<()> {
         log::info!("Shutting down...");
     };
 
-    let server = axum::serve(listener, app)
+    axum::serve(listener, app)
         .with_graceful_shutdown(shutdown)
-        .into_future()
-        .map_err(io::Error::from);
-    let p2p = async move {
-        api::p2p::init(db, jwt_config, p2p_cert)
-            .await
-            .map_err(io::Error::from)
-    };
-    futures::try_join!(server, p2p)?;
-    Ok(())
+        .await
+        .map_err(io::Error::from)
 }
 
 fn cors_layer() -> CorsLayer {
