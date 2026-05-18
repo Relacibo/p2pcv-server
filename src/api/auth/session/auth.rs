@@ -13,6 +13,7 @@ use super::claims::Claims;
 
 pub struct Auth {
     pub user_id: Uuid,
+    pub is_guest: bool,
 }
 
 impl Auth {

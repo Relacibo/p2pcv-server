@@ -27,8 +27,9 @@ pub async fn suggest_username(_db: &DatabaseConnection, prefix: &str) -> AppResu
 pub fn generate_access_token(
     jwt_config: &session::Config,
     user_id: Uuid,
+    is_guest: bool,
 ) -> Result<String, AppError> {
-    let claims = Claims::new_15_minutes(jwt_config, user_id)?;
+    let claims = Claims::new_15_minutes(jwt_config, user_id, is_guest)?;
     claims.generate_token(jwt_config)
 }
 
@@ -92,6 +93,7 @@ pub fn extract_refresh_token_from_cookie(headers: &axum::http::HeaderMap) -> Opt
 pub fn generate_login_token(
     jwt_config: &session::Config,
     user_id: Uuid,
+    is_guest: bool,
 ) -> Result<String, AppError> {
-    generate_access_token(jwt_config, user_id)
+    generate_access_token(jwt_config, user_id, is_guest)
 }

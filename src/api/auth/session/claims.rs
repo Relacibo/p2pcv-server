@@ -10,6 +10,8 @@ use serde_with::{TimestampSeconds, formats::Flexible};
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Claims {
     pub sub: Uuid,
+    #[serde(default)]
+    pub is_guest: bool,
     pub aud: Vec<String>,
     pub iss: Vec<String>,
     #[serde_as(as = "TimestampSeconds<i64, Flexible>")]
@@ -21,12 +23,12 @@ pub struct Claims {
 impl From<Claims> for Auth {
     fn from(value: Claims) -> Self {
         let Claims { sub, .. } = value;
-        Auth { user_id: sub }
+        Auth { user_id: sub, is_guest: false }
     }
 }
 
 impl Claims {
-    pub fn new_15_minutes(config: &Config, sub: Uuid) -> Result<Self, AppError> {
+    pub fn new_15_minutes(config: &Config, sub: Uuid, is_guest: bool) -> Result<Self, AppError> {
         let Config {
             jwt_audience,
             jwt_issuers,
@@ -38,6 +40,7 @@ impl Claims {
             .ok_or(AppError::Unexpected)?;
         Ok(Self {
             sub,
+            is_guest,
             aud: jwt_audience.clone(),
             iss: jwt_issuers.clone(),
             iat: now,
@@ -45,7 +48,7 @@ impl Claims {
         })
     }
 
-    pub fn new_24_hours(config: &Config, sub: Uuid) -> Result<Self, AppError> {
+    pub fn new_24_hours(config: &Config, sub: Uuid, is_guest: bool) -> Result<Self, AppError> {
         let Config {
             jwt_audience,
             jwt_issuers,
@@ -57,6 +60,7 @@ impl Claims {
             .ok_or(AppError::Unexpected)?;
         Ok(Self {
             sub,
+            is_guest,
             aud: jwt_audience.clone(),
             iss: jwt_issuers.clone(),
             iat: now,

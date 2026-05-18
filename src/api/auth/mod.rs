@@ -51,7 +51,7 @@ async fn issue_tokens(
     state: Arc<AppState>,
     user: User,
 ) -> Result<axum::response::Response, AppError> {
-    let access_token = generate_access_token(&state.jwt_config, user.id)?;
+    let access_token = generate_access_token(&state.jwt_config, user.id, false)?;
     let rt_data = generate_refresh_token(user.id);
     User::insert_refresh_token(
         &state.db,
@@ -100,7 +100,7 @@ async fn guest_login(
     Json(payload): Json<GuestLoginPayload>,
 ) -> Result<impl IntoResponse, AppError> {
     let guest_id = Uuid::new_v4();
-    let access_token = generate_access_token(&state.jwt_config, guest_id)?;
+    let access_token = generate_access_token(&state.jwt_config, guest_id, true)?;
     
     let mut dummy_user = User { id: guest_id, user_name: format!("Guest {}", payload.display_name), display_name: payload.display_name.clone(), email: "".into(), locale: "en".into(), verified_email: false, use_gravatar: false, created_at: chrono::Utc::now().into(), updated_at: chrono::Utc::now().into() };
     
