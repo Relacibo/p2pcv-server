@@ -5,21 +5,20 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
     response::IntoResponse,
-    routing::{delete, get, post},
+    routing::{delete, get, patch, post},
 };
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::{AppState, api::auth::session::auth::Auth, error::AppError};
+use crate::{AppState, api::auth::session::auth::Auth, error::AppError, lobby::{LobbyPatch, LobbyStatus}};
 
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/", post(create_lobby))
         .route("/{id}", get(get_lobby))
+        .route("/{id}", patch(patch_lobby))
         .route("/{id}", delete(delete_lobby))
         .route("/{id}/heartbeat", post(heartbeat))
-        .route("/{id}/host", post(update_host))
-        .route("/{id}/settings", post(update_settings))
         .route("/{id}/signal", post(relay_signal_in_lobby))
 }
 
@@ -46,18 +45,20 @@ pub struct LobbyResponse {
     pub host_user_id: Uuid,
     pub script_url: String,
     pub allow_guests: bool,
+    pub status: LobbyStatus,
+    pub player_count: u32,
+    pub min_players: Option<u32>,
+    pub max_players: Option<u32>,
 }
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct UpdateHostPayload {
-    pub new_host_user_id: Uuid,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct UpdateSettingsPayload {
-    pub allow_guests: bool,
+pub struct PatchLobbyPayload {
+    pub allow_guests: Option<bool>,
+    pub status: Option<LobbyStatus>,
+    pub player_count: Option<u32>,
+    pub min_players: Option<Option<u32>>,
+    pub max_players: Option<Option<u32>>,
 }
 
 #[derive(Deserialize)]
@@ -112,7 +113,31 @@ async fn get_lobby(
         host_user_id: lobby.host_user_id,
         script_url: lobby.script_url,
         allow_guests: lobby.allow_guests,
+        status: lobby.status,
+        player_count: lobby.player_count,
+        min_players: lobby.min_players,
+        max_players: lobby.max_players,
     }))
+}
+
+async fn patch_lobby(
+    State(state): State<Arc<AppState>>,
+    Path(lobby_id): Path<Uuid>,
+    auth: Auth,
+    Json(payload): Json<PatchLobbyPayload>,
+) -> Result<impl IntoResponse, AppError> {
+    let patch = LobbyPatch {
+        allow_guests: payload.allow_guests,
+        status: payload.status,
+        player_count: payload.player_count,
+        min_players: payload.min_players,
+        max_players: payload.max_players,
+    };
+    match state.lobby_registry.patch(&lobby_id, &auth.user_id, patch) {
+        None => Err(AppError::LobbyNotFound),
+        Some(false) => Err(AppError::Unauthorized),
+        Some(true) => Ok(StatusCode::NO_CONTENT),
+    }
 }
 
 async fn delete_lobby(
@@ -142,43 +167,6 @@ async fn heartbeat(
     Ok(StatusCode::NO_CONTENT)
 }
 
-/// Called by the new host after detecting the previous host disconnected.
-async fn update_host(
-    State(state): State<Arc<AppState>>,
-    Path(lobby_id): Path<Uuid>,
-    auth: Auth,
-    Json(payload): Json<UpdateHostPayload>,
-) -> Result<impl IntoResponse, AppError> {
-    // Only the declared new host can call this
-    if payload.new_host_user_id != auth.user_id {
-        return Err(AppError::Unauthorized);
-    }
-    if !state
-        .lobby_registry
-        .update_host(&lobby_id, auth.user_id)
-    {
-        return Err(AppError::LobbyNotFound);
-    }
-    Ok(StatusCode::NO_CONTENT)
-}
-
-async fn update_settings(
-    State(state): State<Arc<AppState>>,
-    Path(lobby_id): Path<Uuid>,
-    auth: Auth,
-    Json(payload): Json<UpdateSettingsPayload>,
-) -> Result<impl IntoResponse, AppError> {
-    let lobby = state
-        .lobby_registry
-        .get(&lobby_id)
-        .ok_or(AppError::LobbyNotFound)?;
-    if lobby.host_user_id != auth.user_id {
-        return Err(AppError::Unauthorized);
-    }
-    state.lobby_registry.update_settings(&lobby_id, payload.allow_guests);
-    Ok(StatusCode::NO_CONTENT)
-}
-
 /// Relay a WebRTC signal to another user within a lobby context.
 async fn relay_signal_in_lobby(
     State(state): State<Arc<AppState>>,
@@ -201,3 +189,4 @@ async fn relay_signal_in_lobby(
         .await;
     Ok(StatusCode::NO_CONTENT)
 }
+

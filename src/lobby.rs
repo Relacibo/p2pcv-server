@@ -1,8 +1,17 @@
 use dashmap::DashMap;
+use serde::{Deserialize, Serialize};
 use std::time::{Duration, Instant};
 use uuid::Uuid;
 
-pub const HEARTBEAT_TTL: Duration = Duration::from_secs(90);
+pub const HEARTBEAT_TTL: Duration = Duration::from_secs(300);
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub enum LobbyStatus {
+    Waiting,
+    InGame,
+    Finished,
+}
 
 #[derive(Debug, Clone)]
 pub struct Lobby {
@@ -10,6 +19,10 @@ pub struct Lobby {
     pub host_user_id: Uuid,
     pub script_url: String,
     pub allow_guests: bool,
+    pub status: LobbyStatus,
+    pub player_count: u32,
+    pub min_players: Option<u32>,
+    pub max_players: Option<u32>,
     pub created_at: Instant,
     pub last_heartbeat: Instant,
 }
@@ -22,10 +35,22 @@ impl Lobby {
             host_user_id,
             script_url,
             allow_guests,
+            status: LobbyStatus::Waiting,
+            player_count: 1,
+            min_players: None,
+            max_players: None,
             created_at: now,
             last_heartbeat: now,
         }
     }
+}
+
+pub struct LobbyPatch {
+    pub allow_guests: Option<bool>,
+    pub status: Option<LobbyStatus>,
+    pub player_count: Option<u32>,
+    pub min_players: Option<Option<u32>>,
+    pub max_players: Option<Option<u32>>,
 }
 
 #[derive(Default)]
@@ -57,22 +82,18 @@ impl LobbyRegistry {
         false
     }
 
-    /// Update host after migration. Returns false if lobby not found.
-    pub fn update_host(&self, lobby_id: &Uuid, new_host_user_id: Uuid) -> bool {
-        if let Some(mut entry) = self.0.get_mut(lobby_id) {
-            entry.host_user_id = new_host_user_id;
-            entry.last_heartbeat = Instant::now();
-            return true;
+    /// Apply a partial update. Returns `None` if not found, `Some(false)` if not the host.
+    pub fn patch(&self, lobby_id: &Uuid, host_user_id: &Uuid, patch: LobbyPatch) -> Option<bool> {
+        let mut entry = self.0.get_mut(lobby_id)?;
+        if entry.host_user_id != *host_user_id {
+            return Some(false);
         }
-        false
-    }
-
-        pub fn update_settings(&self, lobby_id: &Uuid, allow_guests: bool) -> bool {
-        if let Some(mut entry) = self.0.get_mut(lobby_id) {
-            entry.allow_guests = allow_guests;
-            return true;
-        }
-        false
+        if let Some(v) = patch.allow_guests { entry.allow_guests = v; }
+        if let Some(v) = patch.status { entry.status = v; }
+        if let Some(v) = patch.player_count { entry.player_count = v; }
+        if let Some(v) = patch.min_players { entry.min_players = v; }
+        if let Some(v) = patch.max_players { entry.max_players = v; }
+        Some(true)
     }
 
     /// Remove lobbies whose last heartbeat is older than `ttl`.
