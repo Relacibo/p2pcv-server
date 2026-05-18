@@ -1,7 +1,7 @@
 use sea_orm::{ActiveValue::Set, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, QueryFilter};
 use uuid::Uuid;
 
-use super::entities::friend;
+use super::entities::friends as friend;
 use super::users::PublicUser;
 
 pub type Friends = friend::Model;

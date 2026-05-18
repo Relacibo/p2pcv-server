@@ -2,7 +2,7 @@ use sea_orm::{ActiveValue::Set, DatabaseConnection, EntityTrait};
 
 use crate::app_result::AppResult;
 
-use super::entities::lichess_access_token;
+use super::entities::lichess_access_tokens as lichess_access_token;
 
 pub type LichessAccessToken = lichess_access_token::Model;
 

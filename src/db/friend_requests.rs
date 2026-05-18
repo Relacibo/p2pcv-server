@@ -4,7 +4,7 @@ use sea_orm::{
 };
 use uuid::Uuid;
 
-use super::{entities::friend_request, users::PublicUser};
+use super::{entities::friend_requests as friend_request, users::PublicUser};
 
 pub type FriendRequest = friend_request::Model;
 pub type QueryResult<T> = Result<T, DbErr>;

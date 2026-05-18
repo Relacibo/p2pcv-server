@@ -8,7 +8,10 @@ use uuid::Uuid;
 use crate::app_result::AppResult;
 
 use super::{
-    entities::{google_user, lichess_user, refresh_token, user},
+    entities::{
+        google_users as google_user, lichess_users as lichess_user,
+        refresh_tokens as refresh_token, users as user,
+    },
     refresh_tokens::NewRefreshToken,
 };
 
@@ -76,29 +79,30 @@ impl user::Model {
     pub async fn delete(db: &DatabaseConnection, query_uuid: Uuid) -> AppResult<()> {
         db.transaction::<_, _, crate::error::AppError>(|txn| {
             Box::pin(async move {
-                super::entities::google_user::Entity::delete_many()
+                super::entities::google_users::Entity::delete_many()
                     .filter(google_user::Column::UserId.eq(query_uuid))
                     .exec(txn)
                     .await?;
-                super::entities::lichess_user::Entity::delete_many()
+                super::entities::lichess_users::Entity::delete_many()
                     .filter(lichess_user::Column::UserId.eq(query_uuid))
                     .exec(txn)
                     .await?;
-                super::entities::friend_request::Entity::delete_many()
+                super::entities::friend_requests::Entity::delete_many()
                     .filter(
                         Condition::any()
-                            .add(super::entities::friend_request::Column::SenderId.eq(query_uuid))
+                            .add(super::entities::friend_requests::Column::SenderId.eq(query_uuid))
                             .add(
-                                super::entities::friend_request::Column::ReceiverId.eq(query_uuid),
+                                super::entities::friend_requests::Column::ReceiverId
+                                    .eq(query_uuid),
                             ),
                     )
                     .exec(txn)
                     .await?;
-                super::entities::friend::Entity::delete_many()
+                super::entities::friends::Entity::delete_many()
                     .filter(
                         Condition::any()
-                            .add(super::entities::friend::Column::User1Id.eq(query_uuid))
-                            .add(super::entities::friend::Column::User2Id.eq(query_uuid)),
+                            .add(super::entities::friends::Column::User1Id.eq(query_uuid))
+                            .add(super::entities::friends::Column::User2Id.eq(query_uuid)),
                     )
                     .exec(txn)
                     .await?;
@@ -257,9 +261,9 @@ impl user::Model {
         user2_id: Uuid,
     ) -> Result<bool, sea_orm::DbErr> {
         let (user1_id, user2_id) = sort_tuple((user1_id, user2_id));
-        let count = super::entities::friend::Entity::find()
-            .filter(super::entities::friend::Column::User1Id.eq(user1_id))
-            .filter(super::entities::friend::Column::User2Id.eq(user2_id))
+        let count = super::entities::friends::Entity::find()
+            .filter(super::entities::friends::Column::User1Id.eq(user1_id))
+            .filter(super::entities::friends::Column::User2Id.eq(user2_id))
             .count(db)
             .await?;
         Ok(count > 0)

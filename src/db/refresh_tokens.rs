@@ -7,7 +7,7 @@ use uuid::Uuid;
 
 use crate::app_result::AppResult;
 
-use super::entities::refresh_token;
+use super::entities::refresh_tokens as refresh_token;
 
 pub struct NewRefreshToken {
     pub user_id: Uuid,
