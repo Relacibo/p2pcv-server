@@ -118,11 +118,14 @@ impl user::Model {
         refresh_token::Model::revoke(db, id).await
     }
 
-    pub async fn list(db: &DatabaseConnection, q: Option<&str>) -> AppResult<Vec<PublicUser>> {
+    pub async fn list(db: &DatabaseConnection, q: Option<&str>, ids: Option<&[Uuid]>) -> AppResult<Vec<PublicUser>> {
         let mut query = user::Entity::find().order_by_asc(user::Column::UserName);
         if let Some(q) = q.filter(|s| !s.is_empty()) {
             let pattern = format!("{}%", q.replace('%', "\\%").replace('_', "\\_"));
             query = query.filter(Expr::col(user::Column::UserName).ilike(pattern));
+        }
+        if let Some(ids) = ids.filter(|ids| !ids.is_empty()) {
+            query = query.filter(user::Column::Id.is_in(ids.to_vec()));
         }
         let users = query.all(db).await?;
         Ok(users.into_iter().map(Into::into).collect())

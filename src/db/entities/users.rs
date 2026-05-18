@@ -16,16 +16,18 @@ pub struct Model {
     pub email: String,
     pub locale: String,
     pub verified_email: bool,
-    pub use_gravatar: bool,
-    pub custom_avatar_hash: Option<String>,
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
+    pub use_gravatar: bool,
+    pub custom_avatar_hash: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
     #[sea_orm(has_many = "super::auth_providers::Entity")]
     AuthProviders,
+    #[sea_orm(has_many = "super::lobbies::Entity")]
+    Lobbies,
     #[sea_orm(has_many = "super::refresh_tokens::Entity")]
     RefreshTokens,
 }
@@ -33,6 +35,12 @@ pub enum Relation {
 impl Related<super::auth_providers::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::AuthProviders.def()
+    }
+}
+
+impl Related<super::lobbies::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Lobbies.def()
     }
 }
 

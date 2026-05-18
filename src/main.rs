@@ -63,19 +63,21 @@ async fn main() -> io::Result<()> {
         google_keystore,
         lichess_config,
         sse_registry: sse::SseRegistry::default(),
-        lobby_registry: lobby::LobbyRegistry::default(),
     });
 
     // Background task: clean up stale lobbies every 60 seconds
     {
-        let state = Arc::clone(&state);
+        let db = state.db.clone();
         tokio::spawn(async move {
             let mut interval = tokio::time::interval(std::time::Duration::from_secs(60));
             loop {
                 interval.tick().await;
-                let stale = state.lobby_registry.remove_stale(lobby::HEARTBEAT_TTL);
-                if !stale.is_empty() {
-                    log::info!("Removed {} stale lobbies", stale.len());
+                match db::lobbies::Lobby::remove_stale(&db, lobby::HEARTBEAT_TTL_SECS).await {
+                    Ok(stale) if !stale.is_empty() => {
+                        log::info!("Removed {} stale lobbies", stale.len());
+                    }
+                    Err(e) => log::warn!("Error removing stale lobbies: {e}"),
+                    _ => {}
                 }
             }
         });

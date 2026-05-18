@@ -3,6 +3,8 @@
 Small server that is supposed to establish the p2p connections of the clients.
 Stack: diesel, actix-web, libp2p
 
+📖 **[API Reference](docs/api.md)**
+
 ## Notes
 ### Generate pubkey for libp2p:
 ```bash

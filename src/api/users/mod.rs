@@ -42,13 +42,27 @@ pub struct UpdateUserPayload {
 #[derive(Deserialize)]
 pub struct ListParams {
     q: Option<String>,
+    /// Comma-separated list of user UUIDs to filter by, e.g. `?ids=uuid1,uuid2`
+    ids: Option<String>,
 }
 
 pub async fn list(
     State(state): State<Arc<AppState>>,
     Query(params): Query<ListParams>,
 ) -> EndpointResult<Vec<PublicUser>> {
-    Ok(Json(User::list(&state.db, params.q.as_deref()).await?))
+    let ids: Option<Vec<Uuid>> = params
+        .ids
+        .as_deref()
+        .filter(|s| !s.is_empty())
+        .map(|s| {
+            s.split(',')
+                .filter(|p| !p.is_empty())
+                .filter_map(|p| Uuid::parse_str(p.trim()).ok())
+                .collect()
+        });
+    Ok(Json(
+        User::list(&state.db, params.q.as_deref(), ids.as_deref()).await?,
+    ))
 }
 
 pub async fn delete_user(

@@ -8,7 +8,6 @@ use crate::{
         public_key_storage::KeyStore,
         session,
     },
-    lobby::LobbyRegistry,
     sse::SseRegistry,
 };
 
@@ -20,5 +19,4 @@ pub struct AppState {
     pub google_keystore: Arc<KeyStore>,
     pub lichess_config: lichess::config::Config,
     pub sse_registry: SseRegistry,
-    pub lobby_registry: LobbyRegistry,
 }

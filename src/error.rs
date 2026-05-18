@@ -40,6 +40,8 @@ pub enum AppError {
     Validate(#[from] validator::ValidationErrors),
     #[error("lobby-not-found")]
     LobbyNotFound,
+    #[error("invalid-lobby-status")]
+    InvalidLobbyStatus,
 }
 
 impl From<DbErr> for AppError {
@@ -83,7 +85,8 @@ impl IntoResponse for AppError {
             }
             AppError::ProviderAlreadyLinked => StatusCode::CONFLICT,
             AppError::LobbyNotFound => StatusCode::NOT_FOUND,
-            AppError::CannotUnlinkLastProvider
+            AppError::InvalidLobbyStatus
+            | AppError::CannotUnlinkLastProvider
             | AppError::AlreadyFriends
             | AppError::FriendRequestDoesntExist
             | AppError::FriendRequestExistsInOtherDirection
