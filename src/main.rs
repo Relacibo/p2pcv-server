@@ -32,6 +32,9 @@ async fn main() -> io::Result<()> {
     #[cfg(debug_assertions)]
     dotenv().ok();
     env_logger::init_from_env(Env::default().default_filter_or("debug"));
+    rustls::crypto::ring::default_provider()
+        .install_default()
+        .expect("Failed to install rustls crypto provider");
 
     let args: Vec<String> = std::env::args().collect();
     if args.get(1).map(String::as_str) == Some("migrate") {
