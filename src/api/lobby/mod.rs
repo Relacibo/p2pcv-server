@@ -60,8 +60,10 @@ pub struct ListLobbiesResponse {
 #[serde(rename_all = "camelCase")]
 pub struct CreateLobbyPayload {
     pub script_url: String,
-    #[serde(default)]
     pub allow_guests: bool,
+    pub host_peer_session_id: String,
+    pub min_players: i32,
+    pub max_players: i32,
 }
 
 #[derive(Serialize)]
@@ -118,6 +120,10 @@ pub struct PatchLobbyPayload {
     pub allow_guests: Option<bool>,
     pub status: Option<LobbyStatus>,
     pub player_count: Option<u32>,
+    pub min_players: Option<Option<u32>>,
+    pub max_players: Option<Option<u32>>,
+    pub host_peer_session_id: Option<Option<String>>,
+    pub script_url: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -125,6 +131,37 @@ pub struct PatchLobbyPayload {
 pub struct SignalPayload {
     pub to_user_id: Uuid,
     pub signal: serde_json::Value,
+}
+
+// ── Validation ───────────────────────────────────────────────────────────────
+
+fn validate_script_url(url: &str) -> Result<(), AppError> {
+    let is_github = url.starts_with("https://github.com/")
+        || url.starts_with("https://raw.githubusercontent.com/")
+        || url.starts_with("https://gist.github.com/")
+        || url.starts_with("https://gist.githubusercontent.com/");
+
+    if !is_github {
+        return Err(AppError::InvalidScriptUrl(
+            "Must be a GitHub, GitHub Raw, or Gist URL".to_string(),
+        ));
+    }
+
+    if !url.ends_with(".rhai") {
+        return Err(AppError::InvalidScriptUrl(
+            "Must be a .rhai script".to_string(),
+        ));
+    }
+
+    // Check for a 40-character hex commit hash
+    let commit_hash_regex = regex::Regex::new(r"[0-9a-f]{40}").unwrap();
+    if !commit_hash_regex.is_match(url) {
+        return Err(AppError::InvalidScriptUrl(
+            "Must include a 40-character commit hash for immutability".to_string(),
+        ));
+    }
+
+    Ok(())
 }
 
 // ── SSE event data ────────────────────────────────────────────────────────────
@@ -166,12 +203,17 @@ async fn create_lobby(
     auth: Auth,
     Json(payload): Json<CreateLobbyPayload>,
 ) -> Result<impl IntoResponse, AppError> {
+    validate_script_url(&payload.script_url)?;
+
     let lobby = Lobby::create(
         &state.db,
         NewLobby {
             host_user_id: auth.user_id,
             script_url: payload.script_url,
             allow_guests: payload.allow_guests,
+            host_peer_session_id: Some(payload.host_peer_session_id),
+            min_players: Some(payload.min_players),
+            max_players: Some(payload.max_players),
         },
     )
     .await?;
@@ -197,10 +239,18 @@ async fn patch_lobby(
     auth: Auth,
     Json(payload): Json<PatchLobbyPayload>,
 ) -> Result<impl IntoResponse, AppError> {
+    if let Some(ref url) = payload.script_url {
+        validate_script_url(url)?;
+    }
+
     let patch = LobbyPatch {
         allow_guests: payload.allow_guests,
         status: payload.status,
         player_count: payload.player_count,
+        min_players: payload.min_players,
+        max_players: payload.max_players,
+        host_peer_session_id: payload.host_peer_session_id,
+        script_url: payload.script_url,
     };
     match Lobby::patch(&state.db, lobby_id, auth.user_id, patch).await? {
         None => Err(AppError::LobbyNotFound),

@@ -395,7 +395,7 @@ Public. Paginated list of active lobbies.
 
 ```
 GET /lobby?status=waiting&allowGuests=true
-GET /lobby?scriptUrl=https%3A%2F%2Fgithub.com%2Fexample%2Fgame%2Fblob%2Fmain%2Fgame.js&page=1&limit=10
+GET /lobby?scriptUrl=https%3A%2F%2Fgithub.com%2Fexample%2Fgame%2Fblob%2F89e9a545e87c45e183856e01be442c12%2Fgame.rhai&page=1&limit=10
 ```
 
 **Response `200`**
@@ -416,7 +416,7 @@ type ListLobbiesResponse = {
       "id": "550e8400-e29b-41d4-a716-446655440000",
       "hostUserId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
       "hostPeerSessionId": "peer-abc123",
-      "scriptUrl": "https://github.com/example/game/blob/main/game.js",
+      "scriptUrl": "https://github.com/example/game/blob/89e9a545e87c45e183856e01be442c12/game.rhai",
       "allowGuests": true,
       "status": "waiting",
       "playerCount": 1,
@@ -444,8 +444,11 @@ Authentication required.
 
 ```typescript
 type CreateLobbyPayload = {
-  scriptUrl: string
-  allowGuests: boolean              // default: false
+  scriptUrl: string                 // Must be GitHub/Gist, end in .rhai, and include a commit hash
+  allowGuests: boolean
+  hostPeerSessionId: string
+  minPlayers: number
+  maxPlayers: number
 }
 ```
 
@@ -453,8 +456,11 @@ type CreateLobbyPayload = {
 
 ```json
 {
-  "scriptUrl": "https://github.com/example/game/blob/main/game.js",
-  "allowGuests": true
+  "scriptUrl": "https://github.com/example/game/blob/89e9a545e87c45e183856e01be442c12/game.rhai",
+  "allowGuests": true,
+  "hostPeerSessionId": "peer-abc123",
+  "minPlayers": 2,
+  "maxPlayers": 4
 }
 ```
 
@@ -463,6 +469,8 @@ type CreateLobbyPayload = {
 ```json
 { "lobbyId": "550e8400-e29b-41d4-a716-446655440000" }
 ```
+
+**Response `400`** – invalid script URL (e.g., missing commit hash, not GitHub, not .rhai)
 
 ---
 
@@ -481,7 +489,7 @@ Public.
   "id": "550e8400-e29b-41d4-a716-446655440000",
   "hostUserId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
   "hostPeerSessionId": "peer-abc123",
-  "scriptUrl": "https://github.com/example/game/blob/main/game.js",
+  "scriptUrl": "https://github.com/example/game/blob/89e9a545e87c45e183856e01be442c12/game.rhai",
   "allowGuests": true,
   "status": "waiting",
   "playerCount": 1,
@@ -509,6 +517,10 @@ type PatchLobbyPayload = {
   allowGuests?: boolean
   status?: LobbyStatus
   playerCount?: number
+  minPlayers?: number | null
+  maxPlayers?: number | null
+  hostPeerSessionId?: string | null
+  scriptUrl?: string                // Same validation rules as Create Lobby
 }
 ```
 
@@ -517,7 +529,9 @@ type PatchLobbyPayload = {
 ```json
 {
   "status": "in-game",
-  "playerCount": 2
+  "playerCount": 2,
+  "hostPeerSessionId": "peer-xyz789",
+  "scriptUrl": "https://github.com/example/game/blob/f089b1f00a0c07a7e956d20f18ac35ffe34c1c86/game.rhai"
 }
 ```
 

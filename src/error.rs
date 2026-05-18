@@ -42,6 +42,8 @@ pub enum AppError {
     LobbyNotFound,
     #[error("invalid-lobby-status")]
     InvalidLobbyStatus,
+    #[error("invalid-script-url: {0}")]
+    InvalidScriptUrl(String),
 }
 
 impl From<DbErr> for AppError {
@@ -86,6 +88,7 @@ impl IntoResponse for AppError {
             AppError::ProviderAlreadyLinked => StatusCode::CONFLICT,
             AppError::LobbyNotFound => StatusCode::NOT_FOUND,
             AppError::InvalidLobbyStatus
+            | AppError::InvalidScriptUrl(_)
             | AppError::CannotUnlinkLastProvider
             | AppError::AlreadyFriends
             | AppError::FriendRequestDoesntExist

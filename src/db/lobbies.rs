@@ -18,6 +18,9 @@ pub struct NewLobby {
     pub host_user_id: Uuid,
     pub script_url: String,
     pub allow_guests: bool,
+    pub host_peer_session_id: Option<String>,
+    pub min_players: Option<i32>,
+    pub max_players: Option<i32>,
 }
 
 pub struct LobbyListParams {
@@ -41,13 +44,13 @@ impl lobby::Model {
         let model = lobby::ActiveModel {
             id: Set(Uuid::new_v4()),
             host_user_id: Set(new.host_user_id),
-            host_peer_session_id: Set(None),
+            host_peer_session_id: Set(new.host_peer_session_id),
             script_url: Set(new.script_url),
             allow_guests: Set(new.allow_guests),
             status: Set(LobbyStatus::Waiting.to_str().to_owned()),
             player_count: Set(1),
-            min_players: Set(None),
-            max_players: Set(None),
+            min_players: Set(new.min_players),
+            max_players: Set(new.max_players),
             last_heartbeat: Set(now.into()),
             created_at: Set(now.into()),
         };
@@ -107,6 +110,18 @@ impl lobby::Model {
         }
         if let Some(v) = patch.player_count {
             active.player_count = Set(v as i32);
+        }
+        if let Some(v) = patch.min_players {
+            active.min_players = Set(v.map(|n| n as i32));
+        }
+        if let Some(v) = patch.max_players {
+            active.max_players = Set(v.map(|n| n as i32));
+        }
+        if let Some(v) = patch.host_peer_session_id {
+            active.host_peer_session_id = Set(v);
+        }
+        if let Some(v) = patch.script_url {
+            active.script_url = Set(v);
         }
         active.update(db).await?;
         Ok(Some(true))
