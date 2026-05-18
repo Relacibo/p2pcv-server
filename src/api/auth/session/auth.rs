@@ -2,12 +2,12 @@ use std::sync::Arc;
 
 use axum::{extract::FromRequestParts, http::request::Parts};
 use axum_extra::{
-    headers::{authorization::Bearer, Authorization},
     TypedHeader,
+    headers::{Authorization, authorization::Bearer},
 };
 use uuid::Uuid;
 
-use crate::{db::users::User, error::AppError, AppState};
+use crate::{AppState, db::users::User, error::AppError};
 
 use super::claims::Claims;
 

@@ -1,6 +1,6 @@
 use axum::{
     body::Body,
-    http::{header, Method, Request, StatusCode},
+    http::{Method, Request, StatusCode, header},
 };
 
 use crate::db::users::User;
@@ -16,7 +16,10 @@ async fn list_users_is_public() {
 
     let resp = send(
         test_app(db.clone()),
-        Request::builder().uri("/users").body(Body::empty()).unwrap(),
+        Request::builder()
+            .uri("/users")
+            .body(Body::empty())
+            .unwrap(),
     )
     .await;
 
@@ -184,11 +187,13 @@ async fn friend_request_flow() {
     assert_eq!(resp.status(), StatusCode::OK);
     let body = body_json(resp).await;
     let alice_id = alice.id.to_string();
-    assert!(body["friends"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .any(|f| f["friend"]["id"] == alice_id));
+    assert!(
+        body["friends"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|f| f["friend"]["id"] == alice_id)
+    );
 
     User::delete(&db, alice.id).await.unwrap();
     User::delete(&db, bob.id).await.unwrap();

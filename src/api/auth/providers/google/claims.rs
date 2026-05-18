@@ -1,4 +1,4 @@
-use jsonwebtoken::{decode, decode_header, Algorithm, DecodingKey, Validation};
+use jsonwebtoken::{Algorithm, DecodingKey, Validation, decode, decode_header};
 
 use crate::{
     api::auth::public_key_storage::{KeyStore, PublicKey},

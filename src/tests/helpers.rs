@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
 use axum::{
+    Router,
     body::Body,
     http::{Request, Response},
-    Router,
 };
 use jsonwebtoken::{DecodingKey, EncodingKey, Validation};
 use sea_orm::{Database, DatabaseConnection};
@@ -11,7 +11,7 @@ use tower::ServiceExt;
 use uuid::Uuid;
 
 use crate::{
-    api,
+    AppState, api,
     api::{
         auth::{
             providers::{google, lichess},
@@ -21,7 +21,6 @@ use crate::{
         p2p::P2pInfo,
     },
     db::users::{NewUser, User},
-    AppState,
 };
 
 /// Creates a fresh connection pool per test so that each test's pool lives
@@ -70,9 +69,7 @@ pub fn test_app(db: DatabaseConnection) -> Router {
             account_endpoint_path: "/account".into(),
         },
         p2p_info: P2pInfo {
-            peer_id: libp2p::PeerId::from(
-                libp2p::identity::Keypair::generate_ed25519().public(),
-            ),
+            peer_id: libp2p::PeerId::from(libp2p::identity::Keypair::generate_ed25519().public()),
             multiaddr: "/ip4/127.0.0.1/udp/9000/webrtc-direct".parse().unwrap(),
         },
     });

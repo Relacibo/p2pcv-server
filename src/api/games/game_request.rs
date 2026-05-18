@@ -6,7 +6,7 @@ use axum::{
 };
 use uuid::Uuid;
 
-use crate::{api::auth::session::auth::Auth, error::AppError, AppState};
+use crate::{AppState, api::auth::session::auth::Auth, error::AppError};
 
 pub async fn send(
     State(state): State<Arc<AppState>>,

@@ -1,15 +1,16 @@
 use std::sync::Arc;
 
 use axum::{
+    Json, Router,
     extract::{Path, State},
     http::StatusCode,
     routing::{delete, get, post},
-    Json, Router,
 };
 use sea_orm::TransactionTrait;
 use uuid::Uuid;
 
 use crate::{
+    AppState,
     api::auth::session::auth::Auth,
     app_result::EndpointResult,
     db::{
@@ -18,7 +19,6 @@ use crate::{
         users::{PublicUser, User},
     },
     error::AppError,
-    AppState,
 };
 
 pub fn router() -> Router<Arc<AppState>> {

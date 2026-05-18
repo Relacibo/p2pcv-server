@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use axum::{routing::post, Router};
+use axum::{Router, routing::post};
 
 pub mod game_request;
 

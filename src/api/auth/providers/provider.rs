@@ -4,12 +4,12 @@ use thiserror::Error;
 use uuid::Uuid;
 
 use crate::{
-    api::auth::payloads::OauthData, app_result::AppResult, db::users::User, error::AppError,
-    AppState,
+    AppState, api::auth::payloads::OauthData, app_result::AppResult, db::users::User,
+    error::AppError,
 };
 
 use super::{
-    google::provider::GoogleProvider, lichess::provider::LichessProvider, ProviderFactory,
+    ProviderFactory, google::provider::GoogleProvider, lichess::provider::LichessProvider,
 };
 
 #[async_trait]
@@ -20,7 +20,11 @@ pub trait Provider {
         db: &DatabaseConnection,
         username: &str,
     ) -> Result<User, ProviderError>;
-    async fn link_to_user(&self, db: &DatabaseConnection, user_id: Uuid) -> Result<(), ProviderError>;
+    async fn link_to_user(
+        &self,
+        db: &DatabaseConnection,
+        user_id: Uuid,
+    ) -> Result<(), ProviderError>;
 }
 
 impl ProviderFactory {

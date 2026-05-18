@@ -95,4 +95,3 @@ pub fn generate_login_token(
 ) -> Result<String, AppError> {
     generate_access_token(jwt_config, user_id)
 }
-

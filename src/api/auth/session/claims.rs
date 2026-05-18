@@ -4,7 +4,7 @@ use uuid::Uuid;
 use crate::error::AppError;
 
 use super::{auth::Auth, config::Config};
-use serde_with::{formats::Flexible, TimestampSeconds};
+use serde_with::{TimestampSeconds, formats::Flexible};
 
 #[serde_as]
 #[derive(Clone, Debug, Serialize, Deserialize)]

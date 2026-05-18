@@ -43,7 +43,9 @@ impl UuidExt for uuid::Uuid {
 
 fn to_vec(record: &impl bebop::Record<'static>) -> Vec<u8> {
     let mut v = Vec::new();
-    record.serialize(&mut v).expect("bebop serialization failed");
+    record
+        .serialize(&mut v)
+        .expect("bebop serialization failed");
     v
 }
 
@@ -91,14 +93,18 @@ mod tests {
 
     #[test]
     fn c2s_register_peer_round_trip() {
-        let msg = C2sMsg::RegisterPeer { auth_token: "tok123".into() };
+        let msg = C2sMsg::RegisterPeer {
+            auth_token: "tok123".into(),
+        };
         let bytes = msg.serialize();
         assert_eq!(C2sMsg::deserialize(&bytes).unwrap(), msg);
     }
 
     #[test]
     fn c2s_get_friend_peer_id_round_trip() {
-        let msg = C2sMsg::GetFriendPeerId { friend_user_id: some_guid() };
+        let msg = C2sMsg::GetFriendPeerId {
+            friend_user_id: some_guid(),
+        };
         let bytes = msg.serialize();
         assert_eq!(C2sMsg::deserialize(&bytes).unwrap(), msg);
     }
@@ -108,7 +114,8 @@ mod tests {
         let msg = C2sMsg::CreateLobby {
             variant_id: some_guid(),
             variant_version: "1.0.0".into(),
-            script_url: "https://raw.githubusercontent.com/example/repo/abc123/variants/chess.rhai".into(),
+            script_url: "https://raw.githubusercontent.com/example/repo/abc123/variants/chess.rhai"
+                .into(),
         };
         let bytes = msg.serialize();
         assert_eq!(C2sMsg::deserialize(&bytes).unwrap(), msg);
@@ -149,7 +156,9 @@ mod tests {
 
     #[test]
     fn s2c_get_friend_peer_id_response_with_peer_round_trip() {
-        let msg = S2cMsg::GetFriendPeerIdResponse { peer_id: Some("12D3K".into()) };
+        let msg = S2cMsg::GetFriendPeerIdResponse {
+            peer_id: Some("12D3K".into()),
+        };
         let bytes = msg.serialize();
         assert_eq!(S2cMsg::deserialize(&bytes).unwrap(), msg);
     }
@@ -183,7 +192,9 @@ mod tests {
             host_name: Some("alice".into()),
             variant_id: Some(some_guid()),
             variant_version: Some("2.1.0".into()),
-            script_url: Some("https://raw.githubusercontent.com/example/repo/abc123/variants/chess.rhai".into()),
+            script_url: Some(
+                "https://raw.githubusercontent.com/example/repo/abc123/variants/chess.rhai".into(),
+            ),
         };
         let bytes = msg.serialize();
         assert_eq!(S2cMsg::deserialize(&bytes).unwrap(), msg);

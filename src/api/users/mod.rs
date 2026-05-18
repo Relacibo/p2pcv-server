@@ -1,20 +1,20 @@
 use std::sync::Arc;
 
 use axum::{
+    Json, Router,
     extract::{Path, Query, State},
     http::StatusCode,
     routing::get,
-    Json, Router,
 };
 use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::{
+    AppState,
     api::auth::session::auth::Auth,
     app_result::EndpointResult,
     db::users::{PublicUser, User},
     error::AppError,
-    AppState,
 };
 
 pub mod friend_requests;
