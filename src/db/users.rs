@@ -1,4 +1,5 @@
 use chrono::Utc;
+use sha2::{Digest, Sha256};
 use sea_orm::{
     ActiveModelTrait,
     ActiveValue::Set,
@@ -66,7 +67,7 @@ impl From<user::Model> for PublicUser {
         Self {
             id: value.id,
             user_name: value.user_name,
-            avatar_hash: if value.use_gravatar { Some(format!("{:x}", md5::compute(value.email.trim().to_lowercase()))) } else { None },
+            avatar_hash: if value.use_gravatar { Some(format!("{:x}", Sha256::digest(value.email.trim().to_lowercase().as_bytes()))) } else { None },
             created_at: value.created_at,
         }
     }
@@ -349,7 +350,7 @@ impl user::Model {
                 friend: PublicUser {
                     id: row.id,
                     user_name: row.user_name,
-                    avatar_hash: if row.use_gravatar { Some(format!("{:x}", md5::compute(row.email.trim().to_lowercase()))) } else { None },
+                    avatar_hash: if row.use_gravatar { Some(format!("{:x}", Sha256::digest(row.email.trim().to_lowercase().as_bytes()))) } else { None },
                     created_at: row.created_at,
                 },
             })

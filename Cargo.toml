@@ -51,4 +51,3 @@ futures = "0.3.32"
 dashmap = "6.1.0"
 migration = { path = "migration" }
 http = "1.4.0"
-md5 = "0.8.0"
