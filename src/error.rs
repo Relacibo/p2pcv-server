@@ -34,6 +34,10 @@ pub enum AppError {
     FriendRequestExistsInOtherDirection,
     #[error("username-already-exists")]
     UsernameAlreadyExists,
+    #[error("provider-already-linked")]
+    ProviderAlreadyLinked,
+    #[error("cannot-unlink-last-provider")]
+    CannotUnlinkLastProvider,
     #[error("validate")]
     Validate(#[from] validator::ValidationErrors),
     #[error("p2p-{0}")]
@@ -80,7 +84,9 @@ impl IntoResponse for AppError {
             AppError::Jwt(_) | AppError::OpenId | AppError::Unauthorized => {
                 StatusCode::UNAUTHORIZED
             }
-            AppError::AlreadyFriends
+            AppError::ProviderAlreadyLinked => StatusCode::CONFLICT,
+            AppError::CannotUnlinkLastProvider
+            | AppError::AlreadyFriends
             | AppError::FriendRequestDoesntExist
             | AppError::FriendRequestExistsInOtherDirection
             | AppError::UsernameAlreadyExists

@@ -5,7 +5,7 @@ use sea_orm::{
 };
 use uuid::Uuid;
 
-use crate::app_result::AppResult;
+use crate::{app_result::AppResult, error::AppError};
 
 use super::{
     entities::{
@@ -55,6 +55,12 @@ pub struct NewLichessUser {
 #[derive(Clone, Debug)]
 pub struct UpdateLichessUser {
     pub username: Option<String>,
+}
+
+#[derive(Clone, Debug)]
+pub struct UserConnections {
+    pub google: bool,
+    pub lichess: bool,
 }
 
 #[derive(FromQueryResult)]
@@ -216,6 +222,34 @@ impl user::Model {
         }
     }
 
+    pub async fn link_google(db: &DatabaseConnection, user_id: Uuid, google_id: &str) -> AppResult<()> {
+        let existing = google_user::Entity::find_by_id(google_id.to_string())
+            .one(db)
+            .await?;
+        if let Some(record) = existing {
+            if record.user_id == user_id {
+                return Ok(());
+            }
+            return Err(AppError::ProviderAlreadyLinked);
+        }
+        google_user::Entity::insert(google_user::ActiveModel {
+            id: Set(google_id.to_string()),
+            user_id: Set(user_id),
+            created_at: Default::default(),
+        })
+        .exec(db)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn unlink_google(db: &DatabaseConnection, user_id: Uuid) -> AppResult<()> {
+        google_user::Entity::delete_many()
+            .filter(google_user::Column::UserId.eq(user_id))
+            .exec(db)
+            .await?;
+        Ok(())
+    }
+
     pub async fn get_id_with_google_id(
         db: &DatabaseConnection,
         google_id: &str,
@@ -253,6 +287,67 @@ impl user::Model {
             active_model.username = Set(username);
         }
         Ok(active_model.update(db).await?)
+    }
+
+    pub async fn link_lichess(
+        db: &DatabaseConnection,
+        user_id: Uuid,
+        lichess_id: &str,
+        username: &str,
+    ) -> AppResult<()> {
+        let existing = lichess_user::Entity::find_by_id(lichess_id.to_string())
+            .one(db)
+            .await?;
+        if let Some(record) = existing {
+            if record.user_id == user_id {
+                return Ok(());
+            }
+            return Err(AppError::ProviderAlreadyLinked);
+        }
+        lichess_user::Entity::insert(lichess_user::ActiveModel {
+            id: Set(lichess_id.to_string()),
+            username: Set(username.to_string()),
+            user_id: Set(user_id),
+            created_at: Default::default(),
+            updated_at: Default::default(),
+        })
+        .exec(db)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn unlink_lichess(db: &DatabaseConnection, user_id: Uuid) -> AppResult<()> {
+        lichess_user::Entity::delete_many()
+            .filter(lichess_user::Column::UserId.eq(user_id))
+            .exec(db)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn count_connections(db: &DatabaseConnection, user_id: Uuid) -> AppResult<u64> {
+        let google_count = google_user::Entity::find()
+            .filter(google_user::Column::UserId.eq(user_id))
+            .count(db)
+            .await?;
+        let lichess_count = lichess_user::Entity::find()
+            .filter(lichess_user::Column::UserId.eq(user_id))
+            .count(db)
+            .await?;
+        Ok(google_count + lichess_count)
+    }
+
+    pub async fn get_connections(db: &DatabaseConnection, user_id: Uuid) -> AppResult<UserConnections> {
+        let google = google_user::Entity::find()
+            .filter(google_user::Column::UserId.eq(user_id))
+            .count(db)
+            .await?
+            > 0;
+        let lichess = lichess_user::Entity::find()
+            .filter(lichess_user::Column::UserId.eq(user_id))
+            .count(db)
+            .await?
+            > 0;
+        Ok(UserConnections { google, lichess })
     }
 
     pub async fn is_friends_with(

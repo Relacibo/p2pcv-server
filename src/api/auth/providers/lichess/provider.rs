@@ -166,4 +166,10 @@ impl Provider for LichessProvider {
         };
         Ok(user)
     }
+
+    async fn link_to_user(&self, db: &DatabaseConnection, user_id: uuid::Uuid) -> Result<(), ProviderError> {
+        let LichessClaims { id, username, .. } = &self.claims;
+        User::link_lichess(db, user_id, id, username).await?;
+        Ok(())
+    }
 }

@@ -4,21 +4,24 @@ use axum::{
     extract::State,
     http::{HeaderMap, HeaderValue, StatusCode, header::SET_COOKIE},
     response::IntoResponse,
-    routing::post,
+    routing::{get, post},
     Json, Router,
 };
 use chrono::Utc;
 
 use crate::{
     api::auth::{
-        payloads::{LoginResponse, SigninPayload, SignupPayload},
+        payloads::{
+            ConnectionsResponse, LinkPayload, LoginResponse, ProviderType, SigninPayload,
+            SignupPayload, UnlinkPayload,
+        },
         providers::{provider::ProviderError, ProviderFactory},
+        session::auth::Auth,
         util::{
             clear_refresh_cookie, extract_refresh_token_from_cookie, generate_access_token,
             generate_refresh_token, hash_token, make_refresh_cookie,
         },
     },
-    app_result::AppResult,
     db::{refresh_tokens::NewRefreshToken, users::User},
     error::AppError,
     AppState,
@@ -36,6 +39,9 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/signup", post(signup))
         .route("/refresh", post(refresh))
         .route("/logout", post(logout))
+        .route("/link", post(link_provider))
+        .route("/unlink", post(unlink_provider))
+        .route("/connections", get(get_connections_handler))
 }
 
 /// Helper: issue a fresh access token + refresh token, set the refresh cookie.
@@ -147,5 +153,42 @@ async fn logout(
         HeaderValue::from_str(&clear_refresh_cookie()).map_err(|_| AppError::Unexpected)?,
     );
     Ok((StatusCode::NO_CONTENT, headers).into_response())
+}
+
+async fn link_provider(
+    State(state): State<Arc<AppState>>,
+    auth: Auth,
+    Json(payload): Json<LinkPayload>,
+) -> Result<impl IntoResponse, AppError> {
+    let provider = ProviderFactory::from_oauth_data(&state, payload.oauth_data).await?;
+    provider.link_to_user(&state.db, auth.user_id).await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+async fn unlink_provider(
+    State(state): State<Arc<AppState>>,
+    auth: Auth,
+    Json(payload): Json<UnlinkPayload>,
+) -> Result<impl IntoResponse, AppError> {
+    let count = User::count_connections(&state.db, auth.user_id).await?;
+    if count <= 1 {
+        return Err(AppError::CannotUnlinkLastProvider);
+    }
+    match payload.provider {
+        ProviderType::Google => User::unlink_google(&state.db, auth.user_id).await?,
+        ProviderType::Lichess => User::unlink_lichess(&state.db, auth.user_id).await?,
+    }
+    Ok(StatusCode::NO_CONTENT)
+}
+
+async fn get_connections_handler(
+    State(state): State<Arc<AppState>>,
+    auth: Auth,
+) -> Result<impl IntoResponse, AppError> {
+    let conn = User::get_connections(&state.db, auth.user_id).await?;
+    Ok(Json(ConnectionsResponse {
+        google: conn.google,
+        lichess: conn.lichess,
+    }))
 }
 

@@ -43,3 +43,27 @@ pub struct SignupPayload {
     pub username: String,
     pub oauth_data: OauthData,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "kebab-case")]
+pub enum ProviderType {
+    Google,
+    Lichess,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ConnectionsResponse {
+    pub google: bool,
+    pub lichess: bool,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct UnlinkPayload {
+    pub provider: ProviderType,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LinkPayload {
+    pub oauth_data: OauthData,
+}

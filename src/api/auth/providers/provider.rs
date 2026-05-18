@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use sea_orm::DatabaseConnection;
 use thiserror::Error;
+use uuid::Uuid;
 
 use crate::{
     api::auth::payloads::OauthData, app_result::AppResult, db::users::User, error::AppError,
@@ -19,6 +20,7 @@ pub trait Provider {
         db: &DatabaseConnection,
         username: &str,
     ) -> Result<User, ProviderError>;
+    async fn link_to_user(&self, db: &DatabaseConnection, user_id: Uuid) -> Result<(), ProviderError>;
 }
 
 impl ProviderFactory {

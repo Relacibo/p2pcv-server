@@ -54,4 +54,10 @@ impl Provider for GoogleProvider {
         };
         Ok(user)
     }
+
+    async fn link_to_user(&self, db: &DatabaseConnection, user_id: uuid::Uuid) -> Result<(), ProviderError> {
+        let GoogleClaims { sub, .. } = &self.claims;
+        User::link_google(db, user_id, sub).await?;
+        Ok(())
+    }
 }
