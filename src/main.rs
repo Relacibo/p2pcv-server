@@ -115,6 +115,7 @@ fn cors_layer() -> CorsLayer {
                 http::Method::GET,
                 http::Method::POST,
                 http::Method::PUT,
+                http::Method::PATCH,
                 http::Method::DELETE,
                 http::Method::OPTIONS,
             ])
@@ -140,6 +141,7 @@ fn cors_layer() -> CorsLayer {
                 http::Method::GET,
                 http::Method::POST,
                 http::Method::PUT,
+                http::Method::PATCH,
                 http::Method::DELETE,
                 http::Method::OPTIONS,
             ])
