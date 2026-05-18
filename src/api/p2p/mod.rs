@@ -975,8 +975,11 @@ impl Codec for C2sCodec {
     where
         T: AsyncRead + Unpin + Send,
     {
-        let mut buf = Vec::new();
-        io.read_to_end(&mut buf).await?;
+        let mut len_buf = [0u8; 4];
+        io.read_exact(&mut len_buf).await?;
+        let len = u32::from_le_bytes(len_buf) as usize;
+        let mut buf = vec![0u8; len];
+        io.read_exact(&mut buf).await?;
         C2sMsg::deserialize(&buf).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
     }
 
@@ -988,8 +991,11 @@ impl Codec for C2sCodec {
     where
         T: AsyncRead + Unpin + Send,
     {
-        let mut buf = Vec::new();
-        io.read_to_end(&mut buf).await?;
+        let mut len_buf = [0u8; 4];
+        io.read_exact(&mut len_buf).await?;
+        let len = u32::from_le_bytes(len_buf) as usize;
+        let mut buf = vec![0u8; len];
+        io.read_exact(&mut buf).await?;
         S2cMsg::deserialize(&buf).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
     }
 
@@ -1002,7 +1008,10 @@ impl Codec for C2sCodec {
     where
         T: AsyncWrite + Unpin + Send,
     {
-        io.write_all(&req.serialize()).await
+        let bytes = req.serialize();
+        io.write_all(&(bytes.len() as u32).to_le_bytes()).await?;
+        io.write_all(&bytes).await?;
+        io.close().await
     }
 
     async fn write_response<T>(
@@ -1014,7 +1023,10 @@ impl Codec for C2sCodec {
     where
         T: AsyncWrite + Unpin + Send,
     {
-        io.write_all(&res.serialize()).await
+        let bytes = res.serialize();
+        io.write_all(&(bytes.len() as u32).to_le_bytes()).await?;
+        io.write_all(&bytes).await?;
+        io.close().await
     }
 }
 
@@ -1032,8 +1044,11 @@ impl Codec for S2cCodec {
     where
         T: AsyncRead + Unpin + Send,
     {
-        let mut buf = Vec::new();
-        io.read_to_end(&mut buf).await?;
+        let mut len_buf = [0u8; 4];
+        io.read_exact(&mut len_buf).await?;
+        let len = u32::from_le_bytes(len_buf) as usize;
+        let mut buf = vec![0u8; len];
+        io.read_exact(&mut buf).await?;
         S2cMsg::deserialize(&buf).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
     }
 
@@ -1045,8 +1060,11 @@ impl Codec for S2cCodec {
     where
         T: AsyncRead + Unpin + Send,
     {
-        let mut buf = Vec::new();
-        io.read_to_end(&mut buf).await?;
+        let mut len_buf = [0u8; 4];
+        io.read_exact(&mut len_buf).await?;
+        let len = u32::from_le_bytes(len_buf) as usize;
+        let mut buf = vec![0u8; len];
+        io.read_exact(&mut buf).await?;
         C2sMsg::deserialize(&buf).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
     }
 
@@ -1059,7 +1077,10 @@ impl Codec for S2cCodec {
     where
         T: AsyncWrite + Unpin + Send,
     {
-        io.write_all(&req.serialize()).await
+        let bytes = req.serialize();
+        io.write_all(&(bytes.len() as u32).to_le_bytes()).await?;
+        io.write_all(&bytes).await?;
+        io.close().await
     }
 
     async fn write_response<T>(
@@ -1071,7 +1092,10 @@ impl Codec for S2cCodec {
     where
         T: AsyncWrite + Unpin + Send,
     {
-        io.write_all(&res.serialize()).await
+        let bytes = res.serialize();
+        io.write_all(&(bytes.len() as u32).to_le_bytes()).await?;
+        io.write_all(&bytes).await?;
+        io.close().await
     }
 }
 
