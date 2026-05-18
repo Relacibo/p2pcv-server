@@ -70,31 +70,27 @@ impl From<user::Model> for PublicUser {
 
 impl user::Model {
     pub async fn delete(db: &DatabaseConnection, query_uuid: Uuid) -> AppResult<()> {
-        db.transaction::<_, _, crate::error::AppError>(|txn| {
-            Box::pin(async move {
-                super::entities::friend_requests::Entity::delete_many()
-                    .filter(
-                        Condition::any()
-                            .add(super::entities::friend_requests::Column::SenderId.eq(query_uuid))
-                            .add(
-                                super::entities::friend_requests::Column::ReceiverId.eq(query_uuid),
-                            ),
-                    )
-                    .exec(txn)
-                    .await?;
-                super::entities::friends::Entity::delete_many()
-                    .filter(
-                        Condition::any()
-                            .add(super::entities::friends::Column::User1Id.eq(query_uuid))
-                            .add(super::entities::friends::Column::User2Id.eq(query_uuid)),
-                    )
-                    .exec(txn)
-                    .await?;
-                user::Entity::delete_by_id(query_uuid).exec(txn).await?;
-                Ok(())
-            })
-        })
-        .await?;
+        let txn = db.begin().await?;
+        super::entities::friend_requests::Entity::delete_many()
+            .filter(
+                Condition::any()
+                    .add(super::entities::friend_requests::Column::SenderId.eq(query_uuid))
+                    .add(
+                        super::entities::friend_requests::Column::ReceiverId.eq(query_uuid),
+                    ),
+            )
+            .exec(&txn)
+            .await?;
+        super::entities::friends::Entity::delete_many()
+            .filter(
+                Condition::any()
+                    .add(super::entities::friends::Column::User1Id.eq(query_uuid))
+                    .add(super::entities::friends::Column::User2Id.eq(query_uuid)),
+            )
+            .exec(&txn)
+            .await?;
+        user::Entity::delete_by_id(query_uuid).exec(&txn).await?;
+        txn.commit().await?;
         Ok(())
     }
 
@@ -146,28 +142,23 @@ impl user::Model {
         let provider = provider.to_string();
         let provider_user_id = provider_user_id.to_string();
         let display_name = display_name.map(ToOwned::to_owned);
-        let inserted = db
-            .transaction::<_, _, crate::error::AppError>(|txn| {
-                Box::pin(async move {
-                    let user = user::Entity::insert(user.into_active_model())
-                        .exec_with_returning(txn)
-                        .await?;
-                    auth_provider::Entity::insert(auth_provider::ActiveModel {
-                        id: Set(Uuid::new_v4()),
-                        user_id: Set(user_id),
-                        provider: Set(provider),
-                        provider_user_id: Set(provider_user_id),
-                        display_name: Set(display_name),
-                        created_at: Default::default(),
-                        updated_at: Default::default(),
-                    })
-                    .exec(txn)
-                    .await?;
-                    Ok(user)
-                })
-            })
+        let txn = db.begin().await?;
+        let user = user::Entity::insert(user.into_active_model())
+            .exec_with_returning(&txn)
             .await?;
-        Ok(inserted)
+        auth_provider::Entity::insert(auth_provider::ActiveModel {
+            id: Set(Uuid::new_v4()),
+            user_id: Set(user_id),
+            provider: Set(provider),
+            provider_user_id: Set(provider_user_id),
+            display_name: Set(display_name),
+            created_at: Default::default(),
+            updated_at: Default::default(),
+        })
+        .exec(&txn)
+        .await?;
+        txn.commit().await?;
+        Ok(user)
     }
 
     pub async fn insert_with_google_id(

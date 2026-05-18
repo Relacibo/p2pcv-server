@@ -122,19 +122,13 @@ async fn accept(
     Path((user_id, sender_id)): Path<(Uuid, Uuid)>,
 ) -> Result<StatusCode, AppError> {
     auth.should_be_user(user_id)?;
-    state
-        .db
-        .transaction::<_, _, AppError>(|txn| {
-            Box::pin(async move {
-                let deleted = FriendRequest::delete_by_user_ids(txn, sender_id, user_id).await?;
-                if deleted == 0 {
-                    return Err(AppError::FriendRequestDoesntExist);
-                }
-                Friends::insert(txn, user_id, sender_id).await?;
-                Ok(())
-            })
-        })
-        .await?;
+    let txn = state.db.begin().await?;
+    let deleted = FriendRequest::delete_by_user_ids(&txn, sender_id, user_id).await?;
+    if deleted == 0 {
+        return Err(AppError::FriendRequestDoesntExist);
+    }
+    Friends::insert(&txn, user_id, sender_id).await?;
+    txn.commit().await?;
     Ok(StatusCode::OK)
 }
 
