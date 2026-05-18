@@ -66,6 +66,21 @@ async fn main() -> io::Result<()> {
         lobby_registry: lobby::LobbyRegistry::default(),
     });
 
+    // Background task: clean up stale lobbies every 60 seconds
+    {
+        let state = Arc::clone(&state);
+        tokio::spawn(async move {
+            let mut interval = tokio::time::interval(std::time::Duration::from_secs(60));
+            loop {
+                interval.tick().await;
+                let stale = state.lobby_registry.remove_stale(lobby::HEARTBEAT_TTL);
+                if !stale.is_empty() {
+                    log::info!("Removed {} stale lobbies", stale.len());
+                }
+            }
+        });
+    }
+
     let app = Router::new()
         .route("/", get(|| async { "OK" }))
         .merge(api::router())

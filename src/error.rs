@@ -40,12 +40,6 @@ pub enum AppError {
     Validate(#[from] validator::ValidationErrors),
     #[error("lobby-not-found")]
     LobbyNotFound,
-    #[error("lobby-game-already-started")]
-    LobbyGameAlreadyStarted,
-    #[error("lobby-not-member")]
-    LobbyNotMember,
-    #[error("lobby-not-enough-players")]
-    LobbyNotEnoughPlayers,
 }
 
 impl From<DbErr> for AppError {
@@ -89,14 +83,11 @@ impl IntoResponse for AppError {
             }
             AppError::ProviderAlreadyLinked => StatusCode::CONFLICT,
             AppError::LobbyNotFound => StatusCode::NOT_FOUND,
-            AppError::LobbyNotMember => StatusCode::FORBIDDEN,
             AppError::CannotUnlinkLastProvider
             | AppError::AlreadyFriends
             | AppError::FriendRequestDoesntExist
             | AppError::FriendRequestExistsInOtherDirection
             | AppError::UsernameAlreadyExists
-            | AppError::LobbyGameAlreadyStarted
-            | AppError::LobbyNotEnoughPlayers
             | AppError::Validate(_) => StatusCode::BAD_REQUEST,
         };
         (
