@@ -105,9 +105,9 @@ impl IntoResponse for AppError {
 }
 
 #[derive(Serialize)]
+#[serde_with::skip_serializing_none]
 struct JsonError {
     error: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
     data: Option<String>,
 }
 

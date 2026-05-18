@@ -14,7 +14,7 @@ type Sha256 = string                // 64-char hex string
 type PublicUser = {
   id: Uuid
   userName: string
-  avatarHash: Sha256 | null         // null if no Gravatar configured
+  avatarHash?: Sha256
   createdAt: Timestamp
 }
 ```
@@ -58,7 +58,6 @@ GET /users?ids=f47ac10b-58cc-4372-a567-0e02b2c3d479,6ba7b810-9dad-11d1-80b4-00c0
   {
     "id": "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
     "userName": "bob",
-    "avatarHash": null,
     "createdAt": "2024-04-01T18:00:00Z"
   }
 ]
@@ -87,7 +86,7 @@ type FullUser = {
   createdAt: Timestamp
   updatedAt: Timestamp
   useGravatar: boolean
-  customAvatarHash: Sha256 | null
+  customAvatarHash?: Sha256
 }
 ```
 
@@ -346,13 +345,13 @@ type LobbyStatus = "waiting" | "in-game" | "finished"
 type Lobby = {
   id: Uuid
   hostUserId: Uuid
-  hostPeerSessionId: string | null
+  hostPeerSessionId?: string
   scriptUrl: string
   allowGuests: boolean
   status: LobbyStatus
   playerCount: number
-  minPlayers: number | null
-  maxPlayers: number | null
+  minPlayers?: number
+  maxPlayers?: number
 }
 ```
 

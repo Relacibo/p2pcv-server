@@ -18,6 +18,7 @@ use super::{
 
 pub type User = user::Model;
 
+#[serde_with::skip_serializing_none]
 #[derive(Clone, Debug, Serialize, FromQueryResult)]
 #[serde(rename_all = "camelCase")]
 pub struct PublicUser {

@@ -139,10 +139,10 @@ struct ListToResponseBody {
     friend_requests: Vec<ToResponseBody>,
 }
 
+#[serde_with::skip_serializing_none]
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct ToResponseBody {
-    #[serde(skip_serializing_if = "Option::is_none")]
     message: Option<String>,
     created_at: sea_orm::entity::prelude::DateTimeWithTimeZone,
     sender: PublicUser,
@@ -155,10 +155,10 @@ struct ListFromResponseBody {
     friend_requests: Vec<FromResponseBody>,
 }
 
+#[serde_with::skip_serializing_none]
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct FromResponseBody {
-    #[serde(skip_serializing_if = "Option::is_none")]
     message: Option<String>,
     created_at: sea_orm::entity::prelude::DateTimeWithTimeZone,
     receiver: PublicUser,

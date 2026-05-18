@@ -37,6 +37,7 @@ struct DirectSignalPayload {
 }
 
 #[derive(serde::Serialize)]
+#[serde_with::skip_serializing_none]
 #[serde(rename_all = "camelCase")]
 struct EvtDirectSignal {
     lobby_id: Option<Uuid>,

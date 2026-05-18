@@ -29,6 +29,13 @@ Always run `just migrate` before `just entities` after adding a new migration.
 
 ## Conventions
 
+### JSON serialization and optional fields
+
+- For **response payloads**, always use `#[serde_with::skip_serializing_none]` on the struct. This ensures that `None` values are completely omitted from the JSON output instead of being serialized as `null`.
+- In **API documentation** (`docs/api.md`), use the `field?: Type` notation for these optional response fields.
+- Avoid returning `null` in responses unless there is a strong semantic reason to distinguish between "absent" and "null".
+- For **request payloads** (especially `PATCH`), use `field?: Type | null` when the field is truly nullable (mapped to `Option<Option<T>>` in Rust), where `null` means "clear this field" and absence means "leave unchanged".
+
 ### Enum values in the database and JSON bodies
 
 Enum variants stored as text in PostgreSQL and serialized in JSON request/response bodies use **kebab-case** (e.g. `waiting`, `in-game`, `finished`). Use `#[serde(rename_all = "kebab-case")]` on all enums.
@@ -45,13 +52,13 @@ All code comments, `docs/api.md`, and other developer documentation must be writ
 
 Each endpoint has a **Schema** (TypeScript types) and an **Example** (concrete JSON). Rules:
 
-- Types are written as TypeScript, e.g. `string | null`, `"waiting" | "in-game" | "finished"`
-- Use `field?: Type` for fields that may be **absent** from the JSON (e.g. optional request body fields, `skip_serializing_if`)
+- Types are written as TypeScript, e.g. `Type | null`, `"waiting" | "in-game" | "finished"`
+- Use `field?: Type` for fields that may be **absent** from the JSON (e.g. response fields with `skip_serializing_none`, optional request body fields)
 - Use `field: Type | null` for fields that are **always present** in the JSON but can be null
+- Use `field?: Type | null` for `Option<Option<T>>` in PATCH payloads (absent = no change, null = clear)
 - For enums, list **all** variants
 - IDs must be real UUIDs in examples, e.g. `"f47ac10b-58cc-4372-a567-0e02b2c3d479"`
 - Timestamps as ISO 8601: `"2024-03-15T09:12:34Z"`
 - `avatarHash` is a SHA-256 hex string (64 characters)
-- **Never use `null`** in examples for a single-object response – show a meaningful value instead
-- For array responses, if a field is nullable, the **first object** shows a real value; the **second object** may use `null` to demonstrate the nullable case
-- **Never use `...`** or placeholders like `"string"` / `"uuid"` in examples
+- **Never use `null`** in examples for fields that use `skip_serializing_none` — simply omit the field in the "nullable" case example.
+- **Never use `...`** or placeholders like `"string"` / `"uuid"` in examples.

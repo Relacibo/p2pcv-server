@@ -70,6 +70,7 @@ pub struct CreateLobbyResponse {
     pub lobby_id: Uuid,
 }
 
+#[serde_with::skip_serializing_none]
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LobbyResponse {

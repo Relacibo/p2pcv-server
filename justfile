@@ -19,7 +19,7 @@ entities:
         --database-url "$DATABASE_URL" \
         --output-dir src/db/entities \
         --with-serde both \
-        --model-extra-attributes 'serde(rename_all = "camelCase")'
+        --model-extra-attributes 'serde(rename_all = "camelCase"), serde_with::skip_serializing_none'
 
 # Regenerate bebop types from schemas
 bebop:

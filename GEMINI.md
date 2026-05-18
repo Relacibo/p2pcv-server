@@ -1,1 +1,3 @@
 - **Script Etiquette:** Whenever you need to write temporary scripts (e.g. Python scripts for complex text replacement) during Auto-Edit, ALWAYS create and execute them inside /tmp/ (e.g. cat << 'EOF' > /tmp/update.py). NEVER litter the workspace root with temporary oder utility scripts.
+- **JSON Serialization:** Standardize on using `#[serde_with::skip_serializing_none]` for all response structs. This ensures that `None` values are omitted from the JSON instead of being serialized as `null`.
+- **API Documentation:** Use the `field?: Type` notation in `docs/api.md` for optional response fields and optional request fields. For `PATCH` payloads where `null` has semantic meaning (e.g., clearing a field), use `field?: Type | null`.
