@@ -38,6 +38,13 @@ Public.
 | `q`       | string | Filter by username (prefix match, case-insensitive)                               |
 | `ids`     | string | Comma-separated UUIDs – returns exactly these users. Invalid UUIDs are ignored.   |
 
+**Example Requests**
+
+```
+GET /users?q=ali
+GET /users?ids=f47ac10b-58cc-4372-a567-0e02b2c3d479,6ba7b810-9dad-11d1-80b4-00c04fd430c8
+```
+
 **Response `200`** – `PublicUser[]`
 
 ```json
@@ -51,7 +58,7 @@ Public.
   {
     "id": "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
     "userName": "bob",
-    "avatarHash": null,
+    "avatarHash": "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3",
     "createdAt": "2024-04-01T18:00:00Z"
   }
 ]
@@ -67,7 +74,40 @@ GET /users/:id
 
 Authentication required. Own account only.
 
-**Response `200`** – full user object  
+**Schema**
+
+```typescript
+type FullUser = {
+  id: Uuid
+  userName: string
+  displayName: string
+  email: string
+  locale: string
+  verifiedEmail: boolean
+  createdAt: Timestamp
+  updatedAt: Timestamp
+  useGravatar: boolean
+  customAvatarHash: Sha256 | null
+}
+```
+
+**Response `200`**
+
+```json
+{
+  "id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+  "userName": "alice",
+  "displayName": "Alice",
+  "email": "alice@example.com",
+  "locale": "en",
+  "verifiedEmail": true,
+  "createdAt": "2024-03-15T09:12:34Z",
+  "updatedAt": "2024-06-01T14:00:00Z",
+  "useGravatar": true,
+  "customAvatarHash": "b94d27b9934d3e08a52e52d7da7dabfac484efe04294e576e4d8e1456b62c27d"
+}
+```
+
 **Response `401`** – unauthorized
 
 ---
@@ -99,7 +139,7 @@ type UpdateUserPayload = {
 }
 ```
 
-**Response `200`** – updated user object
+**Response `200`** – updated `FullUser` (same schema as `GET /users/:id`)
 
 ---
 
@@ -339,6 +379,13 @@ Public. Paginated list of active lobbies.
 | `allowGuests` | boolean | –       | Filter by `allowGuests`                          |
 | `status`      | string  | –       | `"waiting"` \| `"in-game"` \| `"finished"`      |
 | `scriptUrl`   | string  | –       | Filter by exact script URL                       |
+
+**Example Requests**
+
+```
+GET /lobby?status=waiting&allowGuests=true
+GET /lobby?scriptUrl=https%3A%2F%2Fgithub.com%2Fexample%2Fgame%2Fblob%2Fmain%2Fgame.js&page=1&limit=10
+```
 
 **Response `200`**
 
