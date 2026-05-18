@@ -47,6 +47,8 @@ async-trait = "0.1.89"
 validator = { version = "0.20", features = ["derive"] }
 rand = "0.8.6"
 sha2 = "0.10"
+hmac = "0.12"
+sha1 = "0.10"
 futures = "0.3.32"
 dashmap = "6.1.0"
 migration = { path = "migration" }

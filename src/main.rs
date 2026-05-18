@@ -55,6 +55,20 @@ async fn main() -> io::Result<()> {
     let lichess_config = api::auth::providers::lichess::config::Config::from_env();
     let reqwest_client = reqwest::Client::new();
 
+    let coturn = match (
+        crate::secret::try_read_secret("COTURN_SECRET"),
+        env::var("COTURN_URIS").ok(),
+    ) {
+        (Some(secret), Some(uris_raw)) => {
+            let uris = uris_raw.split(',').map(|s| s.trim().to_string()).collect();
+            Some(state::CoturnConfig { secret, uris })
+        }
+        _ => {
+            log::warn!("COTURN_SECRET / COTURN_URIS not set — TURN credentials endpoint disabled");
+            None
+        }
+    };
+
     let state = Arc::new(AppState {
         db,
         jwt_config,
@@ -63,6 +77,7 @@ async fn main() -> io::Result<()> {
         google_keystore,
         lichess_config,
         sse_registry: sse::SseRegistry::default(),
+        coturn,
     });
 
     // Background task: clean up stale lobbies every 60 seconds

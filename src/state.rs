@@ -11,6 +11,11 @@ use crate::{
     sse::SseRegistry,
 };
 
+pub struct CoturnConfig {
+    pub secret: String,
+    pub uris: Vec<String>,
+}
+
 pub struct AppState {
     pub db: DatabaseConnection,
     pub jwt_config: session::Config,
@@ -19,4 +24,5 @@ pub struct AppState {
     pub google_keystore: Arc<KeyStore>,
     pub lichess_config: lichess::config::Config,
     pub sse_registry: SseRegistry,
+    pub coturn: Option<CoturnConfig>,
 }

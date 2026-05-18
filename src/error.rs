@@ -44,6 +44,8 @@ pub enum AppError {
     InvalidLobbyStatus,
     #[error("invalid-script-url: {0}")]
     InvalidScriptUrl(String),
+    #[error("turn-not-configured")]
+    TurnNotConfigured,
 }
 
 impl From<DbErr> for AppError {
@@ -95,6 +97,7 @@ impl IntoResponse for AppError {
             | AppError::FriendRequestExistsInOtherDirection
             | AppError::UsernameAlreadyExists
             | AppError::Validate(_) => StatusCode::BAD_REQUEST,
+            AppError::TurnNotConfigured => StatusCode::SERVICE_UNAVAILABLE,
         };
         (
             status,

@@ -16,6 +16,7 @@ pub mod auth;
 pub mod events;
 pub mod games;
 pub mod lobby;
+pub mod turn;
 pub mod users;
 
 pub fn router() -> Router<Arc<crate::AppState>> {
@@ -26,6 +27,7 @@ pub fn router() -> Router<Arc<crate::AppState>> {
         .nest("/lobby", lobby::router())
         .route("/events", get(events::sse_handler))
         .route("/signal/{target_user_id}", post(relay_signal_direct))
+        .route("/turn-credentials", get(turn::get_turn_credentials))
 }
 
 // ── Generic signal relay (no lobby context) ───────────────────────────────────
