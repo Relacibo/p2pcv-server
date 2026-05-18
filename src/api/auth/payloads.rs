@@ -28,7 +28,11 @@ pub enum OauthData {
     #[serde(rename_all = "camelCase")]
     Google { credential: String },
     #[serde(rename_all = "camelCase")]
-    Lichess { code: String, code_verifier: String },
+    Lichess {
+        code: String,
+        code_verifier: String,
+        redirect_uri: Option<String>,
+    },
 }
 
 #[derive(Debug, Clone, Deserialize)]

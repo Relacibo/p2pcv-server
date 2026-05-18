@@ -44,12 +44,18 @@ struct LichessAccountResponse {
 }
 
 impl LichessProvider {
-    pub async fn new(state: &AppState, code: String, code_verifier: String) -> AppResult<Self> {
+    pub async fn new(
+        state: &AppState,
+        code: String,
+        code_verifier: String,
+        redirect_uri: Option<String>,
+    ) -> AppResult<Self> {
         let claims = request_lichess_claims(
             &state.reqwest_client,
             &state.lichess_config,
             code,
             code_verifier,
+            redirect_uri,
         )
         .await?;
         Ok(Self { claims })
@@ -61,6 +67,7 @@ async fn request_lichess_claims(
     config: &Config,
     code: String,
     code_verifier: String,
+    redirect_uri_override: Option<String>,
 ) -> AppResult<LichessClaims> {
     let Config {
         api_uri,
@@ -76,20 +83,27 @@ async fn request_lichess_claims(
         grant_type: "authorization_code".to_string(),
         code,
         code_verifier,
-        redirect_uri: redirect_uri.clone(),
+        redirect_uri: redirect_uri_override.unwrap_or_else(|| redirect_uri.clone()),
         client_id: client_id.clone(),
     };
+
+    let response = reqwest
+        .post(&token_endpoint)
+        .form(&token_request)
+        .send()
+        .await?;
+        
+    if !response.status().is_success() {
+        let status = response.status();
+        let text = response.text().await.unwrap_or_default();
+        log::error!("Failed to fetch Lichess token. Status: {status}, Body: {text}");
+        return Err(AppError::Unexpected);
+    }
 
     let LichessTokenResponse {
         access_token,
         ..
-    } = reqwest
-        .post(token_endpoint)
-        .form(&token_request)
-        .send()
-        .await?
-        .json()
-        .await?;
+    } = response.json().await?;
 
     let endpoint_path = format!("{api_uri}{account_endpoint_path}");
     let LichessAccountResponse { id, username } = reqwest

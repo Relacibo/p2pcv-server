@@ -39,7 +39,8 @@ impl ProviderFactory {
             OauthData::Lichess {
                 code,
                 code_verifier,
-            } => Box::new(LichessProvider::new(state, code, code_verifier).await?),
+                redirect_uri,
+            } => Box::new(LichessProvider::new(state, code, code_verifier, redirect_uri).await?),
         };
         Ok(provider)
     }
