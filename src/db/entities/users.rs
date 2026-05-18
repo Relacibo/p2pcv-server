@@ -17,6 +17,7 @@ pub struct Model {
     pub locale: String,
     pub verified_email: bool,
     pub use_gravatar: bool,
+    pub custom_avatar_hash: Option<String>,
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
 }

@@ -57,6 +57,7 @@ struct FriendEntryRow {
     id: Uuid,
     user_name: String,
     use_gravatar: bool,
+    custom_avatar_hash: Option<String>,
     email: String,
     created_at: sea_orm::entity::prelude::DateTimeWithTimeZone,
     friends_created_at: sea_orm::entity::prelude::DateTimeWithTimeZone,
@@ -67,7 +68,7 @@ impl From<user::Model> for PublicUser {
         Self {
             id: value.id,
             user_name: value.user_name,
-            avatar_hash: if value.use_gravatar { Some(format!("{:x}", Sha256::digest(value.email.trim().to_lowercase().as_bytes()))) } else { None },
+            avatar_hash: if value.use_gravatar { value.custom_avatar_hash.clone().or_else(|| Some(format!("{:x}", Sha256::digest(value.email.trim().to_lowercase().as_bytes())))) } else { None },
             created_at: value.created_at,
         }
     }
@@ -335,7 +336,7 @@ impl user::Model {
     ) -> Result<Vec<super::friends::FriendEntry>, sea_orm::DbErr> {
         let rows = FriendEntryRow::find_by_statement(Statement::from_sql_and_values(
             DbBackend::Postgres,
-            r#"SELECT users.id, user_name, users.use_gravatar, users.email, users.created_at, tmp.created_at_ret AS friends_created_at
+            r#"SELECT users.id, user_name, users.use_gravatar, users.custom_avatar_hash, users.email, users.created_at, tmp.created_at_ret AS friends_created_at
                FROM users INNER JOIN (SELECT * FROM get_friend_entries($1)) AS tmp ON users.id = tmp.friend_user_id_ret
                ORDER BY user_name"#,
             vec![user_id.into()],
@@ -350,7 +351,7 @@ impl user::Model {
                 friend: PublicUser {
                     id: row.id,
                     user_name: row.user_name,
-                    avatar_hash: if row.use_gravatar { Some(format!("{:x}", Sha256::digest(row.email.trim().to_lowercase().as_bytes()))) } else { None },
+                    avatar_hash: if row.use_gravatar { row.custom_avatar_hash.clone().or_else(|| Some(format!("{:x}", Sha256::digest(row.email.trim().to_lowercase().as_bytes())))) } else { None },
                     created_at: row.created_at,
                 },
             })
@@ -388,6 +389,7 @@ impl NewUserWithId {
             locale: Set(self.locale.unwrap_or_else(|| "en".to_string())),
             verified_email: Set(self.verified_email),
             use_gravatar: Set(false),
+            custom_avatar_hash: Set(None),
             created_at: Default::default(),
             updated_at: Default::default(),
         }

@@ -9,6 +9,7 @@ mod m20220101_000006_create_refresh_tokens;
 mod m20220101_000007_create_auth_providers;
 mod m20220101_000008_drop_lichess_access_tokens;
 mod m20220101_000009_add_use_gravatar_to_users;
+mod m20220101_000010_add_custom_avatar_hash_to_users;
 
 pub struct Migrator;
 
@@ -25,6 +26,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20220101_000007_create_auth_providers::Migration),
             Box::new(m20220101_000008_drop_lichess_access_tokens::Migration),
             Box::new(m20220101_000009_add_use_gravatar_to_users::Migration),
+            Box::new(m20220101_000010_add_custom_avatar_hash_to_users::Migration),
         ]
     }
 }

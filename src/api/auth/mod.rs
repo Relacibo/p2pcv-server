@@ -102,7 +102,7 @@ async fn guest_login(
     let guest_id = Uuid::new_v4();
     let access_token = generate_access_token(&state.jwt_config, guest_id, true)?;
     
-    let mut dummy_user = User { id: guest_id, user_name: format!("Guest {}", payload.display_name), display_name: payload.display_name.clone(), email: "".into(), locale: "en".into(), verified_email: false, use_gravatar: false, created_at: chrono::Utc::now().into(), updated_at: chrono::Utc::now().into() };
+    let mut dummy_user = User { id: guest_id, user_name: format!("Guest {}", payload.display_name), display_name: payload.display_name.clone(), email: "".into(), locale: "en".into(), verified_email: false, use_gravatar: false, custom_avatar_hash: None, created_at: chrono::Utc::now().into(), updated_at: chrono::Utc::now().into() };
     
     
     

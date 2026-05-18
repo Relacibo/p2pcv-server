@@ -8,6 +8,7 @@ use axum::{
     routing::{get, put},
 };
 use serde::Deserialize;
+use sha2::{Digest, Sha256};
 use uuid::Uuid;
 
 use crate::{
@@ -33,6 +34,8 @@ pub fn router() -> Router<Arc<AppState>> {
 #[serde(rename_all = "camelCase")]
 pub struct UpdateUserPayload {
     pub use_gravatar: bool,
+    #[serde(default)]
+    pub custom_gravatar_email: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -51,7 +54,7 @@ pub async fn delete_user(
     State(state): State<Arc<AppState>>,
     Path(user_id): Path<Uuid>,
     auth: Auth,
-) -> Result<StatusCode, AppError> {
+) -> Result<impl axum::response::IntoResponse, crate::error::AppError> {
     auth.should_be_user(user_id)?;
     User::delete(&state.db, user_id).await?;
     Ok(StatusCode::OK)
@@ -61,9 +64,9 @@ pub async fn get_user(
     State(state): State<Arc<AppState>>,
     auth: Auth,
     Path(user_id): Path<Uuid>,
-) -> EndpointResult<User> {
+) -> Result<impl axum::response::IntoResponse, crate::error::AppError> {
     auth.should_be_user(user_id)?;
-    Ok(Json(User::get(&state.db, user_id).await?))
+    Ok(axum::Json(User::get(&state.db, user_id).await?))
 }
 
 pub async fn update_user(
@@ -71,16 +74,23 @@ pub async fn update_user(
     Path(user_id): Path<Uuid>,
     auth: Auth,
     Json(payload): Json<UpdateUserPayload>,
-) -> Result<StatusCode, AppError> {
+) -> Result<impl axum::response::IntoResponse, crate::error::AppError> {
     auth.should_be_user(user_id)?;
     let user = User::get(&state.db, auth.user_id).await?;
     
     let mut active: crate::db::entities::users::ActiveModel = user.into();
     active.use_gravatar = sea_orm::ActiveValue::Set(payload.use_gravatar);
+    if let Some(email) = payload.custom_gravatar_email {
+        if email.trim().is_empty() {
+            active.custom_avatar_hash = sea_orm::ActiveValue::Set(None);
+        } else {
+            let hash = format!("{:x}", Sha256::digest(email.trim().to_lowercase().as_bytes()));
+            active.custom_avatar_hash = sea_orm::ActiveValue::Set(Some(hash));
+        }
+    }
     active.updated_at = sea_orm::ActiveValue::Set(chrono::Utc::now().into());
     
     use sea_orm::ActiveModelTrait;
-    active.update(&state.db).await?;
-    
-    Ok(StatusCode::NO_CONTENT)
+    let updated = active.update(&state.db).await?;
+    Ok(Json(updated))
 }
