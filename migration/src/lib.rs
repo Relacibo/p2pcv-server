@@ -5,6 +5,7 @@ mod m20220101_000002_create_google;
 mod m20220101_000003_create_friend_requests;
 mod m20220101_000004_create_friends_func;
 mod m20220101_000005_create_lichess;
+mod m20220101_000006_create_refresh_tokens;
 
 pub struct Migrator;
 
@@ -17,6 +18,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20220101_000003_create_friend_requests::Migration),
             Box::new(m20220101_000004_create_friends_func::Migration),
             Box::new(m20220101_000005_create_lichess::Migration),
+            Box::new(m20220101_000006_create_refresh_tokens::Migration),
         ]
     }
 }

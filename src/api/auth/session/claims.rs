@@ -26,6 +26,25 @@ impl From<Claims> for Auth {
 }
 
 impl Claims {
+    pub fn new_15_minutes(config: &Config, sub: Uuid) -> Result<Self, AppError> {
+        let Config {
+            jwt_audience,
+            jwt_issuers,
+            ..
+        } = config;
+        let now = Utc::now();
+        let expiration_time = now
+            .checked_add_signed(Duration::minutes(15))
+            .ok_or(AppError::Unexpected)?;
+        Ok(Self {
+            sub,
+            aud: jwt_audience.clone(),
+            iss: jwt_issuers.clone(),
+            iat: now,
+            exp: expiration_time,
+        })
+    }
+
     pub fn new_24_hours(config: &Config, sub: Uuid) -> Result<Self, AppError> {
         let Config {
             jwt_audience,

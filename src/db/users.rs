@@ -7,7 +7,10 @@ use uuid::Uuid;
 
 use crate::app_result::AppResult;
 
-use super::entities::{google_user, lichess_user, user};
+use super::{
+    entities::{google_user, lichess_user, refresh_token, user},
+    refresh_tokens::NewRefreshToken,
+};
 
 pub type User = user::Model;
 pub type LichessUser = lichess_user::Model;
@@ -105,6 +108,24 @@ impl user::Model {
         })
         .await?;
         Ok(())
+    }
+
+    pub async fn insert_refresh_token(
+        db: &DatabaseConnection,
+        data: NewRefreshToken,
+    ) -> AppResult<refresh_token::Model> {
+        refresh_token::Model::insert(db, data).await
+    }
+
+    pub async fn find_refresh_token(
+        db: &DatabaseConnection,
+        token_hash: &str,
+    ) -> AppResult<Option<refresh_token::Model>> {
+        refresh_token::Model::find_by_hash(db, token_hash).await
+    }
+
+    pub async fn revoke_refresh_token(db: &DatabaseConnection, id: Uuid) -> AppResult<()> {
+        refresh_token::Model::revoke(db, id).await
     }
 
     pub async fn list(db: &DatabaseConnection, q: Option<&str>) -> AppResult<Vec<PublicUser>> {

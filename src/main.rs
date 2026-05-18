@@ -102,7 +102,22 @@ async fn main() -> io::Result<()> {
 fn cors_layer() -> CorsLayer {
     #[cfg(debug_assertions)]
     {
-        CorsLayer::permissive()
+        use tower_http::cors::AllowOrigin;
+        CorsLayer::new()
+            .allow_origin(AllowOrigin::mirror_request())
+            .allow_methods([
+                http::Method::GET,
+                http::Method::POST,
+                http::Method::PUT,
+                http::Method::DELETE,
+                http::Method::OPTIONS,
+            ])
+            .allow_headers([
+                http::header::AUTHORIZATION,
+                http::header::CONTENT_TYPE,
+                http::header::COOKIE,
+            ])
+            .allow_credentials(true)
     }
     #[cfg(not(debug_assertions))]
     {
@@ -122,7 +137,12 @@ fn cors_layer() -> CorsLayer {
                 http::Method::DELETE,
                 http::Method::OPTIONS,
             ])
-            .allow_headers([http::header::AUTHORIZATION, http::header::CONTENT_TYPE])
+            .allow_headers([
+                http::header::AUTHORIZATION,
+                http::header::CONTENT_TYPE,
+                http::header::COOKIE,
+            ])
+            .allow_credentials(true)
     }
 }
 
