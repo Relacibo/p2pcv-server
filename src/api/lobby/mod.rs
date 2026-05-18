@@ -43,6 +43,7 @@ pub struct CreateLobbyResponse {
 pub struct LobbyResponse {
     pub id: Uuid,
     pub host_user_id: Uuid,
+    pub host_peer_session_id: Option<String>,
     pub script_url: String,
     pub allow_guests: bool,
     pub status: LobbyStatus,
@@ -111,6 +112,7 @@ async fn get_lobby(
     Ok(Json(LobbyResponse {
         id: lobby.id,
         host_user_id: lobby.host_user_id,
+        host_peer_session_id: lobby.host_peer_session_id.clone(),
         script_url: lobby.script_url,
         allow_guests: lobby.allow_guests,
         status: lobby.status,

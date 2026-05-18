@@ -17,6 +17,7 @@ pub enum LobbyStatus {
 pub struct Lobby {
     pub id: Uuid,
     pub host_user_id: Uuid,
+    pub host_peer_session_id: Option<String>,
     pub script_url: String,
     pub allow_guests: bool,
     pub status: LobbyStatus,
@@ -33,6 +34,7 @@ impl Lobby {
         Self {
             id: Uuid::new_v4(),
             host_user_id,
+            host_peer_session_id: None,
             script_url,
             allow_guests,
             status: LobbyStatus::Waiting,
