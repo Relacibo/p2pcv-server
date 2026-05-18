@@ -16,6 +16,7 @@ pub struct Model {
     pub email: String,
     pub locale: String,
     pub verified_email: bool,
+    pub use_gravatar: bool,
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
 }

@@ -1,0 +1,45 @@
+--- src/api/users/mod.rs
++++ src/api/users/mod.rs
+@@ -10,13 +10,21 @@
+     db::users::{PublicUser, User},
+     error::AppError,
+ };
++use serde::Deserialize;
+ 
+ pub mod friend_requests;
+ pub mod friends;
+ 
++#[derive(Deserialize)]
++#[serde(rename_all = "camelCase")]
++pub struct UpdateUserPayload {
++    pub use_gravatar: bool,
++}
++
+ pub fn router() -> Router<Arc<AppState>> {
+     Router::new()
+         .route("/", get(list_users))
++        .route("/me", put(update_me))
+         .nest("/:id/friends", friends::router())
+         .nest("/:id/friend-requests", friend_requests::router())
+ }
+@@ -28,3 +36,20 @@
+     let users = User::list(&state.db, payload.q.as_deref()).await?;
+     Ok(Json(users))
+ }
++
++async fn update_me(
++    State(state): State<Arc<AppState>>,
++    auth: Auth,
++    Json(payload): Json<UpdateUserPayload>,
++) -> Result<impl IntoResponse, AppError> {
++    let user = User::get(&state.db, auth.user_id).await?;
++    
++    let mut active: crate::db::entities::users::ActiveModel = user.into();
++    active.use_gravatar = sea_orm::ActiveValue::Set(payload.use_gravatar);
++    active.updated_at = sea_orm::ActiveValue::Set(chrono::Utc::now().into());
++    
++    use sea_orm::ActiveModelTrait;
++    active.update(&state.db).await?;
++    
++    Ok(StatusCode::NO_CONTENT)
++}

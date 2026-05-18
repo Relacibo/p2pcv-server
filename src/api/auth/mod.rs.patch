@@ -1,0 +1,42 @@
+--- src/api/auth/mod.rs
++++ src/api/auth/mod.rs
+@@ -14,7 +14,7 @@
+     api::auth::{
+         payloads::{
+             ConnectionsResponse, LinkPayload, LoginResponse, ProviderType, SigninPayload,
+-            SignupPayload, UnlinkPayload,
++            SignupPayload, UnlinkPayload, GuestLoginPayload, LoginResponseSuccess,
+         },
+         providers::{ProviderFactory, provider::ProviderError},
+         session::auth::Auth,
+@@ -35,6 +35,7 @@
+ pub fn router() -> Router<Arc<AppState>> {
+     Router::new()
+         .route("/signin", post(signin))
++        .route("/guest", post(guest_login))
+         .route("/signup", post(signup))
+         .route("/refresh", post(refresh))
+         .route("/logout", post(logout))
+@@ -93,6 +94,22 @@
+     issue_tokens(state, user).await
+ }
+ 
++async fn guest_login(
++    State(state): State<Arc<AppState>>,
++    Json(payload): Json<GuestLoginPayload>,
++) -> Result<impl IntoResponse, AppError> {
++    let guest_id = Uuid::new_v4();
++    let access_token = generate_access_token(&state.jwt_config, guest_id)?;
++    
++    let mut dummy_user = User::default();
++    dummy_user.id = guest_id;
++    dummy_user.display_name = payload.display_name.clone();
++    dummy_user.user_name = format!("Guest {}", payload.display_name);
++    
++    // Return only the access token (no refresh token for guests)
++    Ok(Json(LoginResponse::success(access_token, dummy_user)).into_response())
++}
++
+ async fn signup(
+     State(state): State<Arc<AppState>>,
+     Json(payload): Json<SignupPayload>,

@@ -1,0 +1,88 @@
+--- src/api/lobby/mod.rs
++++ src/api/lobby/mod.rs
+@@ -19,6 +19,7 @@
+         .route("/{id}", delete(delete_lobby))
+         .route("/{id}/heartbeat", post(heartbeat))
+         .route("/{id}/host", post(update_host))
++        .route("/{id}/settings", post(update_settings))
+         .route("/{id}/signal", post(relay_signal_in_lobby))
+ }
+ 
+@@ -28,6 +29,8 @@
+ #[serde(rename_all = "camelCase")]
+ pub struct CreateLobbyPayload {
+     pub script_url: String,
++    #[serde(default)]
++    pub allow_guests: bool,
+ }
+ 
+ #[derive(Serialize)]
+@@ -40,6 +43,7 @@
+     pub id: Uuid,
+     pub host_user_id: Uuid,
+     pub script_url: String,
++    pub allow_guests: bool,
+ }
+ 
+ #[derive(Deserialize)]
+@@ -49,6 +53,12 @@
+ }
+ 
+ #[derive(Deserialize)]
++#[serde(rename_all = "camelCase")]
++pub struct UpdateSettingsPayload {
++    pub allow_guests: bool,
++}
++
++#[derive(Deserialize)]
+ #[serde(rename_all = "camelCase")]
+ pub struct SignalPayload {
+     pub to_user_id: Uuid,
+@@ -79,7 +89,7 @@
+ ) -> Result<impl IntoResponse, AppError> {
+     let lobby = state
+         .lobby_registry
+-        .create(auth.user_id, payload.script_url);
++        .create(auth.user_id, payload.script_url, payload.allow_guests);
+     Ok((
+         StatusCode::CREATED,
+         Json(CreateLobbyResponse { lobby_id: lobby.id }),
+@@ -98,6 +108,7 @@
+         id: lobby.id,
+         host_user_id: lobby.host_user_id,
+         script_url: lobby.script_url,
++        allow_guests: lobby.allow_guests,
+     }))
+ }
+ 
+@@ -145,13 +156,31 @@
+     Ok(StatusCode::NO_CONTENT)
+ }
+ 
++async fn update_settings(
++    State(state): State<Arc<AppState>>,
++    Path(lobby_id): Path<Uuid>,
++    auth: Auth,
++    Json(payload): Json<UpdateSettingsPayload>,
++) -> Result<impl IntoResponse, AppError> {
++    let lobby = state
++        .lobby_registry
++        .get(&lobby_id)
++        .ok_or(AppError::LobbyNotFound)?;
++    if lobby.host_user_id != auth.user_id {
++        return Err(AppError::Unauthorized);
++    }
++    state.lobby_registry.update_settings(&lobby_id, payload.allow_guests);
++    Ok(StatusCode::NO_CONTENT)
++}
++
+ /// Relay a WebRTC signal to another user within a lobby context.
+ async fn relay_signal_in_lobby(
+     State(state): State<Arc<AppState>>,
+     Path(lobby_id): Path<Uuid>,
+     auth: Auth,
+     Json(payload): Json<SignalPayload>,
+ ) -> Result<impl IntoResponse, AppError> {
+     state
+         .lobby_registry
+         .get(&lobby_id)

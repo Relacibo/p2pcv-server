@@ -130,6 +130,7 @@ fn map_row(row: FriendRequestRow) -> (FriendRequest, PublicUser) {
         PublicUser {
             id: row.user_id,
             user_name: row.user_name,
+            avatar_hash: None,
             created_at: row.user_created_at,
         },
     )
