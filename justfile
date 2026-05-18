@@ -18,7 +18,8 @@ entities:
     sea-orm-cli generate entity \
         --database-url "$DATABASE_URL" \
         --output-dir src/db/entities \
-        --with-serde both
+        --with-serde both \
+        --model-extra-attributes 'serde(rename_all = "camelCase")'
 
 # Regenerate bebop types from schemas
 bebop:
