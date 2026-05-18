@@ -1,0 +1,1 @@
+- **Script Etiquette:** Whenever you need to write temporary scripts (e.g. Python scripts for complex text replacement) during Auto-Edit, ALWAYS create and execute them inside /tmp/ (e.g. cat << 'EOF' > /tmp/update.py). NEVER litter the workspace root with temporary oder utility scripts.
