@@ -3,6 +3,5 @@
 pub use super::auth_providers::Entity as AuthProviders;
 pub use super::friend_requests::Entity as FriendRequests;
 pub use super::friends::Entity as Friends;
-pub use super::lichess_access_tokens::Entity as LichessAccessTokens;
 pub use super::refresh_tokens::Entity as RefreshTokens;
 pub use super::users::Entity as Users;

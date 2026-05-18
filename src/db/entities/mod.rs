@@ -5,6 +5,5 @@ pub mod prelude;
 pub mod auth_providers;
 pub mod friend_requests;
 pub mod friends;
-pub mod lichess_access_tokens;
 pub mod refresh_tokens;
 pub mod users;
