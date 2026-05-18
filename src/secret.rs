@@ -14,16 +14,17 @@ pub fn read_secret(name: &str) -> String {
     }
 }
 
-/// Like `read_secret` but returns `None` if neither env var is set.
+/// Like `read_secret` but returns `None` if neither env var nor file is set/readable.
 pub fn try_read_secret(name: &str) -> Option<String> {
     let file_var = format!("{name}_FILE");
     if let Ok(path) = env::var(&file_var) {
-        Some(
-            fs::read_to_string(&path)
-                .unwrap_or_else(|e| panic!("Could not read secret file {path} ({file_var}): {e}"))
-                .trim_end_matches('\n')
-                .to_string(),
-        )
+        match fs::read_to_string(&path) {
+            Ok(content) => Some(content.trim_end_matches('\n').to_string()),
+            Err(e) => {
+                log::warn!("Could not read secret file {path} ({file_var}): {e}");
+                None
+            }
+        }
     } else {
         env::var(name).ok()
     }

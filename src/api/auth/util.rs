@@ -29,7 +29,12 @@ pub fn generate_access_token(
     user_id: Uuid,
     is_guest: bool,
 ) -> Result<String, AppError> {
-    let claims = Claims::new_15_minutes(jwt_config, user_id, is_guest)?;
+    // Guests have no refresh token mechanism, so give them a 24-hour token
+    let claims = if is_guest {
+        Claims::new_24_hours(jwt_config, user_id, is_guest)?
+    } else {
+        Claims::new_15_minutes(jwt_config, user_id, is_guest)?
+    };
     claims.generate_token(jwt_config)
 }
 
