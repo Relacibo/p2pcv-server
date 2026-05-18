@@ -19,7 +19,9 @@ entities:
         --database-url "$DATABASE_URL" \
         --output-dir src/db/entities \
         --with-serde both \
-        --model-extra-attributes 'serde(rename_all = "camelCase"), serde_with::skip_serializing_none'
+        --model-extra-attributes 'serde(rename_all = "camelCase"), SKIP_SERIALIZING_NONE_PLACEHOLDER'
+    sed -i '/SKIP_SERIALIZING_NONE_PLACEHOLDER/d' src/db/entities/*.rs
+    sed -i '/#\[derive(/i #[serde_with::skip_serializing_none]' src/db/entities/*.rs
 
 # Regenerate bebop types from schemas
 bebop:

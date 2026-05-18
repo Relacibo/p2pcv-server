@@ -3,6 +3,8 @@
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
+#[serde_with::skip_serializing_none]
+#[serde_with::skip_serializing_none]
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, Deserialize)]
 #[sea_orm(table_name = "lichess_access_tokens")]
 pub struct Model {
@@ -13,6 +15,8 @@ pub struct Model {
     pub created_at: DateTimeWithTimeZone,
 }
 
+#[serde_with::skip_serializing_none]
+#[serde_with::skip_serializing_none]
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {}
 
