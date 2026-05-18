@@ -25,6 +25,7 @@ pub mod friends;
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/", get(list))
+        .route("/me", put(update_me))
         .route("/{uuid}", get(get_user).delete(delete_user).put(update_user))
         .merge(friend_requests::router())
         .merge(friends::router())
@@ -76,6 +77,32 @@ pub async fn update_user(
     Json(payload): Json<UpdateUserPayload>,
 ) -> Result<impl axum::response::IntoResponse, crate::error::AppError> {
     auth.should_be_user(user_id)?;
+    let user = User::get(&state.db, auth.user_id).await?;
+    
+    let mut active: crate::db::entities::users::ActiveModel = user.into();
+    active.use_gravatar = sea_orm::ActiveValue::Set(payload.use_gravatar);
+    if let Some(email) = payload.custom_gravatar_email {
+        if email.trim().is_empty() {
+            active.custom_avatar_hash = sea_orm::ActiveValue::Set(None);
+        } else {
+            let hash = format!("{:x}", Sha256::digest(email.trim().to_lowercase().as_bytes()));
+            active.custom_avatar_hash = sea_orm::ActiveValue::Set(Some(hash));
+        }
+    }
+    active.updated_at = sea_orm::ActiveValue::Set(chrono::Utc::now().into());
+    
+    use sea_orm::ActiveModelTrait;
+    let updated = active.update(&state.db).await?;
+    Ok(Json(updated))
+}
+
+pub async fn update_me(
+    state: State<Arc<AppState>>,
+    auth: Auth,
+    payload: Json<UpdateUserPayload>,
+) -> Result<impl axum::response::IntoResponse, crate::error::AppError> {
+    let State(state) = state;
+    let Json(payload) = payload;
     let user = User::get(&state.db, auth.user_id).await?;
     
     let mut active: crate::db::entities::users::ActiveModel = user.into();
