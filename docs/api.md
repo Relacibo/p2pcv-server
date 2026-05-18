@@ -219,9 +219,7 @@ Authentication required.
 type IncomingFriendRequestsResponse = {
   receiverId: Uuid
   friendRequests: Array<{
-    message: string | null
-    createdAt: Timestamp
-    sender: PublicUser
+    message?: string
   }>
 }
 ```
@@ -260,9 +258,7 @@ Authentication required.
 type OutgoingFriendRequestsResponse = {
   senderId: Uuid
   friendRequests: Array<{
-    message: string | null
-    createdAt: Timestamp
-    receiver: PublicUser
+    message?: string
   }>
 }
 ```
