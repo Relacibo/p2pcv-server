@@ -33,10 +33,12 @@ Public.
 
 **Query Parameters**
 
-| Parameter | Type   | Description                                                                       |
-|-----------|--------|-----------------------------------------------------------------------------------|
-| `q`       | string | Filter by username (prefix match, case-insensitive)                               |
-| `ids`     | string | Comma-separated UUIDs – returns exactly these users. Invalid UUIDs are ignored.   |
+| Parameter | Type    | Default | Description                                                                       |
+|-----------|---------|---------|-----------------------------------------------------------------------------------|
+| `page`    | integer | `0`     | Page number (0-based)                                                             |
+| `limit`   | integer | `20`    | Items per page (max. 100)                                                         |
+| `q`       | string  | –       | Filter by username (prefix match, case-insensitive)                               |
+| `ids`     | string  | –       | Comma-separated UUIDs – returns exactly these users. Invalid UUIDs are ignored.   |
 
 **Example Requests**
 
@@ -45,22 +47,36 @@ GET /users?q=ali
 GET /users?ids=f47ac10b-58cc-4372-a567-0e02b2c3d479,6ba7b810-9dad-11d1-80b4-00c04fd430c8
 ```
 
-**Response `200`** – `PublicUser[]`
+**Response `200`**
+
+```typescript
+type ListUsersResponse = {
+  items: PublicUser[]
+  total: number
+  page: number
+  limit: number
+}
+```
 
 ```json
-[
-  {
-    "id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-    "userName": "alice",
-    "avatarHash": "b94d27b9934d3e08a52e52d7da7dabfac484efe04294e576e4d8e1456b62c27d",
-    "createdAt": "2024-03-15T09:12:34Z"
-  },
-  {
-    "id": "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
-    "userName": "bob",
-    "createdAt": "2024-04-01T18:00:00Z"
-  }
-]
+{
+  "items": [
+    {
+      "id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+      "userName": "alice",
+      "avatarHash": "b94d27b9934d3e08a52e52d7da7dabfac484efe04294e576e4d8e1456b62c27d",
+      "createdAt": "2024-03-15T09:12:34Z"
+    },
+    {
+      "id": "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+      "userName": "bob",
+      "createdAt": "2024-04-01T18:00:00Z"
+    }
+  ],
+  "total": 2,
+  "page": 0,
+  "limit": 20
+}
 ```
 
 ---
@@ -493,8 +509,6 @@ type PatchLobbyPayload = {
   allowGuests?: boolean
   status?: LobbyStatus
   playerCount?: number
-  minPlayers?: number | null
-  maxPlayers?: number | null
 }
 ```
 
@@ -503,9 +517,7 @@ type PatchLobbyPayload = {
 ```json
 {
   "status": "in-game",
-  "playerCount": 2,
-  "minPlayers": 2,
-  "maxPlayers": 4
+  "playerCount": 2
 }
 ```
 

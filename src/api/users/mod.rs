@@ -40,16 +40,45 @@ pub struct UpdateUserPayload {
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ListParams {
-    q: Option<String>,
+    #[serde(default)]
+    pub page: u64,
+    #[serde(default = "default_limit")]
+    pub limit: u64,
+    pub q: Option<String>,
     /// Comma-separated list of user UUIDs to filter by, e.g. `?ids=uuid1,uuid2`
-    ids: Option<String>,
+    pub ids: Option<String>,
+}
+
+fn default_limit() -> u64 {
+    20
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ListUsersResponse {
+    pub items: Vec<PublicUser>,
+    pub total: u64,
+    pub page: u64,
+    pub limit: u64,
+}
+
+impl From<crate::db::users::UserPage> for ListUsersResponse {
+    fn from(p: crate::db::users::UserPage) -> Self {
+        Self {
+            items: p.items,
+            total: p.total,
+            page: p.page,
+            limit: p.limit,
+        }
+    }
 }
 
 pub async fn list(
     State(state): State<Arc<AppState>>,
     Query(params): Query<ListParams>,
-) -> EndpointResult<Vec<PublicUser>> {
+) -> EndpointResult<ListUsersResponse> {
     let ids: Option<Vec<Uuid>> = params
         .ids
         .as_deref()
@@ -60,9 +89,16 @@ pub async fn list(
                 .filter_map(|p| Uuid::parse_str(p.trim()).ok())
                 .collect()
         });
-    Ok(Json(
-        User::list(&state.db, params.q.as_deref(), ids.as_deref()).await?,
-    ))
+    
+    let db_params = crate::db::users::UserListParams {
+        page: params.page,
+        limit: params.limit,
+        q: params.q,
+        ids,
+    };
+    
+    let page = User::list(&state.db, db_params).await?;
+    Ok(Json(ListUsersResponse::from(page)))
 }
 
 pub async fn delete_user(

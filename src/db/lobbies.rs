@@ -108,12 +108,6 @@ impl lobby::Model {
         if let Some(v) = patch.player_count {
             active.player_count = Set(v as i32);
         }
-        if let Some(v) = patch.min_players {
-            active.min_players = Set(v.map(|n| n as i32));
-        }
-        if let Some(v) = patch.max_players {
-            active.max_players = Set(v.map(|n| n as i32));
-        }
         active.update(db).await?;
         Ok(Some(true))
     }

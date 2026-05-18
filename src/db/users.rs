@@ -75,6 +75,20 @@ impl From<user::Model> for PublicUser {
     }
 }
 
+pub struct UserListParams {
+    pub page: u64,
+    pub limit: u64,
+    pub q: Option<String>,
+    pub ids: Option<Vec<Uuid>>,
+}
+
+pub struct UserPage {
+    pub items: Vec<PublicUser>,
+    pub total: u64,
+    pub page: u64,
+    pub limit: u64,
+}
+
 impl user::Model {
     pub async fn delete(db: &DatabaseConnection, query_uuid: Uuid) -> AppResult<()> {
         let txn = db.begin().await?;
@@ -119,17 +133,27 @@ impl user::Model {
         refresh_token::Model::revoke(db, id).await
     }
 
-    pub async fn list(db: &DatabaseConnection, q: Option<&str>, ids: Option<&[Uuid]>) -> AppResult<Vec<PublicUser>> {
+    pub async fn list(db: &DatabaseConnection, params: UserListParams) -> AppResult<UserPage> {
+        let limit = params.limit.clamp(1, 100);
         let mut query = user::Entity::find().order_by_asc(user::Column::UserName);
-        if let Some(q) = q.filter(|s| !s.is_empty()) {
+        if let Some(q) = params.q.filter(|s| !s.is_empty()) {
             let pattern = format!("{}%", q.replace('%', "\\%").replace('_', "\\_"));
             query = query.filter(Expr::col(user::Column::UserName).ilike(pattern));
         }
-        if let Some(ids) = ids.filter(|ids| !ids.is_empty()) {
-            query = query.filter(user::Column::Id.is_in(ids.to_vec()));
+        if let Some(ids) = params.ids.filter(|ids| !ids.is_empty()) {
+            query = query.filter(user::Column::Id.is_in(ids));
         }
-        let users = query.all(db).await?;
-        Ok(users.into_iter().map(Into::into).collect())
+        
+        let paginator = query.paginate(db, limit);
+        let total = paginator.num_items().await?;
+        let items = paginator.fetch_page(params.page).await?;
+        
+        Ok(UserPage {
+            items: items.into_iter().map(Into::into).collect(),
+            total,
+            page: params.page,
+            limit,
+        })
     }
 
     pub async fn get(db: &DatabaseConnection, id: Uuid) -> AppResult<user::Model> {

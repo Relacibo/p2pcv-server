@@ -118,8 +118,6 @@ pub struct PatchLobbyPayload {
     pub allow_guests: Option<bool>,
     pub status: Option<LobbyStatus>,
     pub player_count: Option<u32>,
-    pub min_players: Option<Option<u32>>,
-    pub max_players: Option<Option<u32>>,
 }
 
 #[derive(Deserialize)]
@@ -203,8 +201,6 @@ async fn patch_lobby(
         allow_guests: payload.allow_guests,
         status: payload.status,
         player_count: payload.player_count,
-        min_players: payload.min_players,
-        max_players: payload.max_players,
     };
     match Lobby::patch(&state.db, lobby_id, auth.user_id, patch).await? {
         None => Err(AppError::LobbyNotFound),
