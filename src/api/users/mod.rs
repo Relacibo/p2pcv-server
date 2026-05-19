@@ -35,8 +35,7 @@ pub fn router() -> Router<Arc<AppState>> {
 #[serde(rename_all = "camelCase")]
 pub struct PatchUserPayload {
     pub use_gravatar: Option<bool>,
-    #[serde(default)]
-    pub custom_gravatar_email: Option<String>,
+    pub custom_gravatar_email: Option<Option<String>>,
 }
 
 #[derive(Deserialize)]
@@ -133,13 +132,11 @@ pub async fn update_user(
     if let Some(use_gravatar) = payload.use_gravatar {
         active.use_gravatar = sea_orm::ActiveValue::Set(use_gravatar);
     }
-    if let Some(email) = payload.custom_gravatar_email {
-        if email.trim().is_empty() {
-            active.custom_avatar_hash = sea_orm::ActiveValue::Set(None);
-        } else {
-            let hash = format!("{:x}", Sha256::digest(email.trim().to_lowercase().as_bytes()));
-            active.custom_avatar_hash = sea_orm::ActiveValue::Set(Some(hash));
-        }
+    if let Some(email_opt) = payload.custom_gravatar_email {
+        let hash = email_opt
+            .filter(|e| !e.trim().is_empty())
+            .map(|e| format!("{:x}", Sha256::digest(e.trim().to_lowercase().as_bytes())));
+        active.custom_avatar_hash = sea_orm::ActiveValue::Set(hash);
     }
     active.updated_at = sea_orm::ActiveValue::Set(chrono::Utc::now().into());
     
@@ -161,13 +158,11 @@ pub async fn update_me(
     if let Some(use_gravatar) = payload.use_gravatar {
         active.use_gravatar = sea_orm::ActiveValue::Set(use_gravatar);
     }
-    if let Some(email) = payload.custom_gravatar_email {
-        if email.trim().is_empty() {
-            active.custom_avatar_hash = sea_orm::ActiveValue::Set(None);
-        } else {
-            let hash = format!("{:x}", Sha256::digest(email.trim().to_lowercase().as_bytes()));
-            active.custom_avatar_hash = sea_orm::ActiveValue::Set(Some(hash));
-        }
+    if let Some(email_opt) = payload.custom_gravatar_email {
+        let hash = email_opt
+            .filter(|e| !e.trim().is_empty())
+            .map(|e| format!("{:x}", Sha256::digest(e.trim().to_lowercase().as_bytes())));
+        active.custom_avatar_hash = sea_orm::ActiveValue::Set(hash);
     }
     active.updated_at = sea_orm::ActiveValue::Set(chrono::Utc::now().into());
     

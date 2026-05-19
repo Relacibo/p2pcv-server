@@ -141,7 +141,7 @@ Authentication required. All fields are optional; only the provided fields are u
 ```typescript
 type PatchUserPayload = {
   useGravatar?: boolean
-  customGravatarEmail?: string      // empty string resets the custom hash
+  customGravatarEmail?: string | null   // null or empty string clears the custom hash
 }
 ```
 
