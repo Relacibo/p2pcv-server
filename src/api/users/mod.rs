@@ -5,7 +5,7 @@ use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
-    routing::{get, put},
+    routing::{get, patch},
 };
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
@@ -25,16 +25,16 @@ pub mod friends;
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/", get(list))
-        .route("/me", put(update_me))
-        .route("/{uuid}", get(get_user).delete(delete_user).put(update_user))
+        .route("/me", patch(update_me))
+        .route("/{uuid}", get(get_user).delete(delete_user).patch(update_user))
         .merge(friend_requests::router())
         .merge(friends::router())
 }
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct UpdateUserPayload {
-    pub use_gravatar: bool,
+pub struct PatchUserPayload {
+    pub use_gravatar: Option<bool>,
     #[serde(default)]
     pub custom_gravatar_email: Option<String>,
 }
@@ -124,13 +124,15 @@ pub async fn update_user(
     State(state): State<Arc<AppState>>,
     Path(user_id): Path<Uuid>,
     auth: Auth,
-    Json(payload): Json<UpdateUserPayload>,
+    Json(payload): Json<PatchUserPayload>,
 ) -> Result<impl axum::response::IntoResponse, crate::error::AppError> {
     auth.should_be_user(user_id)?;
     let user = User::get(&state.db, auth.user_id).await?;
     
     let mut active: crate::db::entities::users::ActiveModel = user.into();
-    active.use_gravatar = sea_orm::ActiveValue::Set(payload.use_gravatar);
+    if let Some(use_gravatar) = payload.use_gravatar {
+        active.use_gravatar = sea_orm::ActiveValue::Set(use_gravatar);
+    }
     if let Some(email) = payload.custom_gravatar_email {
         if email.trim().is_empty() {
             active.custom_avatar_hash = sea_orm::ActiveValue::Set(None);
@@ -149,14 +151,16 @@ pub async fn update_user(
 pub async fn update_me(
     state: State<Arc<AppState>>,
     auth: Auth,
-    payload: Json<UpdateUserPayload>,
+    payload: Json<PatchUserPayload>,
 ) -> Result<impl axum::response::IntoResponse, crate::error::AppError> {
     let State(state) = state;
     let Json(payload) = payload;
     let user = User::get(&state.db, auth.user_id).await?;
     
     let mut active: crate::db::entities::users::ActiveModel = user.into();
-    active.use_gravatar = sea_orm::ActiveValue::Set(payload.use_gravatar);
+    if let Some(use_gravatar) = payload.use_gravatar {
+        active.use_gravatar = sea_orm::ActiveValue::Set(use_gravatar);
+    }
     if let Some(email) = payload.custom_gravatar_email {
         if email.trim().is_empty() {
             active.custom_avatar_hash = sea_orm::ActiveValue::Set(None);

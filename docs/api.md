@@ -127,20 +127,20 @@ type FullUser = {
 
 ---
 
-## Update User
+## Patch User
 
 ```
-PUT /users/:id
-PUT /users/me
+PATCH /users/:id
+PATCH /users/me
 ```
 
-Authentication required.
+Authentication required. All fields are optional; only the provided fields are updated.
 
 **Schema**
 
 ```typescript
-type UpdateUserPayload = {
-  useGravatar: boolean
+type PatchUserPayload = {
+  useGravatar?: boolean
   customGravatarEmail?: string      // empty string resets the custom hash
 }
 ```
@@ -235,6 +235,8 @@ type IncomingFriendRequestsResponse = {
   receiverId: Uuid
   friendRequests: Array<{
     message?: string
+    createdAt: Timestamp
+    sender: PublicUser
   }>
 }
 ```
@@ -274,6 +276,8 @@ type OutgoingFriendRequestsResponse = {
   senderId: Uuid
   friendRequests: Array<{
     message?: string
+    createdAt: Timestamp
+    receiver: PublicUser
   }>
 }
 ```

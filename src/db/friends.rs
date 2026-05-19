@@ -8,6 +8,7 @@ pub type Friends = friend::Model;
 pub type QueryResult<T> = Result<T, DbErr>;
 
 #[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct FriendEntry {
     pub created_at: sea_orm::entity::prelude::DateTimeWithTimeZone,
     pub friend: PublicUser,
