@@ -35,6 +35,7 @@ pub fn router() -> Router<Arc<AppState>> {
 #[serde(rename_all = "camelCase")]
 pub struct PatchUserPayload {
     pub use_gravatar: Option<bool>,
+    #[serde(default, deserialize_with = "serde_with::rust::double_option::deserialize")]
     pub custom_gravatar_email: Option<Option<String>>,
 }
 

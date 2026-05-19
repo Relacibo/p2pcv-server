@@ -120,8 +120,11 @@ pub struct PatchLobbyPayload {
     pub allow_guests: Option<bool>,
     pub status: Option<LobbyStatus>,
     pub player_count: Option<u32>,
+    #[serde(default, deserialize_with = "serde_with::rust::double_option::deserialize")]
     pub min_players: Option<Option<u32>>,
+    #[serde(default, deserialize_with = "serde_with::rust::double_option::deserialize")]
     pub max_players: Option<Option<u32>>,
+    #[serde(default, deserialize_with = "serde_with::rust::double_option::deserialize")]
     pub host_peer_session_id: Option<Option<String>>,
     pub script_url: Option<String>,
 }

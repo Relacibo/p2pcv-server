@@ -59,6 +59,13 @@ if let Some(opt) = payload.clearable_field {
 }
 ```
 
+For `Option<Option<T>>` fields, standard serde cannot distinguish between an absent field and `null` — both would deserialize as `None`. Always use `#[serde(default, deserialize_with = "serde_with::rust::double_option::deserialize")]` on these fields:
+
+```rust
+#[serde(default, deserialize_with = "serde_with::rust::double_option::deserialize")]
+pub clearable_field: Option<Option<String>>,
+```
+
 ### Enum values in the database and JSON bodies
 
 Enum variants stored as text in PostgreSQL and serialized in JSON request/response bodies use **kebab-case** (e.g. `waiting`, `in-game`, `finished`). Use `#[serde(rename_all = "kebab-case")]` on all enums.
