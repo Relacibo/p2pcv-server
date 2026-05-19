@@ -36,6 +36,29 @@ Always run `just migrate` before `just entities` after adding a new migration.
 - Avoid returning `null` in responses unless there is a strong semantic reason to distinguish between "absent" and "null".
 - For **request payloads** (especially `PATCH`), use `field?: Type | null` when the field is truly nullable (mapped to `Option<Option<T>>` in Rust), where `null` means "clear this field" and absence means "leave unchanged".
 
+### PATCH endpoints
+
+PATCH payloads must only update fields that are explicitly present in the request body. Use the following field types in Rust:
+
+| Scenario | Rust type | JSON absent | JSON `null` | JSON value |
+|---|---|---|---|---|
+| Optional update, not clearable | `Option<T>` | no change | *(not applicable)* | set to value |
+| Optional update, clearable | `Option<Option<T>>` | no change | clear (set to `None`) | set to value |
+
+**Never** use a non-optional type (e.g. `bool`) in a PATCH payload — this forces callers to always send the field, which is not a partial update.
+
+In the handler, only call `ActiveValue::Set(...)` for fields where the outer `Option` is `Some`. Example:
+
+```rust
+if let Some(val) = payload.some_field {
+    active.some_field = sea_orm::ActiveValue::Set(val);
+}
+if let Some(opt) = payload.clearable_field {
+    // opt is None → clear, opt is Some(v) → set
+    active.clearable_field = sea_orm::ActiveValue::Set(opt);
+}
+```
+
 ### Enum values in the database and JSON bodies
 
 Enum variants stored as text in PostgreSQL and serialized in JSON request/response bodies use **kebab-case** (e.g. `waiting`, `in-game`, `finished`). Use `#[serde(rename_all = "kebab-case")]` on all enums.
