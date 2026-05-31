@@ -44,12 +44,17 @@ pub struct SigninPayload {
 }
 
 fn validate_username(username: &str) -> Result<(), ValidationError> {
-    if !username.chars().all(|c| c.is_ascii_alphanumeric()) {
-        return Err(ValidationError::new("username must be alphanumeric"));
+    if !username
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
+    {
+        return Err(ValidationError::new(
+            "username must only contain alphanumeric characters, underscores, and dashes",
+        ));
     }
     if let Some(first) = username.chars().next() {
-        if first.is_ascii_digit() {
-            return Err(ValidationError::new("username must not start with a digit"));
+        if !first.is_ascii_alphabetic() {
+            return Err(ValidationError::new("username must start with a letter"));
         }
     }
     Ok(())
