@@ -11,6 +11,7 @@ use super::session::{self, claims::Claims};
 
 pub const REFRESH_TOKEN_MAX_AGE_SECS: i64 = 30 * 24 * 3600;
 
+#[allow(unused)]
 pub struct RefreshTokenData {
     /// Raw token value – send to client, never store directly.
     pub token: String,
@@ -92,13 +93,4 @@ pub fn extract_refresh_token_from_cookie(headers: &axum::http::HeaderMap) -> Opt
                     .map(|v| v.to_string())
             })
         })
-}
-
-// Keep the old name as an alias so nothing else breaks.
-pub fn generate_login_token(
-    jwt_config: &session::Config,
-    user_id: Uuid,
-    is_guest: bool,
-) -> Result<String, AppError> {
-    generate_access_token(jwt_config, user_id, is_guest)
 }

@@ -26,6 +26,7 @@ struct LichessTokenRequest {
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(unused)]
 struct LichessTokenResponse {
     token_type: String,
     access_token: String,
@@ -92,7 +93,7 @@ async fn request_lichess_claims(
         .form(&token_request)
         .send()
         .await?;
-        
+
     if !response.status().is_success() {
         let status = response.status();
         let text = response.text().await.unwrap_or_default();
@@ -100,10 +101,7 @@ async fn request_lichess_claims(
         return Err(AppError::Unexpected);
     }
 
-    let LichessTokenResponse {
-        access_token,
-        ..
-    } = response.json().await?;
+    let LichessTokenResponse { access_token, .. } = response.json().await?;
 
     let endpoint_path = format!("{api_uri}{account_endpoint_path}");
     let LichessAccountResponse { id, username } = reqwest
@@ -153,7 +151,7 @@ impl Provider for LichessProvider {
             username: lichess_username,
             ..
         } = &self.claims;
-        let new_user = self.claims.clone().to_db_user(username.to_string());
+        let new_user = self.claims.clone().into_db_user(username.to_string());
         let insert_result =
             User::insert_with_provider(db, new_user, "lichess", id, Some(lichess_username)).await;
         let user = match insert_result {

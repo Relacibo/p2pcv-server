@@ -11,6 +11,7 @@ use crate::{AppState, db::users::User, error::AppError};
 
 use super::claims::Claims;
 
+#[allow(unused)]
 pub struct Auth {
     pub user_id: Uuid,
     pub is_guest: bool,
@@ -44,22 +45,20 @@ impl Auth {
 impl FromRequestParts<Arc<AppState>> for Auth {
     type Rejection = AppError;
 
-    fn from_request_parts(
+    async fn from_request_parts(
         parts: &mut Parts,
         state: &Arc<AppState>,
-    ) -> impl std::future::Future<Output = Result<Self, Self::Rejection>> + Send {
-        async move {
-            let TypedHeader(Authorization(bearer)) =
-                TypedHeader::<Authorization<Bearer>>::from_request_parts(parts, &())
-                    .await
-                    .map_err(|_| AppError::Unauthorized)?;
-            let claims = jsonwebtoken::decode::<Claims>(
-                bearer.token(),
-                &state.jwt_config.jwt_decoding_key,
-                &state.jwt_config.jwt_validation,
-            )?
-            .claims;
-            Ok(claims.into())
-        }
+    ) -> Result<Self, Self::Rejection> {
+        let TypedHeader(Authorization(bearer)) =
+            TypedHeader::<Authorization<Bearer>>::from_request_parts(parts, &())
+                .await
+                .map_err(|_| AppError::Unauthorized)?;
+        let claims = jsonwebtoken::decode::<Claims>(
+            bearer.token(),
+            &state.jwt_config.jwt_decoding_key,
+            &state.jwt_config.jwt_validation,
+        )?
+        .claims;
+        Ok(claims.into())
     }
 }

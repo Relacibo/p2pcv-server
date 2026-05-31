@@ -1,5 +1,4 @@
 use chrono::Utc;
-use sha2::{Digest, Sha256};
 use sea_orm::{
     ActiveModelTrait,
     ActiveValue::Set,
@@ -7,6 +6,7 @@ use sea_orm::{
     PaginatorTrait, QueryFilter, QueryOrder, Statement, TransactionTrait,
     sea_query::{Expr, extension::postgres::PgExpr},
 };
+use sha2::{Digest, Sha256};
 use uuid::Uuid;
 
 use crate::{app_result::AppResult, error::AppError};
@@ -69,7 +69,16 @@ impl From<user::Model> for PublicUser {
         Self {
             id: value.id,
             user_name: value.user_name,
-            avatar_hash: if value.use_gravatar { value.custom_avatar_hash.clone().or_else(|| Some(format!("{:x}", Sha256::digest(value.email.trim().to_lowercase().as_bytes())))) } else { None },
+            avatar_hash: if value.use_gravatar {
+                value.custom_avatar_hash.clone().or_else(|| {
+                    Some(format!(
+                        "{:x}",
+                        Sha256::digest(value.email.trim().to_lowercase().as_bytes())
+                    ))
+                })
+            } else {
+                None
+            },
             created_at: value.created_at,
         }
     }
@@ -96,9 +105,7 @@ impl user::Model {
             .filter(
                 Condition::any()
                     .add(super::entities::friend_requests::Column::SenderId.eq(query_uuid))
-                    .add(
-                        super::entities::friend_requests::Column::ReceiverId.eq(query_uuid),
-                    ),
+                    .add(super::entities::friend_requests::Column::ReceiverId.eq(query_uuid)),
             )
             .exec(&txn)
             .await?;
@@ -143,11 +150,11 @@ impl user::Model {
         if let Some(ids) = params.ids.filter(|ids| !ids.is_empty()) {
             query = query.filter(user::Column::Id.is_in(ids));
         }
-        
+
         let paginator = query.paginate(db, limit);
         let total = paginator.num_items().await?;
         let items = paginator.fetch_page(params.page).await?;
-        
+
         Ok(UserPage {
             items: items.into_iter().map(Into::into).collect(),
             total,
@@ -193,14 +200,6 @@ impl user::Model {
         .await?;
         txn.commit().await?;
         Ok(user)
-    }
-
-    pub async fn insert_with_google_id(
-        db: &DatabaseConnection,
-        new_user: NewUser,
-        google_id: &str,
-    ) -> AppResult<user::Model> {
-        Self::insert_with_provider(db, new_user, "google", google_id, None).await
     }
 
     pub async fn get_with_provider(
@@ -379,7 +378,16 @@ impl user::Model {
                 friend: PublicUser {
                     id: row.id,
                     user_name: row.user_name,
-                    avatar_hash: if row.use_gravatar { row.custom_avatar_hash.clone().or_else(|| Some(format!("{:x}", Sha256::digest(row.email.trim().to_lowercase().as_bytes())))) } else { None },
+                    avatar_hash: if row.use_gravatar {
+                        row.custom_avatar_hash.clone().or_else(|| {
+                            Some(format!(
+                                "{:x}",
+                                Sha256::digest(row.email.trim().to_lowercase().as_bytes())
+                            ))
+                        })
+                    } else {
+                        None
+                    },
                     created_at: row.created_at,
                 },
             })

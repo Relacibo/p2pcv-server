@@ -9,6 +9,7 @@ use crate::{
 use super::config::Config;
 
 #[derive(Clone, Debug, Deserialize)]
+#[allow(unused)]
 pub struct GoogleClaims {
     pub aud: String,
     pub exp: usize,
@@ -29,7 +30,7 @@ pub struct GoogleClaims {
 }
 
 impl GoogleClaims {
-    pub fn to_db_user(self, user_name: String) -> NewUser {
+    pub fn into_db_user(self, user_name: String) -> NewUser {
         let Self {
             email,
             locale,
@@ -61,7 +62,7 @@ pub async fn extract_google_claims(
     let PublicKey { n, e, .. } = &key;
     let decoding_key = DecodingKey::from_rsa_raw_components(n, e);
     let mut validation = Validation::new(Algorithm::RS256);
-    validation.set_audience(&[config.client_id.clone()]);
+    validation.set_audience(std::slice::from_ref(&config.client_id));
     validation.set_issuer(&config.issuer);
     let ticket = decode::<GoogleClaims>(credential, &decoding_key, &validation)?;
     Ok(ticket.claims)

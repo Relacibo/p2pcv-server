@@ -8,7 +8,7 @@ pub struct LichessClaims {
 }
 
 impl LichessClaims {
-    pub fn to_db_user(self, user_name: String) -> NewUser {
+    pub fn into_db_user(self, user_name: String) -> NewUser {
         let Self { email, .. } = self;
         NewUser {
             user_name: user_name.clone(),

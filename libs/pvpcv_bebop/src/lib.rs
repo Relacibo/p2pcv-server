@@ -16,14 +16,14 @@ use std::io;
 /// Extension methods on `bebop::Guid` for working with `uuid::Uuid`.
 pub trait GuidExt: Sized {
     fn to_uuid(self) -> uuid::Uuid;
-    fn is_nil(self) -> bool;
+    fn is_nil(&self) -> bool;
 }
 
 impl GuidExt for bebop::Guid {
     fn to_uuid(self) -> uuid::Uuid {
         uuid::Uuid::from_bytes(self.to_be_bytes())
     }
-    fn is_nil(self) -> bool {
+    fn is_nil(&self) -> bool {
         self.to_uuid().is_nil()
     }
 }
@@ -248,9 +248,8 @@ mod tests {
         // Bebop panics on some malformed inputs rather than returning Err —
         // both outcomes (Err or panic) indicate the data was rejected.
         let result = std::panic::catch_unwind(|| S2cMsg::deserialize(&[0xDE, 0xAD, 0xBE, 0xEF]));
-        match result {
-            Ok(inner) => assert!(inner.is_err(), "expected Err on garbage input"),
-            Err(_) => {} // panic is acceptable
+        if let Ok(inner) = result {
+            assert!(inner.is_err(), "expected Err on garbage input")
         }
     }
 }

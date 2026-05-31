@@ -1,5 +1,5 @@
-use uuid::Uuid;
 use std::sync::Arc;
+use uuid::Uuid;
 
 use axum::{
     Json, Router,
@@ -14,8 +14,8 @@ use crate::{
     AppState,
     api::auth::{
         payloads::{
-            ConnectionsResponse, LinkPayload, LoginResponse, ProviderType, SigninPayload,
-            SignupPayload, UnlinkPayload, GuestLoginPayload, LoginResponseSuccess,
+            ConnectionsResponse, GuestLoginPayload, LinkPayload, LoginResponse, ProviderType,
+            SigninPayload, SignupPayload, UnlinkPayload,
         },
         providers::{ProviderFactory, provider::ProviderError},
         session::auth::Auth,
@@ -101,12 +101,20 @@ async fn guest_login(
 ) -> Result<impl IntoResponse, AppError> {
     let guest_id = Uuid::new_v4();
     let access_token = generate_access_token(&state.jwt_config, guest_id, true)?;
-    
-    let mut dummy_user = User { id: guest_id, user_name: format!("Guest {}", payload.display_name), display_name: payload.display_name.clone(), email: "".into(), locale: "en".into(), verified_email: false, use_gravatar: false, custom_avatar_hash: None, created_at: chrono::Utc::now().into(), updated_at: chrono::Utc::now().into() };
-    
-    
-    
-    
+
+    let dummy_user = User {
+        id: guest_id,
+        user_name: format!("Guest {}", payload.display_name),
+        display_name: payload.display_name.clone(),
+        email: "".into(),
+        locale: "en".into(),
+        verified_email: false,
+        use_gravatar: false,
+        custom_avatar_hash: None,
+        created_at: chrono::Utc::now().into(),
+        updated_at: chrono::Utc::now().into(),
+    };
+
     // Return only the access token (no refresh token for guests)
     Ok(Json(LoginResponse::success(access_token, dummy_user)).into_response())
 }

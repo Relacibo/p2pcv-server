@@ -4,7 +4,6 @@ use axum::{
     Json, Router,
     extract::{Path, Query, State},
     http::StatusCode,
-    response::IntoResponse,
     routing::{get, patch},
 };
 use serde::Deserialize;
@@ -16,7 +15,6 @@ use crate::{
     api::auth::session::auth::Auth,
     app_result::EndpointResult,
     db::users::{PublicUser, User},
-    error::AppError,
 };
 
 pub mod friend_requests;
@@ -26,7 +24,10 @@ pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/", get(list))
         .route("/me", patch(update_me))
-        .route("/{uuid}", get(get_user).delete(delete_user).patch(update_user))
+        .route(
+            "/{uuid}",
+            get(get_user).delete(delete_user).patch(update_user),
+        )
         .merge(friend_requests::router())
         .merge(friends::router())
 }
@@ -35,7 +36,10 @@ pub fn router() -> Router<Arc<AppState>> {
 #[serde(rename_all = "camelCase")]
 pub struct PatchUserPayload {
     pub use_gravatar: Option<bool>,
-    #[serde(default, deserialize_with = "serde_with::rust::double_option::deserialize")]
+    #[serde(
+        default,
+        deserialize_with = "serde_with::rust::double_option::deserialize"
+    )]
     pub custom_gravatar_email: Option<Option<String>>,
 }
 
@@ -79,24 +83,20 @@ pub async fn list(
     State(state): State<Arc<AppState>>,
     Query(params): Query<ListParams>,
 ) -> EndpointResult<ListUsersResponse> {
-    let ids: Option<Vec<Uuid>> = params
-        .ids
-        .as_deref()
-        .filter(|s| !s.is_empty())
-        .map(|s| {
-            s.split(',')
-                .filter(|p| !p.is_empty())
-                .filter_map(|p| Uuid::parse_str(p.trim()).ok())
-                .collect()
-        });
-    
+    let ids: Option<Vec<Uuid>> = params.ids.as_deref().filter(|s| !s.is_empty()).map(|s| {
+        s.split(',')
+            .filter(|p| !p.is_empty())
+            .filter_map(|p| Uuid::parse_str(p.trim()).ok())
+            .collect()
+    });
+
     let db_params = crate::db::users::UserListParams {
         page: params.page,
         limit: params.limit,
         q: params.q,
         ids,
     };
-    
+
     let page = User::list(&state.db, db_params).await?;
     Ok(Json(ListUsersResponse::from(page)))
 }
@@ -128,7 +128,7 @@ pub async fn update_user(
 ) -> Result<impl axum::response::IntoResponse, crate::error::AppError> {
     auth.should_be_user(user_id)?;
     let user = User::get(&state.db, auth.user_id).await?;
-    
+
     let mut active: crate::db::entities::users::ActiveModel = user.into();
     if let Some(use_gravatar) = payload.use_gravatar {
         active.use_gravatar = sea_orm::ActiveValue::Set(use_gravatar);
@@ -140,7 +140,7 @@ pub async fn update_user(
         active.custom_avatar_hash = sea_orm::ActiveValue::Set(hash);
     }
     active.updated_at = sea_orm::ActiveValue::Set(chrono::Utc::now().into());
-    
+
     use sea_orm::ActiveModelTrait;
     let updated = active.update(&state.db).await?;
     Ok(Json(updated))
@@ -154,7 +154,7 @@ pub async fn update_me(
     let State(state) = state;
     let Json(payload) = payload;
     let user = User::get(&state.db, auth.user_id).await?;
-    
+
     let mut active: crate::db::entities::users::ActiveModel = user.into();
     if let Some(use_gravatar) = payload.use_gravatar {
         active.use_gravatar = sea_orm::ActiveValue::Set(use_gravatar);
@@ -166,7 +166,7 @@ pub async fn update_me(
         active.custom_avatar_hash = sea_orm::ActiveValue::Set(hash);
     }
     active.updated_at = sea_orm::ActiveValue::Set(chrono::Utc::now().into());
-    
+
     use sea_orm::ActiveModelTrait;
     let updated = active.update(&state.db).await?;
     Ok(Json(updated))

@@ -43,7 +43,7 @@ impl Provider for GoogleProvider {
         username: &str,
     ) -> Result<User, ProviderError> {
         let GoogleClaims { sub, .. } = &self.claims;
-        let new_user: NewUser = self.claims.clone().to_db_user(username.to_string());
+        let new_user: NewUser = self.claims.clone().into_db_user(username.to_string());
         let insert_result = User::insert_with_provider(db, new_user, "google", sub, None).await;
         let user = match insert_result {
             Ok(user) => user,
