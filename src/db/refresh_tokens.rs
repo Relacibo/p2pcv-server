@@ -49,6 +49,7 @@ impl refresh_token::Model {
         Ok(())
     }
 
+    #[allow(dead_code)]
     pub async fn revoke_all_for_user(db: &DatabaseConnection, user_id: Uuid) -> AppResult<()> {
         refresh_token::Entity::update_many()
             .col_expr(refresh_token::Column::Revoked, Expr::value(true))

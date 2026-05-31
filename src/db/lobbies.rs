@@ -127,6 +127,7 @@ impl lobby::Model {
         Ok(Some(true))
     }
 
+    #[allow(dead_code)]
     pub async fn patch_peer_session_id(
         db: &DatabaseConnection,
         id: Uuid,
