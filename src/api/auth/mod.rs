@@ -9,6 +9,7 @@ use axum::{
     routing::{get, post},
 };
 use chrono::Utc;
+use validator::Validate;
 
 use crate::{
     AppState,
@@ -123,6 +124,8 @@ async fn signup(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<SignupPayload>,
 ) -> Result<impl IntoResponse, AppError> {
+    payload.validate()?;
+
     let SignupPayload {
         username,
         oauth_data,

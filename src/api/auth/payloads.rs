@@ -1,3 +1,5 @@
+use validator::ValidationError;
+
 use crate::db::users::User;
 
 #[derive(Debug, Clone, Serialize)]
@@ -41,9 +43,22 @@ pub struct SigninPayload {
     pub oauth_data: OauthData,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+fn validate_username(username: &str) -> Result<(), ValidationError> {
+    if !username.chars().all(|c| c.is_ascii_alphanumeric()) {
+        return Err(ValidationError::new("username must be alphanumeric"));
+    }
+    if let Some(first) = username.chars().next() {
+        if first.is_ascii_digit() {
+            return Err(ValidationError::new("username must not start with a digit"));
+        }
+    }
+    Ok(())
+}
+
+#[derive(Debug, Clone, Deserialize, validator::Validate)]
 #[serde(rename_all = "camelCase")]
 pub struct SignupPayload {
+    #[validate(custom(function = "validate_username"))]
     pub username: String,
     pub oauth_data: OauthData,
 }
