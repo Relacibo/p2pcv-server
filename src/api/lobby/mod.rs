@@ -120,11 +120,20 @@ pub struct PatchLobbyPayload {
     pub allow_guests: Option<bool>,
     pub status: Option<LobbyStatus>,
     pub player_count: Option<u32>,
-    #[serde(default, deserialize_with = "serde_with::rust::double_option::deserialize")]
+    #[serde(
+        default,
+        deserialize_with = "serde_with::rust::double_option::deserialize"
+    )]
     pub min_players: Option<Option<u32>>,
-    #[serde(default, deserialize_with = "serde_with::rust::double_option::deserialize")]
+    #[serde(
+        default,
+        deserialize_with = "serde_with::rust::double_option::deserialize"
+    )]
     pub max_players: Option<Option<u32>>,
-    #[serde(default, deserialize_with = "serde_with::rust::double_option::deserialize")]
+    #[serde(
+        default,
+        deserialize_with = "serde_with::rust::double_option::deserialize"
+    )]
     pub host_peer_session_id: Option<Option<String>>,
     pub script_url: Option<String>,
 }
@@ -139,14 +148,16 @@ pub struct SignalPayload {
 // ── Validation ───────────────────────────────────────────────────────────────
 
 fn validate_script_url(url: &str) -> Result<(), AppError> {
-    let is_github = url.starts_with("https://github.com/")
-        || url.starts_with("https://raw.githubusercontent.com/")
-        || url.starts_with("https://gist.github.com/")
-        || url.starts_with("https://gist.githubusercontent.com/");
+    let prefixes: Vec<String> = std::env::var("ALLOWED_SCRIPT_URL_PREFIXES")
+        .unwrap_or_default()
+        .split(',')
+        .filter(|s| !s.is_empty())
+        .map(|s| s.trim().to_string())
+        .collect();
 
-    if !is_github {
+    if !prefixes.iter().any(|p| url.starts_with(p)) {
         return Err(AppError::InvalidScriptUrl(
-            "Must be a GitHub, GitHub Raw, or Gist URL".to_string(),
+            "URL prefix not allowed".to_string(),
         ));
     }
 

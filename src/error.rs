@@ -50,12 +50,11 @@ pub enum AppError {
 
 impl From<DbErr> for AppError {
     fn from(value: DbErr) -> Self {
-        if let Some(SqlErr::UniqueConstraintViolation(message)) = value.sql_err() {
-            if message.contains("users")
-                && (message.contains("user_name") || message.contains("users_user_name_key"))
-            {
-                return AppError::UsernameAlreadyExists;
-            }
+        if let Some(SqlErr::UniqueConstraintViolation(message)) = value.sql_err()
+            && message.contains("users")
+            && (message.contains("user_name") || message.contains("users_user_name_key"))
+        {
+            return AppError::UsernameAlreadyExists;
         }
         AppError::Db(value)
     }
