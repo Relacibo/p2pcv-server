@@ -42,7 +42,7 @@ pub enum AppError {
     LobbyNotFound,
     #[error("invalid-lobby-status")]
     InvalidLobbyStatus,
-    #[error("invalid-script-url: {0}")]
+    #[error("invalid-script-url:{0}")]
     InvalidScriptUrl(String),
     #[error("turn-not-configured")]
     TurnNotConfigured,
@@ -81,9 +81,9 @@ impl IntoResponse for AppError {
                     _ => StatusCode::INTERNAL_SERVER_ERROR,
                 },
             },
-            AppError::Reqwest(_)
-            | AppError::Unexpected
-            | AppError::SerdeJson(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            AppError::Reqwest(_) | AppError::Unexpected | AppError::SerdeJson(_) => {
+                StatusCode::INTERNAL_SERVER_ERROR
+            }
             AppError::Jwt(_) | AppError::OpenId | AppError::Unauthorized => {
                 StatusCode::UNAUTHORIZED
             }
